@@ -1,0 +1,76 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: quobyte-csi-node-plugin
+spec:
+  selector:
+    matchLabels:
+      app: quobyte-csi-node-plugin
+  template:
+    metadata:
+      labels:
+        app: quobyte-csi-node-plugin
+    spec:
+      serviceAccount: quobyte-csi-node-plugin
+      hostNetwork: true
+      containers:
+        - name: driver-registrar
+          image: quay.io/k8scsi/driver-registrar:v0.2.0
+          args:
+            # --v=5 logs user credentials
+            - "--v=3"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi/
+        - name: quobyte-csi-driver
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: quay.io/quobyte/csi:v0.2.0
+          args :
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--quobytemountpath=$(QUOBYTE_MOUNT_PATH)"
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: QUOBYTE_MOUNT_PATH
+              value:  /mnt/quobyte/mounts
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+            - name: quobyte-mounts
+              mountPath: /mnt/quobyte
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet/pods
+            type: Directory
+        - name: quobyte-mounts
+          hostPath:
+            # Quobyte client also should use the same mount point
+            path: /mnt/quobyte
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            # required by kubernetes CSI
+            path: /var/lib/kubelet/plugins/quobyte-csi
+            type: DirectoryOrCreate

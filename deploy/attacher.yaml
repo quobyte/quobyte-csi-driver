@@ -1,0 +1,57 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: quobyte-csi-attacher
+  labels:
+    app: quobyte-csi-attacher
+spec:
+  selector:
+    app: quobyte-csi-attacher
+  ports:
+    - name: quobyte-csi-attacher
+      port: 7820
+---
+kind: StatefulSet
+apiVersion: apps/v1beta1
+metadata:
+  name: quobyte-csi-attacher
+spec:
+  serviceName: "quobyte-csi-attacher"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: quobyte-csi-attacher
+    spec:
+      serviceAccount: csi-attacher
+      containers:
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v0.2.0
+          args:
+          # --v=5 logs user credentials
+            - "--v=3"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value:  /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: quobyte-csi-attacher
+          image: quay.io/quobyte/csi:v0.2.0
+          args :
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--quobytemountpath=$(QUOBYTE_MOUNT_PATH)"
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: QUOBYTE_MOUNT_PATH
+              value: /mnt/quobyte/mounts
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}

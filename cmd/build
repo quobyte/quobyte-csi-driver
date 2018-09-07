@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ "$1" = '' || "$1" = '-h' || "$1" = '--help' ]]; then
+  echo "Usage: ./build <CONTAINER_URL>"
+  echo "Example: ./build quay.io/quobyte/csi:v0.2.0"
+  exit 0
+else
+  IMAGE=$1
+fi
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi
+sudo docker build -t quobyte-csi -f Dockerfile .
+sudo docker run -it quobyte-csi
+CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
+echo "pushing $CSI_RUN_ID"
+sudo docker commit "$CSI_RUN_ID" "$IMAGE"
+sudo docker push "$IMAGE"
