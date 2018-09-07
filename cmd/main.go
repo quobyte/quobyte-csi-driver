@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/quobyte/csi-quobyte/driver"
+	"github.com/quobyte/quobyte-csi/driver"
 )
 
 var (
