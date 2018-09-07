@@ -7,7 +7,7 @@ if [[ "$1" = '' || "$1" = '-h' || "$1" = '--help' ]]; then
 else
   IMAGE=$1
 fi
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ../main.go -o quobyte-csi
 sudo docker build -t quobyte-csi -f Dockerfile .
 sudo docker run -it quobyte-csi
 CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
