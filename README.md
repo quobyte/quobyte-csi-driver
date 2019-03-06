@@ -24,12 +24,12 @@ Deploy RBAC as required by [CSI](https://kubernetes-csi.github.io/docs/Example.h
  containers along with Quobyte CSI plugin containers
 
 ```bash
-kubectl create -f attacher-rbac.yaml
-kubectl create -f nodeplugin-rbac.yaml
-kubectl create -f provisioner-rbac.yaml
-kubectl create -f attacher.yaml
-kubectl create -f plugin.yaml
-kubectl create -f provisioner.yaml
+kubectl create -f deploy/attacher-rbac.yaml
+kubectl create -f deploy/nodeplugin-rbac.yaml
+kubectl create -f deploy/provisioner-rbac.yaml
+kubectl create -f deploy/attacher.yaml
+kubectl create -f deploy/plugin.yaml
+kubectl create -f deploy/provisioner.yaml
 ```
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
