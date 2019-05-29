@@ -19,6 +19,8 @@ const (
 	//DefaultCreateQuota Quobyte CSI by default does NOT create volumes with Quotas.
 	// To create Quotas for the volumes, set createQuota: "true" in storage class
 	DefaultCreateQuota = false
+	DefaultUser        = "root"
+	DefaultGroup       = "nfsnobody"
 )
 
 // CreateVolume creates quobyte volume
@@ -37,6 +39,8 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volRequest.Name = volName
 	volRequest.TenantID = DefaultTenant
 	volRequest.ConfigurationName = DefaultConfig
+	volRequest.RootUserID = DefaultUser
+	volRequest.RootGroupID = DefaultGroup
 	createQuota := DefaultCreateQuota
 	var apiURL string
 	for k, v := range params {
