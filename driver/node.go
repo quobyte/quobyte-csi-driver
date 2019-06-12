@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/glog"
 
 	"google.golang.org/grpc/codes"
@@ -20,7 +20,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	volumeId := req.GetVolumeId()
 	// Incase of preprovisioned volumes, NodePublishSecrets are not taken from storage class but
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
-	secrets := req.GetNodePublishSecrets()
+	secrets := req.GetSecrets()
 	volParts := strings.Split(volumeId, "|")
 	if len(volParts) != 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
@@ -80,13 +80,6 @@ func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUn
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
-// NodeGetId returns the unique node ID, currently unique id is hostname of the node
-func (d *QuobyteDriver) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	return &csi.NodeGetIdResponse{
-		NodeId: d.NodeName,
-	}, nil
-}
-
 // NodeGetCapabilities returns the capabilities of the node server
 func (d *QuobyteDriver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	return &csi.NodeGetCapabilitiesResponse{
@@ -116,4 +109,12 @@ func (d *QuobyteDriver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReq
 	return &csi.NodeGetInfoResponse{
 		NodeId: d.NodeName,
 	}, nil
+}
+
+func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume: Not implented by Quobyte CSI")
+}
+
+func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats: Not implented by Quobyte CSI")
 }

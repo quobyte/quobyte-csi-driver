@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	quobyte "github.com/quobyte/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,7 +29,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, fmt.Errorf("container orchestrator should send the storage cluster details")
 	}
 	params := req.Parameters
-	secrets := req.ControllerCreateSecrets
+	secrets := req.Secrets
 	capacity := req.GetCapacityRange().RequiredBytes
 	volName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
@@ -86,7 +86,8 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
 			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
 			// for pre-provisioned volumes
-			Id: volRequest.TenantID + "|" + volUUID,
+			VolumeId:      volRequest.TenantID + "|" + volUUID,
+			CapacityBytes: capacity,
 		},
 	}
 	return resp, nil
@@ -105,7 +106,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if len(volID) == 0 {
 		return nil, fmt.Errorf("volumeId is required for DeleteVolume")
 	}
-	secrets := req.GetControllerDeleteSecrets()
+	secrets := req.GetSecrets()
 	params := strings.Split(volID, "|")
 	if len(params) != 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
@@ -183,4 +184,8 @@ func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnaps
 
 func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "ListSnapshots: Snapshots are not implemented by Quobyte CSI.")
+}
+
+func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume: Not implented by Quobyte CSI")
 }

@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	endpoint         = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
-	clientMountPoint = flag.String("quobytemountpath", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
+	endpoint         = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
+	clientMountPoint = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
 	apiURL           = flag.String("api_url", "", "Quobyte API URL")
 	nodeName         = flag.String("node_name", "", "Node name from K8S environment")
 )

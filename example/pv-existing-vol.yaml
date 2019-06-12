@@ -12,8 +12,8 @@ spec:
   storageClassName: quobyte-csi
   csi:
     driver: quobyte-csi
-    # VolumeHandle should be of the format <API_URL>|<TENANT_NMAE/UUID>|<VOLUME_NAME/UUID>
-    volumeHandle: http://api.quobyte:7860|My Tenant|test
+    # VolumeHandle should be of the format <TENANT_NMAE/UUID>|<VOLUME_NAME/UUID>
+    volumeHandle: My Tenant|test
     readOnly: false
     nodePublishSecretRef:
       name: quobyte-admin-secret

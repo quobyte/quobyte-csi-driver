@@ -9,14 +9,14 @@ import (
 	"path"
 	"path/filepath"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
 )
 
 const (
 	driverName    = "csi.quobyte.com"
-	driverVersion = "v0.2.0"
+	driverVersion = "v0.3.0" // Based on CSI spec version v0.3.0
 )
 
 // QuobyteDriver CSI driver type
@@ -56,7 +56,7 @@ func (qd *QuobyteDriver) Run() error {
 	if u.Scheme != "unix" {
 		return fmt.Errorf("CSI currently only supports unix domain sockets, given %s", u.Scheme)
 	}
-	glog.Info("Remove socket if it already exists in the path %s", qd.endpoint)
+	glog.Infof("Remove socket if it already exists in the path %s", qd.endpoint)
 	if err := os.Remove(address); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove unix domain socket file %s, error: %v", address, err)
 	}

@@ -15,7 +15,7 @@ spec:
       hostNetwork: true
       containers:
         - name: driver-registrar
-          image: quay.io/k8scsi/driver-registrar:v0.2.0
+          image: quay.io/k8scsi/driver-registrar:v0.4.2
           args:
             # --v=5 logs user credentials
             - "--v=3"
@@ -36,19 +36,26 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/quobyte/csi:v0.2.0
+          image: quay.io/venkat_443/csi:v0.3.0-rc
           args :
-            - "--endpoint=$(CSI_ENDPOINT)"
-            - "--quobytemountpath=$(QUOBYTE_MOUNT_PATH)"
+            - "--csi_socket=$(CSI_ENDPOINT)"
+            - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
+            - "--node_name=$(KUBE_NODE_NAME)"
+            - "--api_url=$(QUOBYTE_API_URL)"
           env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value:  /mnt/quobyte/mounts
+              value: /mnt/quobyte/mounts
+            - name: QUOBYTE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quobyte-csi-config
+                  key: quobyte.apiURL # Quobyte API URL
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           imagePullPolicy: "Always"
           volumeMounts:
             - name: kubelet-dir
