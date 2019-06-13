@@ -3,10 +3,9 @@ package driver
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/glog"
 
 	"google.golang.org/grpc/codes"
@@ -21,22 +20,18 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	volumeId := req.GetVolumeId()
 	// Incase of preprovisioned volumes, NodePublishSecrets are not taken from storage class but
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
-	secrets := req.GetNodePublishSecrets()
-
+	secrets := req.GetSecrets()
 	volParts := strings.Split(volumeId, "|")
-
-	if len(volParts) != 3 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <API_URL>|<TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
+	if len(volParts) != 2 {
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
 	}
 	if len(targetPath) == 0 {
 		return nil, fmt.Errorf("given target mount path is empty")
 	}
-
 	var volUUID string
-
 	if len(secrets) == 0 {
 		glog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
-		volUUID = volParts[2]
+		volUUID = volParts[1]
 	} else {
 		quobyteClient, err := getAPIClient(secrets, volParts[0])
 		if err != nil {
@@ -44,14 +39,12 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 		// volume name should be retrieved from the req.GetVolumeId()
 		// Due to csi lacking in parameter passing during delete Volume, req.volumeId is changed
-		// to <API_URL>|<TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>. see controller.go CreateVolume for the details.
-
-		volUUID, err = quobyteClient.GetVolumeUUID(volParts[2], volParts[1])
+		// to <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>. see controller.go CreateVolume for the details.
+		volUUID, err = quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	var options []string
 	if readonly {
 		options = append(options, "ro")
@@ -66,12 +59,10 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-
 	err := Mount(fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID), targetPath, "quobyte", options)
 	if err != nil {
 		return nil, err
 	}
-
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -81,23 +72,12 @@ func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUn
 	if len(target) == 0 {
 		return nil, fmt.Errorf("target for unmount is empty")
 	}
-	glog.Info("Unmounting %s", target)
+	glog.Infof("Unmounting %s", target)
 	err := Unmount(target)
 	if err != nil {
 		return nil, err
 	}
 	return &csi.NodeUnpublishVolumeResponse{}, nil
-}
-
-// NodeGetId returns the unique node ID, currently unique id is hostname of the node
-func (d *QuobyteDriver) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	host, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
-	return &csi.NodeGetIdResponse{
-		NodeId: host,
-	}, nil
 }
 
 // NodeGetCapabilities returns the capabilities of the node server
@@ -123,4 +103,18 @@ func (d *QuobyteDriver) NodeStageVolume(ctx context.Context, req *csi.NodeStageV
 // NodeUnstageVolume Unstages the volume from /mnt/quobyte
 func (d *QuobyteDriver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "NodeUnstageVolume: Not implented by Quobyte CSI")
+}
+
+func (d *QuobyteDriver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	return &csi.NodeGetInfoResponse{
+		NodeId: d.NodeName,
+	}, nil
+}
+
+func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume: Not implented by Quobyte CSI")
+}
+
+func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats: Not implented by Quobyte CSI")
 }

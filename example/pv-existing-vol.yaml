@@ -11,9 +11,11 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: quobyte-csi
   csi:
-    driver: quobyte-csi
-    # VolumeHandle should be of the format <API_URL>|<TENANT_NMAE/UUID>|<VOLUME_NAME/UUID>
-    volumeHandle: http://api.quobyte:7860|My Tenant|test
+    driver: csi.quobyte.com
+    # VolumeHandle should be of the format <TENANT_UUID/NAME>|<VOLUME_UUID/NAME>
+    volumeHandle: "My Tenant|test"
+    # fsType is required, if missed volume mount fails with unclear failure event logs
+    fsType: ext4 
     readOnly: false
     nodePublishSecretRef:
       name: quobyte-admin-secret

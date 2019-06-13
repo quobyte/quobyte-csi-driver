@@ -1,16 +1,24 @@
+
 #!/bin/bash
 
-if [[ "$1" = '' || "$1" = '-h' || "$1" = '--help' ]]; then
-  echo "Usage: ./build <CONTAINER_URL>"
+if [[ "$1" = '-h' || "$1" = '--help' ]]; then
+  echo './build                    Builds the executable'
+  echo './build  <CONTAINER_URL>   Builds the executable, docker image and'
+  echo '                            pushes it to the given <CONTAINER_URL>'
   echo "Example: ./build quay.io/quobyte/csi:v0.2.0"
   exit 0
 else
-  IMAGE=$1
+  echo 'Building executable'
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi main.go
+  echo 'Executable is built'
+  if [[ ! -z "$1" ]]; then
+   echo 'Building docker image'
+   IMAGE=$1
+   sudo docker build -t quobyte-csi -f Dockerfile .
+   sudo docker run -it quobyte-csi
+   CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
+   echo "Pushing $CSI_RUN_ID to $1"
+   sudo docker commit "$CSI_RUN_ID" "$IMAGE"
+   sudo docker push "$IMAGE"
+  fi
 fi
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ../main.go -o quobyte-csi
-sudo docker build -t quobyte-csi -f Dockerfile .
-sudo docker run -it quobyte-csi
-CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
-echo "pushing $CSI_RUN_ID"
-sudo docker commit "$CSI_RUN_ID" "$IMAGE"
-sudo docker push "$IMAGE"

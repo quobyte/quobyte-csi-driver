@@ -10,8 +10,10 @@ import (
 )
 
 var (
-	endpoint         = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
-	clientMountPoint = flag.String("quobytemountpath", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
+	endpoint         = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
+	clientMountPoint = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
+	apiURL           = flag.String("api_url", "", "Quobyte API URL")
+	nodeName         = flag.String("node_name", "", "Node name from K8S environment")
 )
 
 func main() {
@@ -19,7 +21,7 @@ func main() {
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
-	qd := driver.NewQuobyteDriver(endpoint, clientMountPoint)
+	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL)
 	err := qd.Run()
 	if err != nil {
 		glog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)

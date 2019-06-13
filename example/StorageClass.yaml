@@ -2,13 +2,10 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: quobyte-csi
-provisioner: quobyte-csi
+provisioner: csi.quobyte.com
 parameters:
-  quobyteAPIServer: "http://api.quobyte:7860"
   csiProvisionerSecretName: "quobyte-admin-secret"
   csiProvisionerSecretNamespace: "quobyte"
-  user: "root"
-  group: "root"
   quobyteConfig: "BASE"
   quobyteTenant: "My Tenant"
   createQuota: "False"

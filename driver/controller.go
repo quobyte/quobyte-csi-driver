@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	quobyte "github.com/quobyte/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,30 +19,28 @@ const (
 	//DefaultCreateQuota Quobyte CSI by default does NOT create volumes with Quotas.
 	// To create Quotas for the volumes, set createQuota: "true" in storage class
 	DefaultCreateQuota = false
+	DefaultUser        = "root"
+	DefaultGroup       = "nfsnobody"
 )
 
 // CreateVolume creates quobyte volume
 func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-
 	if req == nil {
 		return nil, fmt.Errorf("container orchestrator should send the storage cluster details")
 	}
-
 	params := req.Parameters
-	secrets := req.ControllerCreateSecrets
+	secrets := req.Secrets
 	capacity := req.GetCapacityRange().RequiredBytes
 	volName := req.Name
-
 	volRequest := &quobyte.CreateVolumeRequest{}
 	volRequest.Name = volName
 	volRequest.TenantID = DefaultTenant
 	volRequest.ConfigurationName = DefaultConfig
+	volRequest.RootUserID = DefaultUser
+	volRequest.RootGroupID = DefaultGroup
 	createQuota := DefaultCreateQuota
-	var apiURL string
 	for k, v := range params {
 		switch strings.ToLower(k) {
-		case "quobyteapiserver":
-			apiURL = v
 		case "quobytetenant":
 			volRequest.TenantID = v
 		case "user":
@@ -55,21 +53,19 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			createQuota = strings.ToLower(v) == "true"
 		}
 	}
-
-	if len(apiURL) == 0 {
-		return nil, fmt.Errorf("quobyteapiserver is required")
-	}
-
-	quobyteClient, err := getAPIClient(secrets, apiURL)
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
 	if err != nil {
 		return nil, err
 	}
 	volUUID, err := quobyteClient.CreateVolume(volRequest)
 	if err != nil {
-		//
+		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
+		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+			return nil, err
+		}
+		volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
 		return nil, err
 	}
-
 	if createQuota {
 		err := quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
 		if err != nil {
@@ -77,24 +73,31 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			return nil, err
 		}
 	}
-
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			// CSI does not pass on vendor specific parameters to DeleteVolume and we require API url during volume delete
-			// this hacky append serves the purpose as of now. The format of the hack <API_URL>|<TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID>
+			// this hacky append serves the purpose as of now. The format of the hack <TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID>
 			// Implications of this are
 			// 	 1. All the subsequent calls should not use value of req.GetVolumeId() or req.VolumeId directly as volume name
 			//   but parse and resolve UUID to name wherever required.
-			//   2. Must be aware of the  <API_URL>|<TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID> while using req.GetVolumeId() or req.VolumeId
+			//   2. Must be aware of the  <TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID> while using req.GetVolumeId() or req.VolumeId
 
-			// Currently volume handle is the combination of  <API_URL>,<TenantName/TenantUUID>, and <VOL_NAME/VOLUME_UUID>
+			// Currently volume handle is the combination of  <TenantName/TenantUUID>, and <VOL_NAME/VOLUME_UUID>
 			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
 			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
 			// for pre-provisioned volumes
-			Id: apiURL + "|" + volRequest.TenantID + "|" + volUUID,
+			VolumeId:      volRequest.TenantID + "|" + volUUID,
+			CapacityBytes: capacity,
 		},
 	}
 	return resp, nil
+}
+
+func getUUIDFromError(errMsg string) string {
+	uuidLocator := "used by volume "
+	index := strings.Index(errMsg, uuidLocator)
+	uuid := errMsg[index+len(uuidLocator) : len(errMsg)-2]
+	return strings.TrimSpace(uuid)
 }
 
 // DeleteVolume deletes the given volume.
@@ -103,21 +106,19 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if len(volID) == 0 {
 		return nil, fmt.Errorf("volumeId is required for DeleteVolume")
 	}
-	secrets := req.GetControllerDeleteSecrets()
+	secrets := req.GetSecrets()
 	params := strings.Split(volID, "|")
-	if len(params) != 3 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <API_URL>|<VOL_NAME/VOL_UUID>|<Tenant_Name/Tenant_UUID>", volID)
+	if len(params) != 2 {
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
 	}
-	quobyteClient, err := getAPIClient(secrets, params[0])
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
 	if err != nil {
 		return nil, err
 	}
-
-	err = quobyteClient.DeleteVolumeByResolvingNamesToUUID(params[2], params[1])
+	err = quobyteClient.DeleteVolumeByResolvingNamesToUUID(params[1], params[0])
 	if err != nil {
 		return nil, err
 	}
-
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -162,13 +163,29 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 				},
 			},
 		},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
-					},
-				},
-			},
+		// {
+		// 	Type: &csi.ControllerServiceCapability_Rpc{
+		// 		Rpc: &csi.ControllerServiceCapability_RPC{
+		// 			Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+		// 		},
+		// 	},
+		// },
 		},
 	}, nil
+}
+
+func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "CreateSnapshot: Snapshots are not implemented by Quobyte CSI.")
+}
+
+func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "DeleteSnapshot: Snapshots are not implemented by Quobyte CSI.")
+}
+
+func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "ListSnapshots: Snapshots are not implemented by Quobyte CSI.")
+}
+
+func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume: Not implented by Quobyte CSI")
 }
