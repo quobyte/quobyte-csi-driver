@@ -1,8 +1,8 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: client
-  namespace: quobyte
+  namespace: <CHANGE-NAMESPACE>
 spec:
   selector:
     matchLabels:
@@ -25,7 +25,7 @@ spec:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
-            value: registry.quobyte
+            value: hydrogen.corp.quobyte.com:12354 # TODO: update registry
           - name: QUOBYTE_MOUNT_POINT
             # Note that the mount point has to be a subdir of the volume(Mount)
             value: /mnt/quobyte/mounts
@@ -76,7 +76,7 @@ spec:
           privileged: true
         volumeMounts:
           - name: quobyte-mount
-            mountPath: /mnt
+            mountPath: /mnt/quobyte
             mountPropagation: Bidirectional
           - name: minidumps-dir
             mountPath: /tmp/minidumps

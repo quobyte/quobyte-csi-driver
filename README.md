@@ -11,26 +11,37 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.10.7 or higher
+* Kubernetes v1.13 or higher
 * Quobyte installation with reachable registry and api services from the nodes
-* Quobyte client with
+* Quobyte client with (please see `example/client.yaml` for sample configuration)
   * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
   * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
   * host path volume `/mnt/quobyte`
 * Additionally, Kubernetes CSI requires some Kubernetes helper containers and corresponding RBAC
  permissions
 
-Deploy RBAC as required by [CSI](https://kubernetes-csi.github.io/docs/Example.html) and CSI helper
+## Deploy Quobyte CSI
+
+1. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL
+2. Create configuration
+`kubectl create -f deploy/config.yaml` 
+3. Deploy RBAC as required by [CSI](https://kubernetes-csi.github.io/docs/Example.html) and CSI helper
  containers along with Quobyte CSI plugin containers
 
 ```bash
-kubectl create -f deploy/attacher-rbac.yaml
-kubectl create -f deploy/nodeplugin-rbac.yaml
-kubectl create -f deploy/provisioner-rbac.yaml
-kubectl create -f deploy/attacher.yaml
-kubectl create -f deploy/plugin.yaml
-kubectl create -f deploy/provisioner.yaml
+kubectl create -f deploy/deploy-csi-driver-1.0.1.yaml
 ```
+
+4. Verify the status of Quobyte CSI driver pods
+
+```
+kubectl -n kube-system get po -owide | grep ^quobyte-csi
+```
+
+The Quobyte CSI plugin is ready to use, if you see `quobyte-csi-controller-x` pod running on any one node and `quobyte-csi-node-xxxxx`
+ running on every node of the Kubernetes cluster.
+
+## Use Quobyte volumes in Kubernetes
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte login credentials. Kubernetes requires base64 encoding for secrets which can be created
@@ -47,7 +58,7 @@ Create a storage class with the `provisioner` set to `quobyte-csi` along with ot
 kubectl create -f example/StorageClass.yaml
 ```
 
-## Dynamic volume provisioning
+### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in previous step would provision dynamic
  volume.The provisoning happens through Kubernetes CSI - creates the PV inside Kubernetes and
@@ -63,7 +74,7 @@ Mount the PVC in a pod as shown in the following example
 kubectl create -f example/pod-with-dynamic-vol.yaml
 ```
 
-## Using existing volumes
+### Using existing volumes
 
 Quobyte CSI requires the volume UUID to be passed on to the PV as `VolumeHandle`  
 
@@ -72,7 +83,7 @@ In order to use the `test` volume belonging to the tenant `My Test`, user needs 
 `NOTE:`
 
 * Quobyte-csi supports both volume name and UUID
-  * **To use Volume Name** `VolumeHandle` should be of the format `<API_URL>|<Tenant_Name/UUID>|<Volume_Name>`
+  * **To use Volume Name** `VolumeHandle` should be of the format `<Tenant_Name/UUID>|<Volume_Name>`
    and `nodePublishSecretRef` with Quobyte API login credentials should be specified as shown in the
    example PV `example/pv-existing-vol.yaml`
   * **To use Volume UUID** `VolumeHandle` can be `||<Volume_UUID>`.

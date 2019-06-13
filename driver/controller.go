@@ -163,13 +163,13 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 				},
 			},
 		},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
-					},
-				},
-			},
+		// {
+		// 	Type: &csi.ControllerServiceCapability_Rpc{
+		// 		Rpc: &csi.ControllerServiceCapability_RPC{
+		// 			Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+		// 		},
+		// 	},
+		// },
 		},
 	}, nil
 }
