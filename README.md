@@ -17,10 +17,8 @@ Quobyte CSI is the implementation of
 * Quobyte client with (please see `example/client.yaml` for sample configuration)
   * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
   * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
-  * host path volume `/mnt/quobyte`
+  * host path volume `/mnt/quobyte`  
   Alternatively, Kubernetes nodes can have Quobyte native client with mount path as `/mnt/quobyte/mounts`
-* Additionally, Kubernetes CSI requires some Kubernetes helper containers and corresponding RBAC
- permissions
 
 ## Deploy Quobyte CSI
 
