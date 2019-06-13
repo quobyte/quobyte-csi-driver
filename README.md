@@ -12,11 +12,13 @@ Quobyte CSI is the implementation of
 ## Requirements
 
 * Kubernetes v1.13 or higher
+  * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled.
 * Quobyte installation with reachable registry and api services from the nodes
 * Quobyte client with (please see `example/client.yaml` for sample configuration)
   * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
   * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
   * host path volume `/mnt/quobyte`
+  Alternatively, Kubernetes nodes can have Quobyte native client with mount path as `/mnt/quobyte/mounts`
 * Additionally, Kubernetes CSI requires some Kubernetes helper containers and corresponding RBAC
  permissions
 
@@ -24,7 +26,9 @@ Quobyte CSI is the implementation of
 
 1. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL
 2. Create configuration
-`kubectl create -f deploy/config.yaml` 
+
+```kubectl create -f deploy/config.yaml```
+
 3. Deploy RBAC as required by [CSI](https://kubernetes-csi.github.io/docs/Example.html) and CSI helper
  containers along with Quobyte CSI plugin containers
 
@@ -51,7 +55,7 @@ Quobyte requires a secret to authenticate volume create and delete requests. Cre
 kubectl create -f example/csi-secret.yaml
 ```
 
-Create a storage class with the `provisioner` set to `quobyte-csi` along with other configuration
+Create a storage class with the `provisioner` set to `csi.quobyte.com` along with other configuration
  parameters.
 
 ```bash

@@ -29,6 +29,14 @@ spec:
               type: string
   version: v1alpha1
 ---
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: csi.quobyte.com
+spec:
+  attachRequired: false
+  podInfoOnMount: false
+---  
 kind: StatefulSet
 apiVersion: apps/v1beta1
 metadata:
