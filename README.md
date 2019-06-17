@@ -88,7 +88,7 @@ In order to use the `test` volume belonging to the tenant `My Test`, user needs 
   * **To use Volume Name** `VolumeHandle` should be of the format `<Tenant_Name/UUID>|<Volume_Name>`
    and `nodePublishSecretRef` with Quobyte API login credentials should be specified as shown in the
    example PV `example/pv-existing-vol.yaml`
-  * **To use Volume UUID** `VolumeHandle` can be `||<Volume_UUID>`.
+  * **To use Volume UUID** `VolumeHandle` can be `|<Volume_UUID>`.
 
 ```bash
 kubectl create -f example/pv-existing-vol.yaml
