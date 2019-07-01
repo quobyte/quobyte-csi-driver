@@ -21,6 +21,8 @@ func main() {
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
+	// TODO (venkat): validate API url and node name
+
 	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL)
 	err := qd.Run()
 	if err != nil {
