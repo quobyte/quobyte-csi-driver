@@ -17,10 +17,10 @@ if [ -d csi_logs ]; then
 fi
 
 mkdir -p ./csi_logs
-echo '###CSIDriver object status###'
+echo '###CSIDriver object status###' >> ./csi_logs/csi_pods.txt
 kubectl get CSIDriver | grep ^csi.quobyte.com >> ./csi_logs/csi_pods.txt
-echo ''
-echo '###Quobyte CSI pods status###'
+echo '' >> ./csi_logs/csi_pods.txt
+echo '###Quobyte CSI pods status###' >> ./csi_logs/csi_pods.txt
 kubectl -n kube-system get po -owide | grep ^quobyte-csi >> ./csi_logs/csi_pods.txt
 
 for el in "${csi_pods[@]}"
