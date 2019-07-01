@@ -28,7 +28,7 @@ sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/m
 
 To use Quobyte volumes in Kubernetes, nodes must have a running Quobyte client
  with the mount point as `/mnt/quobyte/mounts`. Please see the
- [example client configuration](https://github.com/quobyte/quobyte-csi/blob/master/example/client.yaml).
+ [example client configuration](https://github.com/quobyte/quobyte-csi/blob/v1.0.0/example/client.yaml).
 
 Label Kubernetes nodes
 
