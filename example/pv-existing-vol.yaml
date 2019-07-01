@@ -13,10 +13,12 @@ spec:
   csi:
     driver: csi.quobyte.com
     # VolumeHandle should be of the format <TENANT_UUID/NAME>|<VOLUME_UUID/NAME>
+    # VolumeHandle can be '|VOLUME_UUID'
     volumeHandle: "My Tenant|test"
     # fsType is required, if missed volume mount fails with unclear failure event logs
     fsType: ext4 
     readOnly: false
+    # nodePublishSecretRef is required only if you use volumeHandle: <TENANT_NAME|VOLUME_NAME>
     nodePublishSecretRef:
       name: quobyte-admin-secret
       namespace: quobyte
