@@ -16,7 +16,7 @@ import (
 
 const (
 	driverName    = "csi.quobyte.com"
-	driverVersion = "v0.3.0" // Based on CSI spec version v0.3.0
+	driverVersion = "v1.0.0" // Based on CSI spec version v1.0.0
 )
 
 // QuobyteDriver CSI driver type
@@ -41,7 +41,10 @@ func (qd *QuobyteDriver) Run() error {
 		return fmt.Errorf("--quobyte_mount_path is required. Supplied value should match environment varialbe QUOBYTE_MOUNT_POINT of Quobyte client pod.")
 	}
 	if len(qd.ApiURL) == 0 {
-		return fmt.Errorf("--api_url is required.")
+		apiURLError := `--api_url is required.
+		Please make sure you have deployed deploy/config.yaml with your Quobyte API endpoint. 
+		Changing and redeploying deploy/config.yaml requires reinstallation of Quobyte CSI driver.`
+		return fmt.Errorf(apiURLError)
 	}
 	u, err := url.Parse(qd.endpoint)
 	if err != nil {

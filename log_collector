@@ -1,0 +1,48 @@
+#!/bin/bash
+
+DRIVER_NAMESPACE="kube-system"
+
+csi_pods=()
+while IFS= read -r line; do
+    csi_pods+=( "$line" )
+done < <(kubectl -n $DRIVER_NAMESPACE get po -owide | grep ^quobyte-csi | cut -f 1 -d' ')
+
+if [[ ${#csi_pods[@]} == 0 ]]; then
+  echo "Quobyte CSI pods are not found under $DRIVER_NAMESPACE namespace."
+  exit 1
+fi
+
+if [ -d csi_logs ]; then
+  rm -rf csi_logs
+fi
+
+mkdir -p ./csi_logs
+echo '###CSIDriver object status###' >> ./csi_logs/csi_pods.txt
+kubectl get CSIDriver | grep ^csi.quobyte.com >> ./csi_logs/csi_pods.txt
+echo '' >> ./csi_logs/csi_pods.txt
+echo '###Quobyte CSI pods status###' >> ./csi_logs/csi_pods.txt
+kubectl -n $DRIVER_NAMESPACE get po -owide | grep ^quobyte-csi >> ./csi_logs/csi_pods.txt
+
+for el in "${csi_pods[@]}"
+do
+  mkdir -p "./csi_logs/$el"
+  if [[ $el =~ quobyte-csi-controller.* ]]; then
+    kubectl -n $DRIVER_NAMESPACE logs $el -c csi-provisioner >> ./csi_logs/$el/csi-provisioner.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c csi-attacher >> ./csi_logs/$el/csi-attacher.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c csi-cluster-driver-registrar >> ./csi_logs/$el/csi-cluster-driver-registrar.log
+    #kubectl cp does not support wildcard copy at the moment.
+    # use :/tmp/quobyte-csi* once it is supported.
+    kubectl cp $DRIVER_NAMESPACE/$el:/tmp/ ./csi_logs/$el/ -c quobyte-csi-plugin
+  elif [[ $el =~ quobyte-csi-node.* ]];then
+    kubectl -n $DRIVER_NAMESPACE logs $el -c csi-node-driver-registrar >> ./csi_logs/$el/csi-node-driver-registrar.log
+    #kubectl cp does not support wildcard copy at the moment.
+    # use :/tmp/quobyte-csi* once it is supported.
+    kubectl cp $DRIVER_NAMESPACE/$el:/tmp/ ./csi_logs/$el/ -c quobyte-csi-plugin
+ fi
+done
+
+if [[ -f quobyte_csi_logs.tar.gz ]]; then
+ rm quobyte_csi_logs.tar.gz
+fi
+
+tar -zcf quobyte_csi_logs.tar.gz ./csi_logs

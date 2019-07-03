@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: client
-  namespace: <CHANGE-NAMESPACE>
+  namespace: <CHANGE-NAMESPACE> 
 spec:
   selector:
     matchLabels:
@@ -25,9 +25,9 @@ spec:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
-            value: hydrogen.corp.quobyte.com:12354 # TODO: update registry
+            # Your Quobyte registry endpoint
+            value: <YOUR_QUOBYTE_REGISTRY> # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
-            # Note that the mount point has to be a subdir of the volume(Mount)
             value: /mnt/quobyte/mounts
           - name: NODENAME
             valueFrom:
