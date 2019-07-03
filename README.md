@@ -41,6 +41,7 @@ Using `HTTPS`
 ```bash
 git clone https://github.com/quobyte/quobyte-csi.git
 cd quobyte-csi
+git checkout tags/v1.0.0 # checkout release v1.0.0
 ```
 
 Using `SSH`
@@ -48,6 +49,7 @@ Using `SSH`
 ```bash
 git clone git@github.com:quobyte/quobyte-csi.git
 cd quobyte-csi
+git checkout tags/v1.0.0 # checkout release v1.0.0
 ```
 
 2. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL.
