@@ -52,6 +52,7 @@ cd quobyte-csi
 
 2. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL.
  Quobyte API URL can be obtained from the Quobyte Webconsole (click on info icon and chose `CLI and API...`).
+
 3. Create configuration
 
 ```kubectl create -f deploy/config.yaml```
@@ -87,6 +88,15 @@ The Quobyte CSI plugin is ready to use, if you see `quobyte-csi-controller-x`
 ```bash
 kubectl -n kube-system get po -owide | grep ^quobyte-csi
 ```
+
+6. Make sure your CSI driver is running against the expected Quobyte API endpoint
+
+```bash
+kubectl -n kube-system exec -it "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL
+```
+
+The above command should print your Quobyte API endpoint. If not, please verify `deploy/config.yaml` and redeploy with correct `quobyte.apiURL`.
+ After that, uninstall Quobyte CSI driver and install again.
 
 ## Use Quobyte volumes in Kubernetes
 
