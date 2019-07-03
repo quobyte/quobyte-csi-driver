@@ -1,5 +1,7 @@
 # Deploy Quobyte clients
 
+Quobyte CSI driver requires Quobyte client to be installed with mount point `/mnt/quobyte/mounts`.
+
 ## Deploy quobyte-client package (systemd service) -- **Recommended**
 
 1. Download install_quobyte script
