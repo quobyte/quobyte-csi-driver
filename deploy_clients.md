@@ -35,14 +35,20 @@ To use Quobyte volumes in Kubernetes, nodes must have a running Quobyte client
  with the mount point as `/mnt/quobyte/mounts`. Please see the
  [example client configuration](https://github.com/quobyte/quobyte-csi/blob/v1.0.0/example/client.yaml).
 
-Label Kubernetes nodes
+1. Label Kubernetes nodes
 
 ```bash
 kubectl label nodes <node-1> <node-n> quobyte_client="true"
 ```
 
-Edit `example/client.yaml` and configure `QUOBYTE_REGISTRY` environment variable, namespace.
- Deploy Quobyte clients.
+2. Edit `example/client.yaml` and configure
+
+  * `namespace` of your choice
+  * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
+  * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
+  * host path volume `/mnt/quobyte`  
+
+3. Deploy Quobyte clients.
 
 ```bash
 kubectl create -f example/client.yaml

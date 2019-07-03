@@ -25,12 +25,8 @@ Quobyte CSI is the implementation of
 * Kubernetes v1.13 or higher
   * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
-* Quobyte client with (please see
- [example client configuration](https://github.com/quobyte/quobyte-csi/blob/v1.0.0/example/client.yaml) for sample configuration)
-  * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
-  * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
-  * host path volume `/mnt/quobyte`  
-  Alternatively, Kubernetes nodes can have Quobyte native client with mount path as `/mnt/quobyte/mounts`
+* Quobyte client with with mount path as `/mnt/quobyte/mounts`. Please see
+ [Deploy Quobyte clients](deploy_clients.md) for Quobyte client installation instructions.
 
 ## Deploy Quobyte CSI
 
