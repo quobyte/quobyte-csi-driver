@@ -22,7 +22,10 @@ If your Quobyte deployment uses QNS, you should install client with `--qns-id`
 sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
 ```
 
-`Note:` `remote_user` must have sudo capabilities on `remote_ip` node to install Quobyte client.
+`Note:` 
+1. `remote_user` must have sudo capabilities on `remote_ip` node to install Quobyte client.
+2. install_quobyte uses `ssh` to install client on remote nodes. So, to install client on remote node,
+ your base node must be able to connect remote node using `ssh`.
 
 ## Deploy Containerized Quobyte client
 
