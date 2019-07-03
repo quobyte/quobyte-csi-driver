@@ -18,7 +18,7 @@ spec:
     # fsType is required, if missed volume mount fails with unclear failure event logs
     fsType: ext4 
     readOnly: false
-    # nodePublishSecretRef is required only if you use volumeHandle: <TENANT_NAME|VOLUME_NAME>
+    # nodePublishSecretRef is required only if you use volumeHandle: <TENANT_NAME>|<VOLUME_NAME>
     nodePublishSecretRef:
       name: quobyte-admin-secret
       namespace: quobyte
