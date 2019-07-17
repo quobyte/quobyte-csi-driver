@@ -12,13 +12,14 @@ Quobyte CSI is the implementation of
 ## Index
 
 * [Requirements](#requirements)
-* [Deploy Quobyte clients](deploy_clients.md)
+* [Deploy Quobyte clients](docs/deploy_clients.md)
 * [Deploy Quobyte CSI](#deploy-quobyte-CSI)
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
   * [Dynamic volume provisioning](#dynamic-volume-provisioning)
   * [Use existing volumes](#use-existing-volumes)
+* [Secure storage access](docs/secure-storage-with-psp)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
-* [Quobyte CSI logs](collect_quobyte_csi_logs.md)
+* [Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
 ## Requirements
 
@@ -26,7 +27,7 @@ Quobyte CSI is the implementation of
   * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with with mount path as `/mnt/quobyte/mounts`. Please see
- [Deploy Quobyte clients](deploy_clients.md) for Quobyte client installation instructions.
+ [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
 
 ## Deploy Quobyte CSI
 
