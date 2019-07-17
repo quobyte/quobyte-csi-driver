@@ -1,0 +1,28 @@
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: example-psp
+spec:
+  privileged: false  # Don't allow privileged pods!
+  # The rest fills in some required fields.
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups: # for shared storage
+    rule: MustRunAs
+    ranges:
+      - min: 1001 # user GID on the host
+        max: 1001 # user GID on the host
+  runAsUser:
+    rule: MustRunAs
+    ranges:
+      - min: 1001 # user UID on the host
+        max: 1001 # user UID on the host
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1001 # user GID on the host
+        max: 1001 # user GID on the host
+  fsGroup: # for block storage
+    rule: RunAsAny
+  volumes:
+  - '*'

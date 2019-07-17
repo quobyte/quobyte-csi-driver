@@ -23,7 +23,7 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.13 or higher
+* Kubernetes v1.13 or higher (v1.14 is required in case Pod Security Policies are used.)
   * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with with mount path as `/mnt/quobyte/mounts`. Please see
@@ -64,8 +64,14 @@ git checkout tags/v1.0.0 # checkout release v1.0.0
 ```bash
 kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.13.yaml
 ```
+ 
+ On Kubernetes v1.14.x with PodSecurityPolicies
 
- On Kubernetes v1.14.x
+```bash
+kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14-PSP.yaml
+```
+
+ On Kubernetes v1.14.x without PodSecurityPolicies
 
 ```bash
 kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14.yaml
