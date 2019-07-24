@@ -141,15 +141,31 @@ Creating a PVC referencing the storage class created in previous step would prov
 The provisoning happens through Kubernetes CSI - creates the PV inside Kubernetes and
  Quobyte CSI- provisions the volume for created PV.
 
+1. Create PVC to trigger dynamic provisioning
+
 ```bash
 kubectl create -f example/pvc-dynamic-provision.yaml
 ```
 
-Mount the PVC in a pod as shown in the following example
+2. Mount the PVC in a pod as shown in the following example
 
 ```bash
 kubectl create -f example/pod-with-dynamic-vol.yaml
 ```
+
+3. Copy `./example/index.html` to the deployed nginx pod
+
+```bash
+kubectl cp example/index.html ngnix-dynamic-vol:/usr/share/nginx/html/
+```
+
+4. Access the home page served by nginx pod from the command line
+
+```bash
+curl http://$(kubectl-user get pods ngnix-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+```
+
+Above command should retrieve the Quobyte CSI welcome page (in raw html format).
 
 ### Use existing volumes
 
@@ -165,22 +181,38 @@ In order to use the `test` volume belonging to the tenant `My Test`, user needs 
    example PV `example/pv-existing-vol.yaml`
   * **To use Volume UUID** `VolumeHandle` can be `|<Volume_UUID>`.
 
+1. Create PV pointing it to the the pre-provisioned volume in Quobyte storage
+
 ```bash
 kubectl create -f example/pv-existing-vol.yaml
 ```
 
-Create a PVC that matches the storage requirements with the above PV (make sure both PV and PVC refer
+2. Create a PVC that matches the storage requirements with the above PV (make sure both PV and PVC refer
  to the same storage class)
 
 ```bash
 kubectl create -f example/pvc-existing-vol.yaml
 ```
 
-Create a pod referring the PVC as shown in the below example
+3. Create a pod referring the PVC as shown in the below example
 
 ```bash
 kubectl create -f example/pod-with-existing-vol.yaml
 ```
+
+4. Copy `./example/index.html` to the deployed nginx pod
+
+```bash
+kubectl cp example/index.html ngnix-existing-vol:/usr/share/nginx/html/
+```
+
+5. Access the home page served by nginx pod from the command line
+
+```bash
+curl http://$(kubectl-user get pods ngnix-existing-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+```
+
+Above command should retrieve the Quobyte CSI welcome page (in raw html format).
 
 ## Uninstall Quobyte CSI
 

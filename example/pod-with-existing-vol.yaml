@@ -6,8 +6,10 @@ spec:
   containers:
   - name: server
     image: nginx:1.14
+    ports:
+      - containerPort: 80
     volumeMounts:
-      - mountPath: /var/lib/www/html
+      - mountPath: /usr/share/nginx/html
         name: quobytepvc
   volumes:
     - name: quobytepvc

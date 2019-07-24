@@ -58,8 +58,10 @@ kubectl create serviceaccount -n psp-example psp-user
  `kubectl-user` is the service account `psp-user` in the namespace `psp-example`.
 
 ```bash
-alias kubectl-admin='kubectl -n psp-example' # Admin user in the namespace "psp-example"
-alias kubectl-user='kubectl --as=system:serviceaccount:psp-example:psp-user -n psp-example' # psp-user in the ns "psp-example"
+ # Admin user in the namespace "psp-example"
+alias kubectl-admin='kubectl -n psp-example'
+# psp-user in the namespace "psp-example"
+alias kubectl-user='kubectl --as=system:serviceaccount:psp-example:psp-user -n psp-example'
 ```
 
 7. Update UID and GID in [example PSP definition](example/psp/psp-example-definition.yaml) and create
@@ -140,10 +142,10 @@ ls -l /usr/share/nginx/html/index.html
 exit
 ```
 
-14. Access the index page from command line
+14. Access the index page from the command line
 
 ```bash
 curl http://$(kubectl-user get pods nginx-psp-demo -o yaml | grep 'podIP:' | awk '{print $2}'):8080
 ```
 
-It should retrieve Quobyte CSI welcome page (in raw html format)
+It should retrieve the Quobyte CSI welcome page (in raw html format)
