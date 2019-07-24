@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ngnix-psp-demo
+  name: nginx-psp-demo
 spec:
   containers:
   - name: server

@@ -12,11 +12,15 @@ spec:
   storageClassName: quobyte-csi
   csi:
     driver: csi.quobyte.com
-    # VolumeHandle should be of the format <TENANT_UUID/NAME>|<VOLUME_UUID/NAME>
-    # VolumeHandle can be '|VOLUME_UUID'
+    # VolumeHandle should be of the format <TENANT_UUID/NAME>|<VOLUME_UUID/NAME> or 
+    #  <TENANT_UUID/NAME>|<VOLUME_UUID/NAME>|sub-directory
+    # VolumeHandle can be '|VOLUME_UUID' or
+    # VolumeHandle: '|VOLUME_UUID|config' mounts the config sub-directory under
+    # volume with the specified UUID
     volumeHandle: "My Tenant|test"
     readOnly: false
-    # nodePublishSecretRef is required only if you use volumeHandle: <TENANT_NAME>|<VOLUME_NAME>
+    # nodePublishSecretRef is required only if you use volume name in volumeHandle.
+    # Example volumeHandle: <TENANT_NAME>|<VOLUME_NAME>
     nodePublishSecretRef:
       name: quobyte-admin-secret
       namespace: quobyte

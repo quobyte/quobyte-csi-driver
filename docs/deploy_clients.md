@@ -1,10 +1,10 @@
 # Deploy Quobyte clients
 
-Quobyte CSI driver requires Quobyte client to be installed with mount point `/mnt/quobyte/mounts`.
+Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/quobyte/mounts` on every host node.
 
 ## Deploy quobyte-client package (systemd service) -- **Recommended**
 
-1. Download install_quobyte script
+1. Download the install_quobyte script
 
 ```bash
 wget https://support.quobyte.com/repo/3/<QUOBYTE_REPO_ID>/install_quobyte && chmod +x install_quobyte
@@ -33,7 +33,7 @@ sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/m
 
 To use Quobyte volumes in Kubernetes, nodes must have a running Quobyte client
  with the mount point as `/mnt/quobyte/mounts`. Please see the
- [example client configuration](https://github.com/quobyte/quobyte-csi/blob/v1.0.0/example/client.yaml).
+ [example client configuration](https://github.com/quobyte/quobyte-csi/blob/v1.0.1/example/client.yaml).
 
 1. Label Kubernetes nodes
 

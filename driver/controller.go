@@ -22,7 +22,7 @@ const (
 	DefaultCreateQuota = false
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
-	DefaultAccessModes = 0777
+	DefaultAccessModes = 777
 )
 
 // CreateVolume creates quobyte volume
@@ -55,9 +55,9 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "accessmode":
-			u64, err := strconv.ParseUint(v, 8, 32)
+			u64, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
-				fmt.Println(err)
+				return nil, err
 			}
 			volRequest.AccessMode = uint32(u64)
 		}
@@ -73,7 +73,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			return nil, err
 		}
 		volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
-		return nil, err
 	}
 	if createQuota {
 		err := quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))

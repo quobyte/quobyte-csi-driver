@@ -15,7 +15,7 @@ wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector 
 ./log_collector
 ```
 
-3. Logs can be found under directory `./csi_logs` for analysis.
+3. Logs can be found under the directory `./csi_logs` for analysis.
 
-4. Script also generates tar of `./csi_logs` as `quobyte_csi_logs.tar.gz`.
+4. Script also generates the tar of `./csi_logs` as `quobyte_csi_logs.tar.gz`.
  Please upload the tar with Quobyte support ticket.

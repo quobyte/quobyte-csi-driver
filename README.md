@@ -19,7 +19,8 @@ Quobyte CSI is the implementation of
   * [Use existing volumes](#use-existing-volumes)
 * [Secure storage access](docs/secure-storage-with-psp)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
-* [Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
+* [Most common mistakes](docs/common_errors.md)
+* [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
 ## Requirements
 
@@ -38,7 +39,7 @@ Using `HTTPS`
 ```bash
 git clone https://github.com/quobyte/quobyte-csi.git
 cd quobyte-csi
-git checkout tags/v1.0.0 # checkout release v1.0.0
+git checkout tags/v1.0.1 # checkout release v1.0.1
 ```
 
 Using `SSH`
@@ -46,7 +47,7 @@ Using `SSH`
 ```bash
 git clone git@github.com:quobyte/quobyte-csi.git
 cd quobyte-csi
-git checkout tags/v1.0.0 # checkout release v1.0.0
+git checkout tags/v1.0.1 # checkout release v1.0.1
 ```
 
 2. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL.
@@ -65,13 +66,13 @@ git checkout tags/v1.0.0 # checkout release v1.0.0
 kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.13.yaml
 ```
  
- On Kubernetes v1.14.x with PodSecurityPolicies
+ On Kubernetes v1.14.x **with PodSecurityPolicies**
 
 ```bash
 kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14-PSP.yaml
 ```
 
- On Kubernetes v1.14.x without PodSecurityPolicies
+ On Kubernetes v1.14.x **without PodSecurityPolicies**
 
 ```bash
 kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14.yaml
@@ -195,6 +196,12 @@ kubectl delete -f deploy/deploy-csi-driver-1.0.1-k8sv1.13.yaml
 
 ```bash
 kubectl delete -f deploy/deploy-csi-driver-1.0.1-k8sv1.14.yaml
+```
+
+or
+
+```bash
+kubectl delete -f deploy/deploy-csi-driver-1.0.1-k8sv1.14-PSP.yaml
 ```
 
 2. Delete Quobyte CSI configuration data

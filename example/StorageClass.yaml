@@ -23,6 +23,6 @@ parameters:
   # access control into the pods.
   group: nginx
   # volume access modes. PodSecurityPolicy should be configured to propagate
-  # access control into the pods.
-  accessMode: "0777"
+  # access control into the pods. It must be three digit value without '0' prefix.
+  accessMode: "777"
 reclaimPolicy: Retain
