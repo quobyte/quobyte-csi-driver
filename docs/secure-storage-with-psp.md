@@ -103,7 +103,7 @@ kubectl-user create -f example/psp/psp-demo-nginx.yaml
 kubectl-admin exec -it nginx-psp-demo -- id
 ```
 
-13. Copy [index file](example/psp/index.html) into the pod
+13. Copy [index file](example/index.html) into the pod
 
 Unfortunately `kubectl cp` does not work with non-root users. This should be done manually.
 
