@@ -17,7 +17,7 @@ Quobyte CSI is the implementation of
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
   * [Dynamic volume provisioning](#dynamic-volume-provisioning)
   * [Use existing volumes](#use-existing-volumes)
-* [Secure storage access](docs/secure-storage-with-psp)
+* [Secure storage access](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
 * [Most common mistakes](docs/common_errors.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
