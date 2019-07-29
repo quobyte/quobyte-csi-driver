@@ -24,6 +24,13 @@
 Let us dive-in and create an example PSP with restricted access. Using the example psp, we can
  deploy unprivileged nginx pod.
 
+**NGINX PSP DEMO requires** hosts with nginx user (UID: 1001) and group (GID:1001).
+ Create nginx user and group.
+
+```bash
+sudo groupadd -g 1001 nginx; sudo useradd -u 1001 -g 1001 nginx
+```  
+
 1. Create `quobyte` namespace
 
 ```bash
