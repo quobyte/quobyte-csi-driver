@@ -36,10 +36,10 @@ kubectl create ns quobyte
 kubectl create -f example/csi-secret.yaml
 ```
 
-3. Create storage class
+3. Review and create storage class
 
 ```bash
-kubectl create -f example/StorageClass.yaml
+kubectl create -f example/psp/StorageClass-PSP.yaml
 ```
 
 4. Create a namespace `psp-example` to run the nginx pod nginx user
@@ -88,7 +88,7 @@ The above command should output `yes` for user to be able to deploy pods.
 10. Create PVC
 
 ```bash
-kubectl-user create -f example/pvc-dynamic-provision.yaml
+kubectl-user create -f example/psp/pvc-dynamic-provision-psp.yaml
 ```
 
 11. Create Pod with the created PVC
@@ -148,4 +148,4 @@ exit
 curl http://$(kubectl-user get pods nginx-psp-demo -o yaml | grep 'podIP:' | awk '{print $2}'):8080
 ```
 
-It should retrieve the Quobyte CSI welcome page (in raw html format)
+The above command should retrieve the Quobyte CSI welcome page (in raw html format)
