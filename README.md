@@ -27,7 +27,7 @@ Quobyte CSI is the implementation of
 * Kubernetes v1.13 or higher (v1.14 is required in case Pod Security Policies are used.)
   * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
-* Quobyte client with with mount path as `/mnt/quobyte/mounts`. Please see
+* Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
 
 ## Deploy Quobyte CSI
@@ -132,6 +132,13 @@ Create a storage class with the `provisioner` set to `csi.quobyte.com` along wit
 kubectl create -f example/StorageClass.yaml
 ```
 
+To run the **NGINX DEMO** host nodes must have nginx user (UID: 101) and group (GID: 101). Please
+ create nginx user and group on every node.
+
+```bash
+sudo groupadd -g 101 nginx; sudo useradd -u 101 -g 101 nginx
+```
+
 ### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in previous step would provision dynamic
@@ -153,16 +160,22 @@ kubectl create -f example/pvc-dynamic-provision.yaml
 kubectl create -f example/pod-with-dynamic-vol.yaml
 ```
 
-3. Copy `./example/index.html` to the deployed nginx pod
+3. Wait for the pod to be in running state
 
 ```bash
-kubectl cp example/index.html ngnix-dynamic-vol:/usr/share/nginx/html/
+kubectl get po -w | grep 'nginx-dynamic-vol'
+```
+
+4. Once the pod is running, copy `./example/index.html` to the deployed nginx pod
+
+```bash
+kubectl cp example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
 ```
 
 4. Access the home page served by nginx pod from the command line
 
 ```bash
-curl http://$(kubectl-user get pods ngnix-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
 ```
 
 Above command should retrieve the Quobyte CSI welcome page (in raw html format).
@@ -200,16 +213,22 @@ kubectl create -f example/pvc-existing-vol.yaml
 kubectl create -f example/pod-with-existing-vol.yaml
 ```
 
-4. Copy `./example/index.html` to the deployed nginx pod
+4. Wait for the pod to be in running state
 
 ```bash
-kubectl cp example/index.html ngnix-existing-vol:/usr/share/nginx/html/
+kubectl get po -w | grep 'nginx-dynamic-vol'
 ```
 
-5. Access the home page served by nginx pod from the command line
+5. Once the pod is running, copy `./example/index.html` to the deployed nginx pod
 
 ```bash
-curl http://$(kubectl-user get pods ngnix-existing-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+kubectl cp example/index.html nginx-existing-vol:/usr/share/nginx/html/
+```
+
+6. Access the home page served by nginx pod from the command line
+
+```bash
+curl http://$(kubectl get pods nginx-existing-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
 ```
 
 Above command should retrieve the Quobyte CSI welcome page (in raw html format).
