@@ -6,26 +6,28 @@ Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/
 
 1. Download the install_quobyte script
 
-```bash
-sudo wget https://support.quobyte.com/repo/3/<QUOBYTE_REPO_ID>/install_quobyte && sudo chmod +x install_quobyte
-```
+    ```bash
+    sudo wget https://support.quobyte.com/repo/3/<QUOBYTE_REPO_ID>/install_quobyte && sudo chmod +x install_quobyte
+    ```
 
 2. Install client on (remote) node
 
-`registry-endpoints` or `qns-id` can be found on registry nodes in `/etc/quobyte/registry.cfg` as `registry=<registry-endpoints>` and `qns.id=<qns-id>` respectively.
+    `registry-endpoints` or `qns-id` can be found on registry nodes in `/etc/quobyte/registry.cfg` as `registry=<registry-endpoints>` and `qns.id=<qns-id>` respectively.
 
-```bash
-sudo ./install_quobyte add-client --registry-endpoints <registry-endpoints> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
-```
+    ```bash
+    sudo ./install_quobyte add-client --registry-endpoints <registry-endpoints> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
+    ```
 
-If your Quobyte deployment uses QNS, you should install client with `--qns-id`
+    If your Quobyte deployment uses QNS, you should install client with `--qns-id`
 
-```bash
-sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
-```
+    ```bash
+    sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
+    ```
 
 `Note:`  
+
 1. `remote_user` must have sudo capabilities on the `remote_ip` node to install Quobyte client.
+
 2. install_quobyte uses `ssh` to install the Quobyte client on the remote node. So, to install client on a remote node,
  your base node must be able to connect the remote node using `ssh`.
 
@@ -37,21 +39,21 @@ To use Quobyte volumes in Kubernetes, nodes must have a running Quobyte client
 
 1. Label Kubernetes nodes
 
-```bash
-kubectl label nodes <node-1> <node-n> quobyte_client="true"
-```
+    ```bash
+    kubectl label nodes <node-1> <node-n> quobyte_client="true"
+    ```
 
 2. Edit `example/client.yaml` and configure
 
-  * `namespace` of your choice
-  * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
-  * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
-  * host path volume `/mnt/quobyte`  
+    * `namespace` of your choice
+    * `QUOBYTE_REGISTRY` environment variable set with Quobyte registry
+    * `QUOBYTE_MOUNT_POINT` environment variable set to `/mnt/quobyte/mounts`
+    * host path volume `/mnt/quobyte`  
 
 3. Deploy Quobyte clients.
 
-```bash
-kubectl create -f example/client.yaml
-```
+    ```bash
+    kubectl create -f example/client.yaml
+    ```
 
-`Note:` Not deploying Quobyte clients with `/mnt/quobyte/mounts` results in pod start failures with mount fail errors.
+  `Note:` Not deploying Quobyte clients with `/mnt/quobyte/mounts` results in pod start failures with mount fail errors.

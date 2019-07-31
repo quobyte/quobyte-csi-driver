@@ -5,15 +5,15 @@ Log collector gathers logs from all the Quobyte CSI containers in single place f
 
 1. Get the log_collector utlity script on any node with working kubectl
 
-```bash
-wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector && chmod +x log_collector
-```
+    ```bash
+    wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector && chmod +x log_collector
+    ```
 
 2. Run the log_collector
 
-```bash
-./log_collector
-```
+    ```bash
+    ./log_collector
+    ```
 
 3. Logs can be found under the directory `./csi_logs` for analysis.
 
