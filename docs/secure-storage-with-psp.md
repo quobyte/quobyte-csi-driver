@@ -21,11 +21,11 @@
 
 5. **Nginx PSP Demo pod requires**
 
-    * Hosts with nginx user (UID: 1001) and group (GID:1001).
+    * Hosts with nginx user (UID: 5050) and group (GID:5050). These UID and GID are used in the [example PSP](../example/psp/psp-example-definition.yaml).
      Create nginx user and group.
 
         ```bash
-        sudo groupadd -g 1001 nginx; sudo useradd -u 1001 -g 1001 nginx
+        sudo groupadd -g 5050 nginx; sudo useradd -u 5050 -g 5050 nginx
         ```  
 
     * Volume with at least read and execute permissions for the `nginx` user.  Volume permissions
@@ -109,20 +109,26 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
     kubectl-user create -f example/psp/nginx-demo-pod-with-psp.yaml
     ```
 
-12. Verify user UID/GID inside created pod
+12. Wait for the pod to be in running state
+
+    ```bash
+    kubectl get po -w | grep 'nginx-psp-demo'
+    ```
+
+13. Verify user UID/GID inside created pod
 
       ```bash
       kubectl-admin exec -it nginx-psp-demo -- id
      ```
 
-13. Copy [index file](example/index.html) into the pod
+14. Copy [index file](example/index.html) into the pod
 
     Unfortunately `kubectl cp` does not work with non-root users. This should be done manually.
 
     Connect to the pod
 
       ```bash
-      kubectl-admin exec -it ngnix-psp-demo -- bash
+      kubectl-admin exec -it nginx-psp-demo -- bash
       ```
 
     Create `index.html`
@@ -155,7 +161,7 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
       exit
       ```
 
-14. Access the index page from the command line
+15. Access the index page from the command line
 
       ```bash
       curl http://$(kubectl-user get pods nginx-psp-demo -o yaml | grep 'podIP:' | awk '{print $2}'):8080

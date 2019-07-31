@@ -10,18 +10,18 @@ spec:
   supplementalGroups: # for shared storage
     rule: MustRunAs
     ranges:
-      - min: 1001 # user GID on the host
-        max: 1001 # user GID on the host
+      - min: 5050 # user GID on the host
+        max: 5050 # user GID on the host
   runAsUser:
     rule: MustRunAs
     ranges:
-      - min: 1001 # user UID on the host
-        max: 1001 # user UID on the host
+      - min: 5050 # user UID on the host
+        max: 5050 # user UID on the host
   runAsGroup:
     rule: MustRunAs
     ranges:
-      - min: 1001 # user GID on the host
-        max: 1001 # user GID on the host
+      - min: 5050 # user GID on the host
+        max: 5050 # user GID on the host
   fsGroup: # for block storage
     rule: RunAsAny
   volumes:
