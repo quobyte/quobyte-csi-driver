@@ -63,19 +63,19 @@ git checkout tags/v1.0.1 # checkout release v1.0.1
  On Kubernetes v1.13.x
 
 ```bash
-kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.13.yaml
+kubectl create -f deploy/csi-driver-k8sv1.13.yaml
 ```
  
  On Kubernetes v1.14.x **with PodSecurityPolicies**
 
 ```bash
-kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14-PSP.yaml
+kubectl create -f deploy/csi-driver-k8sv1.14-PSP
 ```
 
  On Kubernetes v1.14.x **without PodSecurityPolicies**
 
 ```bash
-kubectl create -f deploy/deploy-csi-driver-1.0.1-k8sv1.14.yaml
+kubectl create -f deploy/csi-driver-k8sv1.14.yaml
 ```
 
 5. Verify the status of Quobyte CSI driver pods
@@ -132,7 +132,7 @@ Create a storage class with the `provisioner` set to `csi.quobyte.com` along wit
 kubectl create -f example/StorageClass.yaml
 ```
 
-To run the **NGINX DEMO** host nodes must have nginx user (UID: 101) and group (GID: 101). Please
+To run the **Nginx demo** pods, host nodes must have nginx user (UID: 101) and group (GID: 101). Please
  create nginx user and group on every node.
 
 ```bash
@@ -145,9 +145,6 @@ Creating a PVC referencing the storage class created in previous step would prov
  volume. The secret `csiProvisionerSecretName` from the namespace `csiProvisionerSecretNamespace`
  in the referenced StorageClass will be used to authenticate volume creation.
 
-The provisoning happens through Kubernetes CSI - creates the PV inside Kubernetes and
- Quobyte CSI- provisions the volume for created PV.
-
 1. Create PVC to trigger dynamic provisioning
 
 ```bash
@@ -157,7 +154,7 @@ kubectl create -f example/pvc-dynamic-provision.yaml
 2. Mount the PVC in a pod as shown in the following example
 
 ```bash
-kubectl create -f example/pod-with-dynamic-vol.yaml
+kubectl create -f example/nginx-demo-pod-with-dynamic-vol
 ```
 
 3. Wait for the pod to be in running state
@@ -210,7 +207,7 @@ kubectl create -f example/pvc-existing-vol.yaml
 3. Create a pod referring the PVC as shown in the below example
 
 ```bash
-kubectl create -f example/pod-with-existing-vol.yaml
+kubectl create -f example/nginx-demo-pod-with-existing-vol.yaml
 ```
 
 4. Wait for the pod to be in running state

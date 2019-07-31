@@ -24,7 +24,7 @@
 Let us dive-in and create an example PSP with restricted access. Using the example psp, we can
  deploy unprivileged nginx pod.
 
-**NGINX PSP DEMO requires** hosts with nginx user (UID: 1001) and group (GID:1001).
+**Nginx PSP Demo pod requires** hosts with nginx user (UID: 1001) and group (GID:1001).
  Create nginx user and group.
 
 ```bash
@@ -101,7 +101,7 @@ kubectl-user create -f example/psp/pvc-dynamic-provision-psp.yaml
 11. Create Pod with the created PVC
 
 ```bash
-kubectl-user create -f example/psp/psp-demo-nginx.yaml
+kubectl-user create -f example/psp/nginx-demo-pod-with-psp.yaml
 ```
 
 12. Verify user UID/GID inside created pod
@@ -155,4 +155,4 @@ exit
 curl http://$(kubectl-user get pods nginx-psp-demo -o yaml | grep 'podIP:' | awk '{print $2}'):8080
 ```
 
-The above command should retrieve the Quobyte CSI welcome page (in raw html format)
+The above command should retrieve the Quobyte CSI welcome page (in raw html format).

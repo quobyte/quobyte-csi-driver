@@ -61,7 +61,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: quobyte-csi-plugin
-          image: quay.io/quobyte/csi:v1.0.1
+          image: quay.io/venkat_443/csi:v1.0.1
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -303,7 +303,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/quobyte/csi:v1.0.1
+          image: quay.io/venkat_443/csi:v1.0.1
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
