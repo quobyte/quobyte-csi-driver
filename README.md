@@ -99,7 +99,10 @@ Quobyte CSI is the implementation of
 6. Make sure your CSI driver is running against the expected Quobyte API endpoint
 
     ```bash
-    kubectl -n kube-system exec -it "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL
+    kubectl -n kube-system exec -it \
+    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" \
+    -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL  
+    
     ```
 
     The above command should print your Quobyte API endpoint. If not, please verify `deploy/config.yaml` and redeploy with correct `quobyte.apiURL`.

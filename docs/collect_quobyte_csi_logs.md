@@ -6,7 +6,9 @@ Log collector gathers logs from all the Quobyte CSI containers in single place f
 1. Get the log_collector utlity script on any node with working kubectl
 
     ```bash
-    wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector && chmod +x log_collector
+    wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector \
+     && chmod +x log_collector
+     
     ```
 
 2. Run the log_collector

@@ -7,7 +7,8 @@ Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/
 1. Download the install_quobyte script
 
     ```bash
-    sudo wget https://support.quobyte.com/repo/3/<QUOBYTE_REPO_ID>/install_quobyte && sudo chmod +x install_quobyte
+    wget https://support.quobyte.com/repo/3/<QUOBYTE_REPO_ID>/install_quobyte \
+     && sudo chmod +x install_quobyte
     ```
 
 2. Install client on (remote) node
@@ -15,13 +16,17 @@ Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/
     `registry-endpoints` or `qns-id` can be found on registry nodes in `/etc/quobyte/registry.cfg` as `registry=<registry-endpoints>` and `qns.id=<qns-id>` respectively.
 
     ```bash
-    sudo ./install_quobyte add-client --registry-endpoints <registry-endpoints> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
+    sudo ./install_quobyte add-client --registry-endpoints <registry-endpoints> \
+     --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> \
+     [remote_user@remote_ip]
     ```
 
     If your Quobyte deployment uses QNS, you should install client with `--qns-id`
 
     ```bash
-    sudo ./install_quobyte add-client --qns-id <qns-id> --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> [remote_user@remote_ip]
+    sudo ./install_quobyte add-client --qns-id <qns-id> \
+     --mount-point /mnt/quobyte/mounts --repo-id <QUOBYTE_REPO_ID> \
+      [remote_user@remote_ip]
     ```
 
 `Note:`  
