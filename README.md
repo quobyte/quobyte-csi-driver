@@ -24,7 +24,7 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.13 or higher (v1.14 is required in case Pod Security Policies are used.)
+* Kubernetes v1.13 or higher (v1.14 or higher is required if Pod Security Policies are used.)
   * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
@@ -102,7 +102,7 @@ Quobyte CSI is the implementation of
     kubectl -n kube-system exec -it \
     "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" \
     -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL  
-    
+
     ```
 
     The above command should print your Quobyte API endpoint. If not, please verify `deploy/config.yaml` and redeploy with correct `quobyte.apiURL`.
@@ -189,14 +189,14 @@ Creating a PVC referencing the storage class created in previous step would prov
 
 Quobyte CSI requires the volume UUID to be passed on to the PV as `VolumeHandle`  
 
-In order to use the `test` volume belonging to the tenant `My Test`, user needs to create a PV
- referring the volume as shown in the `example/pv-existing-vol.yaml`  
-
 * Quobyte-csi supports both volume name and UUID
   * **To use Volume Name** `VolumeHandle` should be of the format `<Tenant_Name/UUID>|<Volume_Name>`
    and `nodePublishSecretRef` with Quobyte API login credentials should be specified as shown in the
    example PV `example/pv-existing-vol.yaml`
   * **To use Volume UUID** `VolumeHandle` can be `|<Volume_UUID>`.
+
+In order to use the pre-provisioned `test` volume belonging to the tenant `My Tenant`, user needs to create
+ a PV with `volumeHandle: My Tenant|test` as shown in the [example PV](example/pv-existing-vol.yaml).
 
 1. Edit `example/pv-existing-vol.yaml` and point it to the the pre-provisioned volume in Quobyte
  storage through `volumeHandle`. Create the PV with pre-provisioned volume.
@@ -236,7 +236,7 @@ In order to use the `test` volume belonging to the tenant `My Test`, user needs 
     curl http://$(kubectl get pods nginx-existing-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
     ```
 
-Above command should retrieve the Quobyte CSI welcome page (in raw html format).
+    The above command should retrieve the Quobyte CSI welcome page (in raw html format).
 
 ## Uninstall Quobyte CSI
 
