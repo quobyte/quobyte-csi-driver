@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ngnix-dynamic-vol
+  name: nginx-dynamic-vol
 spec:
   containers:
   - name: server

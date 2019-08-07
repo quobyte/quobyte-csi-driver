@@ -22,7 +22,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
 	secrets := req.GetSecrets()
 	volParts := strings.Split(volumeId, "|")
-	if len(volParts) != 2 {
+	if len(volParts) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
 	}
 	if len(targetPath) == 0 {
@@ -33,7 +33,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		glog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
-		quobyteClient, err := getAPIClient(secrets, volParts[0])
+		quobyteClient, err := getAPIClient(secrets, d.ApiURL)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,13 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-	err := Mount(fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID), targetPath, "quobyte", options)
+	var mountPath string
+	if len(volParts) == 3 { // tenant|volume|subDir
+		mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+	} else {
+		mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
+	}
+	err := Mount(mountPath, targetPath, "quobyte", options)
 	if err != nil {
 		return nil, err
 	}
