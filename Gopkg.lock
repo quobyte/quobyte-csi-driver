@@ -34,12 +34,12 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:08ae6728e2663c17e08294bac2ba3adf2f6f8296d80d3bd1405b0be1013b4abd"
+  digest = "1:01a3f021f824a3f15c1a88892454fdb15a7c1a8d57352be8445c509a0584d51e"
   name = "github.com/quobyte/api"
   packages = ["."]
   pruneopts = ""
-  revision = "40e7d9791586bf7b9302dba92ea2351229a4d8c0"
-  version = "v0.1.4"
+  revision = "f9140c7a95757f80ed66d691339fbaec389939f9"
+  version = "v0.1.5"
 
 [[projects]]
   branch = "release-branch.go1.10"

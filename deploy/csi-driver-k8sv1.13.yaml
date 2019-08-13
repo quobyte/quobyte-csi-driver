@@ -1,10 +1,33 @@
-apiVersion: storage.k8s.io/v1beta1
-kind: CSIDriver
+# CSI driver CRD should be kept up-to-date with 
+# https://raw.githubusercontent.com/kubernetes/csi-api/master/pkg/crd/manifests/csidriver.yaml
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
 metadata:
-  name: csi.quobyte.com
+  name: csidrivers.csi.storage.k8s.io
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
 spec:
-  attachRequired: false
-  podInfoOnMount: false
+  group: csi.storage.k8s.io
+  names:
+    kind: CSIDriver
+    plural: csidrivers
+  scope: Cluster
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          description: Specification of the CSI Driver.
+          properties:
+            attachRequired:
+              description: Indicates this CSI volume driver requires an attach operation,
+                and that Kubernetes should call attach and wait for any attach operation
+                to complete before proceeding to mount.
+              type: boolean
+            podInfoOnMountVersion:
+              description: Indicates this CSI volume driver requires additional pod
+                information (like podName, podUID, etc.) during mount operations.
+              type: string
+  version: v1alpha1
 ---  
 kind: StatefulSet
 apiVersion: apps/v1beta1
@@ -61,7 +84,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: quobyte-csi-plugin
-          image: quay.io/quobyte/csi:v1.0.0-rc
+          image: quay.io/quobyte/csi:v1.0.1
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -303,7 +326,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/quobyte/csi:v1.0.0-rc
+          image: quay.io/quobyte/csi:v1.0.1
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
