@@ -116,7 +116,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	}
 	secrets := req.GetSecrets()
 	params := strings.Split(volID, "|")
-	if len(params) != 2 {
+	if len(params) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
 	}
 	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
