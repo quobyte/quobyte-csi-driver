@@ -49,7 +49,7 @@ Quobyte CSI is the implementation of
     git checkout tags/v1.0.1 # checkout release v1.0.1
     ```
 
-2. Edit `deploy/config.yaml` and configure `quobyte.apiURL` with your Quobyte cluster API URL.
+2. Edit [deploy/config.yaml](deploy/config.yaml) and configure `quobyte.apiURL` with your Quobyte cluster API URL.
  Quobyte API URL can be obtained from the Quobyte Webconsole (click on info icon and chose `CLI and API...`).
 
 3. Create configuration
@@ -122,13 +122,13 @@ We use `quobyte` namespace for the examples. Create the namespace
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte API login credentials. Kubernetes requires base64 encoding for secret data which can be obtained
  with the command `echo -n "value" | base64`. Please encode your user name and password in base64 and
- update `example/csi-secret.yaml`
+ update [example/csi-secret.yaml](example/csi-secret.yaml)
 
   ```bash
   kubectl create -f example/csi-secret.yaml
   ```
 
-Create a storage class with the `provisioner` set to `csi.quobyte.com` along with other configuration
+Create a [storage class](example/StorageClass.yaml) with the `provisioner` set to `csi.quobyte.com` along with other configuration
  parameters. You could create multiple storage classes by varying `parameters` such as
   `quobyteTenant`, `quobyteConfig` etc.
 
@@ -145,21 +145,21 @@ To run the **Nginx demo** pods,
     sudo groupadd -g 101 nginx; sudo useradd -u 101 -g 101 nginx
     ```
 
-2. `nginx` user must have at least read and excute permissions on the volume
+2. `nginx` user must have at least read and execute permissions on the volume
 
 ### Dynamic volume provisioning
 
-Creating a PVC referencing the storage class created in previous step would provision dynamic
+Creating a PVC referencing the storage class created in the previous step would provision dynamic
  volume. The secret `csiProvisionerSecretName` from the namespace `csiProvisionerSecretNamespace`
- in the referenced StorageClass will be used to authenticate volume creation.
+ in the referenced StorageClass will be used to authenticate volume creation and deletion.
 
-1. Create PVC to trigger dynamic provisioning
+1. Create [PVC](example/pvc-dynamic-provision.yaml) to trigger dynamic provisioning
 
     ```bash
     kubectl create -f example/pvc-dynamic-provision.yaml
     ```
 
-2. Mount the PVC in a pod as shown in the following example
+2. Mount the PVC in a [pod](example/nginx-demo-pod-with-dynamic-vol.yaml) as shown in the following example
 
     ```bash
     kubectl create -f example/nginx-demo-pod-with-dynamic-vol.yaml
@@ -171,7 +171,7 @@ Creating a PVC referencing the storage class created in previous step would prov
     kubectl get po -w | grep 'nginx-dynamic-vol'
     ```
 
-4. Once the pod is running, copy `./example/index.html` to the deployed nginx pod
+4. Once the pod is running, copy the [index file](example/index.html) to the deployed nginx pod
 
     ```bash
     kubectl cp example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
@@ -198,21 +198,21 @@ Quobyte CSI requires the volume UUID to be passed on to the PV as `VolumeHandle`
 In order to use the pre-provisioned `test` volume belonging to the tenant `My Tenant`, user needs to create
  a PV with `volumeHandle: My Tenant|test` as shown in the [example PV](example/pv-existing-vol.yaml).
 
-1. Edit `example/pv-existing-vol.yaml` and point it to the the pre-provisioned volume in Quobyte
+1. Edit [example/pv-existing-vol.yaml](example/pv-existing-vol.yaml) and point it to the the pre-provisioned volume in Quobyte
  storage through `volumeHandle`. Create the PV with pre-provisioned volume.
 
     ```bash
     kubectl create -f example/pv-existing-vol.yaml
     ```
 
-2. Create a PVC that matches the storage requirements with the above PV (make sure both PV and PVC refer
+2. Create a [PVC](example/pvc-existing-vol.yaml) that matches the storage requirements with the above PV (make sure both PV and PVC refer
  to the same storage class). The created PVC will automatically binds to the PV.
 
     ```bash
     kubectl create -f example/pvc-existing-vol.yaml
     ```
 
-3. Create a pod referring the PVC as shown in the below example
+3. Create a [pod](example/nginx-demo-pod-with-existing-vol.yaml) referring the PVC as shown in the below example
 
     ```bash
     kubectl create -f example/nginx-demo-pod-with-existing-vol.yaml
@@ -224,7 +224,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     kubectl get po -w | grep 'nginx-existing-vol'
     ```
 
-5. Once the pod is running, copy `./example/index.html` to the deployed nginx pod
+5. Once the pod is running, copy the [index file](example/index.html) to the deployed nginx pod
 
     ```bash
     kubectl cp example/index.html nginx-existing-vol:/usr/share/nginx/html/

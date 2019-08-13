@@ -2,7 +2,7 @@
 
 [Pod Security Policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/)
  can be used to control the security aspects of the pod deployments. This document
- walk you through an example deployment using
+ walks you through an example deployment using
  [nginx unprivileged container](https://github.com/nginxinc/docker-nginx-unprivileged).
 
 ## Requirements
@@ -31,9 +31,17 @@
     * Volume with at least read and execute permissions for the `nginx` user.  Volume permissions
      can be configured in StorageClass as `accessMode` for dynamically provisioned volumes.
 
+6. All the example commands should be executed from
+ the root directory of Quobyte CSI. Please get the Quobyte CSI example files and change to root directory.
+
+    ```bash
+      git clone https://github.com/quobyte/quobyte-csi.git
+      cd quobyte-csi
+    ````
+
 ## PSP example
 
-Let us dive-in and create an example PSP with restricted access. Using the example psp, we can
+Let us dive in and create an example PSP with restricted access. Using the example psp, we can
  deploy unprivileged nginx pod.
 
 1. Create `quobyte` namespace
@@ -42,13 +50,13 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
     kubectl create ns quobyte
     ```
 
-2. Create Quobyte admin secret (credentials are required for dynamic volume provision)
+2. Create Quobyte [admin secret](../example/csi-secret.yaml) (credentials are required for dynamic volume provision)
 
     ```bash
     kubectl create -f example/csi-secret.yaml
     ```
 
-3. Review and create storage class
+3. Review and create [storage class](../example/psp/StorageClass-PSP.yaml)
 
     ```bash
     kubectl create -f example/psp/StorageClass-PSP.yaml
@@ -76,14 +84,14 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
     alias kubectl-user='kubectl --as=system:serviceaccount:psp-example:psp-user -n psp-example'
     ```
 
-7. Update UID and GID in [example PSP definition](example/psp/psp-example-definition.yaml) and create
+7. Update UID and GID in [example PSP definition](../example/psp/psp-example-definition.yaml) and create
  PSP.
 
     ```bash
     kubectl create -f example/psp/psp-example-definition.yaml
     ```
 
-8. Create Role and RoleBindings for the `psp-user` in `psp-example` namespace
+8. Create [Role and RoleBindings](../example/psp/psp-example-roles.yaml) for the `psp-user` in `psp-example` namespace
 
     ```bash
     kubectl-admin create -f example/psp/psp-example-roles.yaml
@@ -97,13 +105,13 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
 
     The above command should output `yes` for user to be able to deploy pods.
 
-10. Create PVC
+10. Create [PVC](../example/psp/pvc-dynamic-provision-psp.yaml)
 
     ```bash
     kubectl-user create -f example/psp/pvc-dynamic-provision-psp.yaml
     ```
 
-11. Create Pod with the created PVC
+11. Create [Pod](../example/psp/nginx-demo-pod-with-psp.yaml) with the created PVC
 
     ```bash
     kubectl-user create -f example/psp/nginx-demo-pod-with-psp.yaml
@@ -121,9 +129,9 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
       kubectl-admin exec -it nginx-psp-demo -- id
      ```
 
-14. Copy [index file](example/index.html) into the pod
+14. Copy [index file](../example/index.html) into the pod
 
-    Unfortunately `kubectl cp` does not work with non-root users. This should be done manually.
+    Unfortunately, `kubectl cp` does not work with non-root users. This should be done manually.
 
     Connect to the pod
 
@@ -132,7 +140,7 @@ Let us dive-in and create an example PSP with restricted access. Using the examp
       ```
 
     Create `index.html`
-    
+
       ```bash
       cat > /usr/share/nginx/html/index.html <<EOF
       <!DOCTYPE html>
