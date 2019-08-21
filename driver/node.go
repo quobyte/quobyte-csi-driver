@@ -64,7 +64,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
 	} else {
 		mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
-	}
+	} // tenant|volume
 	err := Mount(mountPath, targetPath, "quobyte", options)
 	if err != nil {
 		return nil, err
