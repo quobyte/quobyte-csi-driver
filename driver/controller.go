@@ -163,23 +163,29 @@ func (d *QuobyteDriver) GetCapacity(ctx context.Context, req *csi.GetCapacityReq
 // CREATE_DELETE_VOLUME is required but
 // PUBLISH_UNPUBLISH_VOLUME not required since Quobyte Client does the volume attachments to the node.
 func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	return &csi.ControllerGetCapabilitiesResponse{
-		Capabilities: []*csi.ControllerServiceCapability{{
+	newCap := func(cap csi.ControllerServiceCapability_RPC_Type) *csi.ControllerServiceCapability {
+		return &csi.ControllerServiceCapability{
 			Type: &csi.ControllerServiceCapability_Rpc{
 				Rpc: &csi.ControllerServiceCapability_RPC{
-					Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+					Type: cap,
 				},
 			},
-		},
-		// {
-		// 	Type: &csi.ControllerServiceCapability_Rpc{
-		// 		Rpc: &csi.ControllerServiceCapability_RPC{
-		// 			Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
-		// 		},
-		// 	},
-		// },
-		},
-	}, nil
+		}
+	}
+
+	var caps []*csi.ControllerServiceCapability
+	for _, cap := range []csi.ControllerServiceCapability_RPC_Type{
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+	} {
+		caps = append(caps, newCap(cap))
+	}
+
+	resp := &csi.ControllerGetCapabilitiesResponse{
+		Capabilities: caps,
+	}
+
+	return resp, nil
 }
 
 func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
@@ -195,5 +201,24 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 }
 
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume: Not implented by Quobyte CSI")
+	volID := req.GetVolumeId()
+	volParts := strings.Split(volID, "|")
+	if len(volParts) < 2 {
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
+	}
+	secrets := req.GetSecrets()
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
+	}
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	capacity := req.GetCapacityRange().RequiredBytes
+	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
+	if err != nil {
+		return nil, err
+	}
+	err = quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
+	if err != nil {
+		return nil, err
+	}
+	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity}, nil
 }
