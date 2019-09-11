@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	driverName    = "csi.quobyte.com"
-	driverVersion = "v1.0.4" // Based on CSI spec version v1.0.0
+	// driverName    = "csi.quobyte.com"
+	driverVersion = "v1.0.0" // Based on CSI spec version v1.0.0
 )
 
 // QuobyteDriver CSI driver type
@@ -29,17 +29,21 @@ type QuobyteDriver struct {
 	NodeName                       string
 	ApiURL                         string
 	UseK8SNamespaceAsQuobyteTenant bool
+	IsQuobyteAccesskeysEnabled     bool
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
-func NewQuobyteDriver(endpoint, mount, nodeName, apiURL string, useNamespaceAsQuobyteTenant bool) *QuobyteDriver {
-	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant}
+func NewQuobyteDriver(endpoint, mount, nodeName, apiURL string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
+	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes bool}
 }
 
 // Run starts the grpc server for the driver
 func (qd *QuobyteDriver) Run() error {
 	if len(qd.clientMountPoint) == 0 {
 		return fmt.Errorf("--quobyte_mount_path is required. Supplied value should match environment varialbe QUOBYTE_MOUNT_POINT of Quobyte client pod.")
+	}
+	if len(qd.Name) == 0 {
+		return fmt.Errorf("--driver_name should not be empty")
 	}
 	if len(qd.ApiURL) == 0 {
 		apiURLError := `--api_url is required.
