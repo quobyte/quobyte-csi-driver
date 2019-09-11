@@ -10,11 +10,12 @@ import (
 )
 
 var (
-	endpoint             = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
-	clientMountPoint     = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
-	apiURL               = flag.String("api_url", "", "Quobyte API URL")
-	nodeName             = flag.String("node_name", "", "Node name from K8S environment")
+	endpoint         = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
+	clientMountPoint = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
+	apiURL           = flag.String("api_url", "", "Quobyte API URL")
+	nodeName         = flag.String("node_name", "", "Node name from K8S environment")
 	useNameSpaceAsTenant = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses K8S PVC.namespace as Quobyte tenant")
+	enableQuobyteSecrets = true
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 
 	// TODO (venkat): validate API url and node name
 
-	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL, *useNameSpaceAsTenant)
+	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL, *useNameSpaceAsTenant, enableQuobyteSecrets)
 	err := qd.Run()
 	if err != nil {
 		klog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)

@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var XattrKey string = "quobyte.access_key"
+
 // NodePublishVolume mounts the volume to the pod with the given target path
 // QuobyteClient does the mounting of the volumes
 func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -45,6 +47,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			return nil, err
 		}
 	}
+
 	var options []string
 	if readonly {
 		options = append(options, "ro")
@@ -60,11 +63,30 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 	}
 	var mountPath string
-	if len(volParts) == 3 { // tenant|volume|subDir
-		mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+	if d.IsQuobyteAccesskeysEnabled {
+		podUID := getPodUIDFromPath(targetPath)
+		accesskeyID, ok := secrets["access_key_id"]
+		if !ok {
+			return nil, fmt.Errorf("Mount secrets should have 'access_key_id: <access_key_id>'")
+		}
+		accesskeySecret, ok := secrets["access_key_secret"]
+		if !ok {
+			return nil, fmt.Errorf("Mount secrets should have 'access_key_secret: <access_key_secret>'")
+		}
+		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret)
+		setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, podUID))
+		if len(volParts) == 3 { // tenant|volume|subDir
+			mountPath = fmt.Sprintf("%s/%s-%s@%s/%s", d.clientMountPoint, podUID, accesskeyID, volUUID, volParts[2])
+		} else {
+			mountPath = fmt.Sprintf("%s/%s-%s@%s", d.clientMountPoint, podUID, accesskeyID, volUUID)
+		}
 	} else {
-		mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
-	} // tenant|volume
+		if len(volParts) == 3 { // tenant|volume|subDir
+			mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+		} else {
+			mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
+		}
+	}
 	err := Mount(mountPath, targetPath, "quobyte", options)
 	if err != nil {
 		return nil, err

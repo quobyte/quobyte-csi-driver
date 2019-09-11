@@ -85,6 +85,7 @@ spec:
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" # Quobyte API URL
+	          - "--driver_name=csi.quobyte.com"
             # For setups that map K8S namespace to tenant
             # --use_k8s_namespace_as_tenant=true should be set.
             - "--use_k8s_namespace_as_tenant=false" 
@@ -373,6 +374,7 @@ spec:
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" # Quobyte API URL
+	          - "--driver_name=csi.quobyte.com"
             - "--use_k8s_namespace_as_tenant=false" 
           env:
             - name: NODE_ID
