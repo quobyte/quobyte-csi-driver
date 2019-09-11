@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	KEY_VAL          = "{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\"},\"scope\":\"client\"}"
+	KEY_VAL          = "{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\",\"access_key_handle\":\"%s\",\"scope\":\"handle\"}"
 	VOL_UUID_LOCATOR = "used by volume "
 	POD_UUID_LOCATOR = "/pods/"
 	POD_VOL_LOCATOR  = "/volume"
@@ -31,17 +31,8 @@ func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteCli
 	return quobyte.NewQuobyteClient(apiURL, apiUser, apiPass), nil
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func getAccessKeyValStr(key_id, key_secret string) string {
-	return fmt.Sprintf(KEY_VAL, key_id, key_secret)
+func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
+	return fmt.Sprintf(KEY_VAL, key_id, key_secret, accesskeyHandle)
 }
 
 func setfattr(key, val, mountPath string) error {

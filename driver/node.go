@@ -73,12 +73,13 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		if !ok {
 			return nil, fmt.Errorf("Mount secrets should have 'access_key_secret: <access_key_secret>'")
 		}
-		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret)
-		setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, podUID))
+		accesskeyHandle := fmt.Sprintf("%s-%s", podUID, accesskeyID)
+		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
+		setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
 		if len(volParts) == 3 { // tenant|volume|subDir
-			mountPath = fmt.Sprintf("%s/%s-%s@%s/%s", d.clientMountPoint, podUID, accesskeyID, volUUID, volParts[2])
+			mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
 		} else {
-			mountPath = fmt.Sprintf("%s/%s-%s@%s", d.clientMountPoint, podUID, accesskeyID, volUUID)
+			mountPath = fmt.Sprintf("%s/%s@%s", d.clientMountPoint, accesskeyHandle, volUUID)
 		}
 	} else {
 		if len(volParts) == 3 { // tenant|volume|subDir
