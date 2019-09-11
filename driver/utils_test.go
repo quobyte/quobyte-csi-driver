@@ -18,8 +18,9 @@ func TestPodUIDParsing(t *testing.T) {
 func TestGetAccessKeyValStr(t *testing.T) {
 	key_id := "7d40536c8184d7b70e4dc"
 	key_secret := "3c27d9acc42b5b32d8e"
-	expectedKeyVal := fmt.Sprintf("{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\"},\"scope\":\"client\"}", key_id, key_secret)
-	resultKeyVal := getAccessKeyValStr(key_id, key_secret)
+	accesskeyHandle := "abc-7d40536c8184d7b70e4dc"
+	expectedKeyVal := fmt.Sprintf("{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\",\"access_key_handle\":\"%s\",\"scope\":\"handle\"}", key_id, key_secret, accesskeyHandle)
+	resultKeyVal := getAccessKeyValStr(key_id, key_secret, accesskeyHandle)
 
 	if resultKeyVal != expectedKeyVal {
 		t.Errorf("Expected key value: %s but got key value: %s", expectedKeyVal, resultKeyVal)
