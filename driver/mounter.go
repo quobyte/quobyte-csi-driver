@@ -12,18 +12,29 @@ import (
 // Mount bind mounts the Quobyte volume to the target
 func Mount(source, target, fsType string, opts []string) error {
 	cmd := "mount"
+	var remount bool = false
+	if contains(opts, "ro") {
+		remount = true
+	}
 	var options []string
 	options = append(options, "-o")
-	if len(opts) > 0 {
-		options = append(options, strings.Join(opts, ","))
-	}
-	options = append(options, "bind")
+	opts = append(opts, "bind")
+	options = append(options, strings.Join(opts, ","))
 	options = append(options, source)
 	options = append(options, target)
 	glog.Infof("Executing mount command '%s %s'", cmd, strings.Join(options, " "))
 	if out, err := exec.Command(cmd, options...).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed mount: %v cmd: '%s %s' command output: %q", err, cmd, target, string(out))
+		return fmt.Errorf("failed mount: %v cmd: '%s %s %s' command output: %q", err, cmd, options, target, string(out))
 	}
+
+	if remount {
+		remoutOpts := []string{"-o", "remount,ro", target}
+		glog.Infof("Executing remount command '%s %s'", cmd, strings.Join(remoutOpts, " "))
+		if out, err := exec.Command(cmd, remoutOpts...).CombinedOutput(); err != nil {
+			return fmt.Errorf("remount read-only failed: %v cmd: '%s %s' command output: %q", err, cmd, remoutOpts, string(out))
+		}
+	}
+
 	return nil
 }
 
