@@ -20,3 +20,12 @@ func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteCli
 
 	return quobyte.NewQuobyteClient(apiURL, apiUser, apiPass), nil
 }
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
