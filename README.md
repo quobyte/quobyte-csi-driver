@@ -24,8 +24,9 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.13 or higher (v1.14 or higher is required if Pod Security Policies are used.)
-  * On K8S v1.13, `CSIDriverRegistry` feature gate must be enabled and `CSINodeInfo` must be disabled.
+* Kubernetes v1.14 or higher
+  * `ExpandCSIVolumes` feature-gate must be enabled on api-server, controller-manager and kubelet
+    to use volume expansion feature.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
