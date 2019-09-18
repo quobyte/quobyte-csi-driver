@@ -62,22 +62,16 @@ Quobyte CSI is the implementation of
 4. Deploy RBAC and Kubernetes CSI helper
  containers along with Quobyte CSI plugin containers
 
-    On Kubernetes v1.13.x
+    On Kubernetes **with PodSecurityPolicies**
 
     ```bash
-    kubectl create -f deploy/csi-driver-k8sv1.13.yaml
-    ```
- 
-    On Kubernetes v1.14.x **with PodSecurityPolicies**
-
-    ```bash
-    kubectl create -f deploy/csi-driver-k8sv1.14-PSP.yaml
+    kubectl create -f deploy/csi-driver-PSP.yaml
     ```
 
-    On Kubernetes v1.14.x **without PodSecurityPolicies**
+    On Kubernetes **without PodSecurityPolicies**
 
     ```bash
-    kubectl create -f deploy/csi-driver-k8sv1.14.yaml
+    kubectl create -f deploy/csi-driver.yaml
     ```
 
 5. Verify the status of Quobyte CSI driver pods
@@ -243,20 +237,15 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
 1. Delete Quobyte CSI containers and corresponding RBAC
 
-    On Kubernetes v1.13.x
+    On Kubernetes **without Pod Security Policies**
 
     ```bash
-    kubectl delete -f deploy/csi-driver-k8sv1.13.yaml
+    kubectl delete -f deploy/deploy/csi-driver.yaml
     ```
-    On Kubernetes v1.14.x **without Pod Security Policies**
+    or on Kubernetes **with Pod Security Policies**
 
     ```bash
-    kubectl delete -f deploy/deploy/csi-driver-k8sv1.14.yaml
-    ```
-    or on Kubernetes v1.14.x **with Pod Security Policies**
-
-    ```bash
-    kubectl delete -f deploy/csi-driver-k8sv1.14-PSP.yaml
+    kubectl delete -f deploy/csi-driver-PSP.yaml
     ```
 
 2. Delete Quobyte CSI configuration data
