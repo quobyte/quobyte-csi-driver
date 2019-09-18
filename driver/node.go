@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,7 +30,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	}
 	var volUUID string
 	if len(secrets) == 0 {
-		glog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
+		klog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
 		quobyteClient, err := getAPIClient(secrets, d.ApiURL)
@@ -78,7 +78,7 @@ func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUn
 	if len(target) == 0 {
 		return nil, fmt.Errorf("target for unmount is empty")
 	}
-	glog.Infof("Unmounting %s", target)
+	klog.Infof("Unmounting %s", target)
 	err := Unmount(target)
 	if err != nil {
 		return nil, err
