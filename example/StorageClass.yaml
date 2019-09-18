@@ -5,10 +5,12 @@ metadata:
 # provisioner must be csi.quobyte.com
 provisioner: csi.quobyte.com
 # Should be set to 'true' to expand volume size.
-# Volume shrinking is not possible with this feature.
-# Quobyte volumes by default are not size restricted,
-# volume expansion is only required if volume is created
-# with quota (by setting parameters.createQuota: true).
+# https://kubernetes.io/docs/concepts/storage/persistent-volumes/#csi-volume-expansion
+# Volume shrinking is not possible and expansion only possible for dynamically provisioned volumes.
+# By default, Quobyte volumes are not size restricted,
+# but can be size restricted by creating a Quobyte quota
+# for the volume  (by setting parameters.createQuota: true).
+# Volume expansion only makes sense if volume is created with a quota.
 allowVolumeExpansion: true
 parameters:
   quobyteTenant: "My Tenant"
@@ -23,9 +25,9 @@ parameters:
   # Quobyte volume configuration
   quobyteConfig: "BASE"
   # creates quota for the volume if set to true. The size of the Quota
-  # is the storage requested in PVC. If false, creates unrestricted size volume.  
+  # is the storage requested in PVC. If false, creates volume without size limit.  
   createQuota: "true"
   user: root
   group: root
-  accessMode: "777"
+  accessMode: "770"
 reclaimPolicy: Retain
