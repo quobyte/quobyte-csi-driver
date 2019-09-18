@@ -30,6 +30,10 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	if req == nil {
 		return nil, fmt.Errorf("container orchestrator should send the storage cluster details")
 	}
+	err := validateVolCapabilities(req.GetVolumeCapabilities())
+	if err != nil {
+		return nil, err
+	}
 	params := req.Parameters
 	secrets := req.Secrets
 	capacity := req.GetCapacityRange().RequiredBytes
@@ -101,13 +105,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	return resp, nil
 }
 
-func getUUIDFromError(errMsg string) string {
-	uuidLocator := "used by volume "
-	index := strings.Index(errMsg, uuidLocator)
-	uuid := errMsg[index+len(uuidLocator) : len(errMsg)-2]
-	return strings.TrimSpace(uuid)
-}
-
 // DeleteVolume deletes the given volume.
 func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	volID := req.GetVolumeId()
@@ -154,9 +151,8 @@ func (d *QuobyteDriver) ListVolumes(ctx context.Context, req *csi.ListVolumesReq
 
 // GetCapacity Quobyte volumes are not capacity bound by default
 func (d *QuobyteDriver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
-	// TODO (venkat) : handle createquota flag: https://github.com/kubernetes/kubernetes/blob/f1bfde49002ed3e44d3b47b6737536b35dca8f55/pkg/volume/quobyte/quobyte.go
-	// https://github.com/kubernetes/kubernetes/blob/f1bfde49002ed3e44d3b47b6737536b35dca8f55/pkg/volume/quobyte/quobyte_util.go
-	return nil, status.Errorf(codes.Unimplemented, "GetCapacity: Quobyte volumes are not capacity bound at the moment.")
+	// TODO (venkat) : This seems to be the storage system capacity query and not of the volume
+	return nil, status.Errorf(codes.Unimplemented, "GetCapacity: Quobyte  does not support it, at the moment.")
 }
 
 // ControllerGetCapabilities returns supported capabilities.
@@ -177,6 +173,7 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 	for _, cap := range []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+	//	csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 	} {
 		caps = append(caps, newCap(cap))
 	}
@@ -201,24 +198,7 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 }
 
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	volID := req.GetVolumeId()
-	volParts := strings.Split(volID, "|")
-	if len(volParts) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
-	}
-	secrets := req.GetSecrets()
-	if len(secrets) == 0 {
-		return nil, fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
-	}
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
-	capacity := req.GetCapacityRange().RequiredBytes
-	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
-	if err != nil {
-		return nil, err
-	}
-	err = quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
-	if err != nil {
-		return nil, err
-	}
+	capacity := req.CapacityRange.RequiredBytes
+	d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity})
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity}, nil
 }
