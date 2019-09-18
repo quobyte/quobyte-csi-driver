@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/quobyte/quobyte-csi/driver"
 )
@@ -17,6 +17,8 @@ var (
 )
 
 func main() {
+	flag.Set("alsologtostderr", "true")
+	klog.InitFlags(nil)
 	flag.Parse()
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
@@ -26,7 +28,7 @@ func main() {
 	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL)
 	err := qd.Run()
 	if err != nil {
-		glog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)
+		klog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

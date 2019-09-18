@@ -10,14 +10,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:107b233e45174dbab5b1324201d092ea9448e58243ab9f039e4c0f332e121e3a"
-  name = "github.com/golang/glog"
-  packages = ["."]
-  pruneopts = ""
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
-
-[[projects]]
   digest = "1:529d738b7976c3848cae5cf3a8036440166835e389c1f617af701eeb12a0518d"
   name = "github.com/golang/protobuf"
   packages = [
@@ -139,16 +131,24 @@
   revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
   version = "v1.21.0"
 
+[[projects]]
+  digest = "1:3063061b6514ad2666c4fa292451685884cacf77c803e1b10b4a4fa23f7787fb"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3ca30a56d8a775276f9cdae009ba326fdc05af7f"
+  version = "v0.4.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/container-storage-interface/spec/lib/go/csi",
-    "github.com/golang/glog",
     "github.com/quobyte/api",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/status",
+    "k8s.io/klog",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

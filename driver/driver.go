@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/glog"
 	"google.golang.org/grpc"
+	"k8s.io/klog"
 )
 
 const (
@@ -48,7 +48,7 @@ func (qd *QuobyteDriver) Run() error {
 	}
 	u, err := url.Parse(qd.endpoint)
 	if err != nil {
-		glog.Error(err.Error())
+		klog.Error(err.Error())
 	}
 	var address string
 	if len(u.Host) == 0 {
@@ -59,25 +59,25 @@ func (qd *QuobyteDriver) Run() error {
 	if u.Scheme != "unix" {
 		return fmt.Errorf("CSI currently only supports unix domain sockets, given %s", u.Scheme)
 	}
-	glog.Infof("Remove socket if it already exists in the path %s", qd.endpoint)
+	klog.Infof("Remove socket if it already exists in the path %s", qd.endpoint)
 	if err := os.Remove(address); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove unix domain socket file %s, error: %v", address, err)
 	}
 	listener, err := net.Listen(u.Scheme, address)
 	if err != nil {
-		glog.Errorf("Failed to listen on %s due to error: %v.", address, err)
+		klog.Errorf("Failed to listen on %s due to error: %v.", address, err)
 		return err
 	}
 	errHandler := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			glog.Errorf("Method %s failed with error: %v.", info.FullMethod, err)
+			klog.Errorf("Method %s failed with error: %v.", info.FullMethod, err)
 		} else {
-			glog.Infof("Method %s completed.", info.FullMethod)
+			klog.Infof("Method %s completed.", info.FullMethod)
 		}
 		return resp, err
 	}
-	glog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s' GRPC socket: '%s' mount point: '%s' API URL: '%s'.", qd.name, qd.version, qd.endpoint, qd.clientMountPoint, qd.ApiURL)
+	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s' GRPC socket: '%s' mount point: '%s' API URL: '%s'.", qd.name, qd.version, qd.endpoint, qd.clientMountPoint, qd.ApiURL)
 	qd.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(qd.server, qd)
 	csi.RegisterControllerServer(qd.server, qd)
@@ -87,5 +87,5 @@ func (qd *QuobyteDriver) Run() error {
 
 func (qd *QuobyteDriver) stop() {
 	qd.server.Stop()
-	glog.Info("CSI driver stopped.")
+	klog.Info("CSI driver stopped.")
 }
