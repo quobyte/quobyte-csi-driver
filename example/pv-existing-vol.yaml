@@ -9,6 +9,14 @@ spec:
     - ReadWriteOnce
   # Delete Reclaim policy does not work with CSI for pre-provisioned volumes
   persistentVolumeReclaimPolicy: Retain
+  # use mountOptions: - ro to mount the volume represented by this PV as read-only.
+  # kubernetes has few places where this can be configured but some of those
+  # settings do not reach Quobyte CSI. 
+  # If volume needs to be mounted into particular pod as readonly then
+  # use VolumeMounts.readOnly as shown in the example here:
+  # https://kubernetes.io/docs/concepts/storage/volumes/#example-pod-with-a-secret-a-downward-api-and-a-configmap
+  # mountOptions:
+  #   - ro
   storageClassName: quobyte-csi
   csi:
     driver: csi.quobyte.com
@@ -18,7 +26,6 @@ spec:
     # VolumeHandle: '|VOLUME_UUID|config' mounts the config sub-directory under
     # volume with the specified UUID
     volumeHandle: "My Tenant|test"
-    readOnly: false
     # nodePublishSecretRef is required only if you use volume name in volumeHandle.
     # Example volumeHandle: <TENANT_NAME>|<VOLUME_NAME>
     nodePublishSecretRef:
