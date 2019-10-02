@@ -64,7 +64,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	}
 	var mountPath string
 	if d.IsQuobyteAccesskeysEnabled {
-		podUID := getPodUIDFromPath(targetPath)
+		podUID := getSanitizedPodUIDFromPath(targetPath)
 		accesskeyID, ok := secrets["access_key_id"]
 		if !ok {
 			return nil, fmt.Errorf("Mount secrets should have 'access_key_id: <access_key_id>'")
@@ -75,7 +75,10 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 		accesskeyHandle := fmt.Sprintf("%s-%s", podUID, accesskeyID)
 		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
-		setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
+		err := setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
+		if err != nil {
+			return nil, err
+		}
 		if len(volParts) == 3 { // tenant|volume|subDir
 			mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
 		} else {
