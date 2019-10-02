@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	KEY_VAL          = "{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\",\"access_key_handle\":\"%s\",\"scope\":\"handle\"}"
+	KEY_VAL          = "{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\",\"access_key_handle\":\"%s\",\"access_key_scope\":\"handle\"}"
 	VOL_UUID_LOCATOR = "used by volume "
 	POD_UUID_LOCATOR = "/pods/"
 	POD_VOL_LOCATOR  = "/volume"
@@ -43,8 +43,9 @@ func setfattr(key, val, mountPath string) error {
 	options = append(options, "-v")
 	options = append(options, val)
 	options = append(options, mountPath)
+	// TODO (venkat): don't log options, options leaks secret
 	if out, err := exec.Command(cmd, options...).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed setfattr: %v cmd: '%s %s' command output: %q", err, cmd, options, string(out))
+		return fmt.Errorf("failed setfattr due to %v. Cmd opts: %v command output: %q", err, options, string(out))
 	}
 	return nil
 }
@@ -86,10 +87,19 @@ func validateVolCapabilities(caps []*csi.VolumeCapability) error {
 	return nil
 }
 
-func getPodUIDFromPath(podVolPath string) string {
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func getSanitizedPodUIDFromPath(podVolPath string) string {
 	// Extracts the Pod UID from the given pod volume path. Path of pod volume is of the
 	// form /var/lib/kubelet/pods/<THE-POD-ID-HERE>/volumes/kubernetes.io~csi
 	pod_uid_start_index := strings.Index(podVolPath, POD_UUID_LOCATOR) + len(POD_UUID_LOCATOR)
 	pod_uid_end_index := strings.Index(podVolPath, POD_VOL_LOCATOR)
-	return podVolPath[pod_uid_start_index:pod_uid_end_index]
+	return strings.ReplaceAll(podVolPath[pod_uid_start_index:pod_uid_end_index], "-", "")
 }
