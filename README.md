@@ -5,9 +5,10 @@ Quobyte CSI is the implementation of
  Quobyte CSI enables easy integration of Quobyte Storage into Kubernetes. Current Quobyte CSI plugin
  supports the following functionality
 
-* Dynamic volume Create
+* Dynamic Volume Create
 * Volume Delete
 * Pre-provisioned volumes (Delete policy does not apply to these volumes)
+* Volume Expansion (Only dynamically provisioned volumes can be expanded)
 
 ## Index
 
@@ -24,7 +25,7 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.14 or higher
+* Kubernetes v1.14 or v1.15
   * `ExpandCSIVolumes` feature-gate must be enabled on api-server, controller-manager and kubelet
     to use volume expansion feature.
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
