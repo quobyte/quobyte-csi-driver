@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	KEY_VAL          = "{\"access_key_id\":\"%s\",\"access_key_secret\":\"%s\",\"access_key_handle\":\"%s\",\"access_key_scope\":\"handle\"}"
+	KEY_VAL          = "{ \"access_key_id\": \"%s\",\"access_key_secret\": \"%s\",\"access_context\": \"%s\",\"access_key_scope\": \"context\" }"
 	VOL_UUID_LOCATOR = "used by volume "
 	POD_UUID_LOCATOR = "/pods/"
 	POD_VOL_LOCATOR  = "/volume"
@@ -43,9 +43,8 @@ func setfattr(key, val, mountPath string) error {
 	options = append(options, "-v")
 	options = append(options, val)
 	options = append(options, mountPath)
-	// TODO (venkat): don't log options, options leaks secret
 	if out, err := exec.Command(cmd, options...).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed setfattr due to %v. Cmd opts: %v command output: %q", err, options, string(out))
+		return fmt.Errorf("failed setfattr due to %v. command output: %q", err, string(out))
 	}
 	return nil
 }
