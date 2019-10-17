@@ -29,6 +29,7 @@ Quobyte CSI is the implementation of
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
+  *  To use Quobyte access keys quobyte client should be deployed with **--enable-access-contexts**
 
 ## Deploy Quobyte CSI
 
@@ -106,7 +107,7 @@ Quobyte requires a secret to authenticate volume create and delete requests. Cre
 
 Create a [storage class](example/StorageClass.yaml) with the `provisioner` set to `csi.quobyte.com` along with other configuration
  parameters. You could create multiple storage classes by varying `parameters` such as
-  `quobyteTenant`, `quobyteConfig` etc.
+  `quobyteTenant`, `quobyteConfig` etc. If you're using `Quobyte access keys`, make sure to configure the `user:`, `group:` and `accessMode:` for the volume as required.  
 
   ```bash
   kubectl create -f example/StorageClass.yaml
@@ -127,7 +128,7 @@ To run the **Nginx demo** pods,
 ### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in the previous step would provision dynamic
- volume. The secret ` csi.storage.k8s.io/provisioner-secret-name` from the namespace ` csi.storage.k8s.io/provisioner-secret-namespace`
+ volume. The secret `csi.storage.k8s.io/provisioner-secret-name` from the namespace `csi.storage.k8s.io/provisioner-secret-namespace`
  in the referenced StorageClass will be used to authenticate volume creation and deletion.
 
 1. Create [PVC](example/pvc-dynamic-provision.yaml) to trigger dynamic provisioning
