@@ -49,38 +49,12 @@ Quobyte CSI is the implementation of
     git checkout tags/v1.0.5 # checkout release v1.0.5
     ```
 
-2. Edit [deploy/config.yaml](deploy/config.yaml) and configure `quobyte.apiURL` with your Quobyte cluster API URL.
- Quobyte API URL can be obtained from the Quobyte Webconsole (click on info icon and chose `CLI and API...`).
+2. Helm is required to deploy the Quobyte CSI driver. Please install [Helm](https://helm.sh/docs/using_helm/#installing-helm).
 
-3. Create configuration
+3. Edit [CSI driver configuration](helm/values.yaml) Configure CSI driver with Quobyte API and other required information.
 
-    ```bash
-    kubectl create -f deploy/config.yaml
-    ```
-
-4. Deploy RBAC and Kubernetes CSI helper
- containers along with Quobyte CSI plugin containers
-   
-   * If your Quobyte installation uses self-signed certificates, the driver containers need some adjustments.
-   See the [issue](https://github.com/quobyte/quobyte-csi/issues/7) for more details.
-
-   * To use K8S namespace as Quobyte tenant, set `--use_k8s_namespace_as_tenant=true`
-     in `deploy/csi-driver(-PSP).yaml`
-     * Applicable only for dynamic provisioning
-     * Enabling this ignores `StorageClass.parameters.quobyteTenant` and uses `PVC.namespace`
-      as Quobyte Tenant.
-
-    On Kubernetes **with PodSecurityPolicies**
-
-    ```bash
-    kubectl create -f deploy/csi-driver-PSP.yaml
-    ```
-
-    On Kubernetes **without PodSecurityPolicies**
-
-    ```bash
-    kubectl create -f deploy/csi-driver.yaml
-    ```
+4. Deploy Qubotye CSI driver with Helm
+    ```helm install ./helm```
 
 5. Verify the status of Quobyte CSI driver pods
 
@@ -105,10 +79,9 @@ Quobyte CSI is the implementation of
     kubectl -n kube-system exec -it \
     "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" \
     -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL  
-
     ```
 
-    The above command should print your Quobyte API endpoint. If not, please verify `deploy/config.yaml` and redeploy with correct `quobyte.apiURL`.
+    The above command should print your Quobyte API endpoint.
     After that, uninstall Quobyte CSI driver and install again.
 
 ## Use Quobyte volumes in Kubernetes
@@ -124,8 +97,8 @@ We use `quobyte` namespace for the examples. Create the namespace
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte API login credentials. Kubernetes requires base64 encoding for secret data which can be obtained
- with the command `echo -n "value" | base64`. Please encode your user name and password in base64 and
- update [example/csi-secret.yaml](example/csi-secret.yaml)
+ with the command `echo -n "value" | base64`. Please encode your user name, password and access key
+ information in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml)
 
   ```bash
   kubectl create -f example/csi-secret.yaml
@@ -150,10 +123,11 @@ To run the **Nginx demo** pods,
 
 2. `nginx` user must have at least read and execute permissions on the volume
 
+
 ### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in the previous step would provision dynamic
- volume. The secret `csiProvisionerSecretName` from the namespace `csiProvisionerSecretNamespace`
+ volume. The secret ` csi.storage.k8s.io/provisioner-secret-name` from the namespace ` csi.storage.k8s.io/provisioner-secret-namespace`
  in the referenced StorageClass will be used to authenticate volume creation and deletion.
 
 1. Create [PVC](example/pvc-dynamic-provision.yaml) to trigger dynamic provisioning
@@ -245,25 +219,14 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
 1. Delete Quobyte CSI containers and corresponding RBAC
 
-    On Kubernetes **without Pod Security Policies**
-
+    List available helm charts
+    
     ```bash
-    kubectl delete -f deploy/deploy/csi-driver.yaml
-    ```
-    or on Kubernetes **with Pod Security Policies**
-
-    ```bash
-    kubectl delete -f deploy/csi-driver-PSP.yaml
+    helm list
     ```
 
-2. Delete Quobyte CSI configuration data
-
+    Delete intentend chart
+        
     ```bash
-    kubectl delete -f deploy/config.yaml
-    ```
-
-3. Delete `CSIDriver` object
-
-    ```bash
-    kubectl delete CSIDriver csi.quobyte.com
+    helm delete <Quobyte-CSI-chart-name>
     ```
