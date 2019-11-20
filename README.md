@@ -25,9 +25,7 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.14 or v1.15
-  * `ExpandCSIVolumes` feature-gate must be enabled on api-server, controller-manager and kubelet
-    to use volume expansion feature.
+* Kubernetes v1.16
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
@@ -62,6 +60,9 @@ Quobyte CSI is the implementation of
 
 4. Deploy RBAC and Kubernetes CSI helper
  containers along with Quobyte CSI plugin containers
+   
+   If your Quobyte installation uses self-signed certificates, the driver containers need some adjustments.
+   See the [issue](https://github.com/quobyte/quobyte-csi/issues/7) for more details.
 
     On Kubernetes **with PodSecurityPolicies**
 
