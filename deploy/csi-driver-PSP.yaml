@@ -33,11 +33,14 @@ spec:
   podInfoOnMount: false
 ---
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-controller
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: quobyte-csi-controller
   serviceName: "quobyte-csi"
   replicas: 1
   template:
@@ -351,7 +354,7 @@ roleRef:
 ---
 
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-node
   namespace: kube-system
