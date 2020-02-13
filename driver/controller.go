@@ -60,6 +60,11 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			volRequest.ConfigurationName = v
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
+		case "labels":
+			volRequest.Labels, err = parseLabels(v)
+			if err != nil {
+				return nil, err
+			}
 		case "accessmode":
 			u64, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
