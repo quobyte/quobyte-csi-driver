@@ -8,4 +8,5 @@ quobyte:
   # Should be a valid DNS name. StorageClass.provisioner must be same as the value configured here. 
   csiProvisionerName: csi.quobyte.com 
   csiImage: quay.io/quobyte/csi:accesskeys-rc
-  enableAccessKeys: true #Enable access keys
+  enableAccessKeys: true # Enable/disable access keys
+  podSecurityPolicies: false # deploy csi driver with pod security policies
