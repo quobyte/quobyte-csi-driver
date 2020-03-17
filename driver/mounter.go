@@ -45,7 +45,7 @@ func Unmount(target string) error {
 		return errors.New("Given unmount path is empty")
 	}
 	if out, err := exec.Command(cmd, target).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed unmount: %v cmd: '%s %s' command output: %q", err, cmd, target, string(out))
+		klog.Errorf("failed unmount: %v cmd: '%s %s' command output: %q", err, cmd, target, string(out))
 	}
 	return nil
 }
