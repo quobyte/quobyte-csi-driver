@@ -17,6 +17,9 @@ if [ -d csi_logs ]; then
 fi
 
 mkdir -p ./csi_logs
+echo '###kubectl version info###' >> ./csi_logs/csi_pods.txt
+kubectl version >> ./csi_logs/csi_pods.txt
+echo '' >> ./csi_logs/csi_pods.txt
 echo '###CSIDriver object status###' >> ./csi_logs/csi_pods.txt
 kubectl get CSIDriver | grep ^csi.quobyte.com >> ./csi_logs/csi_pods.txt
 echo '' >> ./csi_logs/csi_pods.txt
