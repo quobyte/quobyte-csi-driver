@@ -16,7 +16,7 @@ import (
 
 const (
 	driverName    = "csi.quobyte.com"
-	driverVersion = "v1.0.0" // Based on CSI spec version v1.0.0
+	driverVersion = "v1.0.4" // Based on CSI spec version v1.0.0
 )
 
 // QuobyteDriver CSI driver type

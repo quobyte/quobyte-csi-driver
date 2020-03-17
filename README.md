@@ -39,14 +39,14 @@ Quobyte CSI is the implementation of
     ```bash
     git clone https://github.com/quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout tags/v1.0.3 # checkout release v1.0.3
+    git checkout tags/v1.0.4 # checkout release v1.0.4
     ```
     Using `SSH`
 
     ```bash
     git clone git@github.com:quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout tags/v1.0.3 # checkout release v1.0.3
+    git checkout tags/v1.0.4 # checkout release v1.0.4
     ```
 
 2. Edit [deploy/config.yaml](deploy/config.yaml) and configure `quobyte.apiURL` with your Quobyte cluster API URL.
