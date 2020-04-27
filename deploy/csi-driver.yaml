@@ -27,11 +27,12 @@ spec:
       serviceAccount: quobyte-csi-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.3.0
+          image: quay.io/k8scsi/csi-provisioner:v1.6.0
           args:
             - "--provisioner=csi.quobyte.com"
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
+            - "--extra-create-metadata=true"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -53,7 +54,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.2.0
+          image: quay.io/k8scsi/csi-resizer:v0.5.0
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -65,7 +66,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.2.0
+          image: quay.io/k8scsi/csi-attacher:v2.2.0
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -77,13 +78,16 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: quobyte-csi-plugin
-          image: quay.io/quobyte/csi:v1.0.4
+          image: quay.io/quobyte/csi:v1.0.5
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" # Quobyte API URL
+            # For setups that map K8S namespace to tenant
+            # --use_k8s_namespace_as_tenant=true should be set.
+            - "--use_k8s_namespace_as_tenant=false" 
           env:
             - name: NODE_ID
               valueFrom:
@@ -332,7 +336,7 @@ spec:
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
           imagePullPolicy: "IfNotPresent"
           args:
             - "--v=3"
@@ -362,13 +366,14 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/quobyte/csi:v1.0.4
+          image: quay.io/quobyte/csi:v1.0.5
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" # Quobyte API URL
+            - "--use_k8s_namespace_as_tenant=false" 
           env:
             - name: NODE_ID
               valueFrom:

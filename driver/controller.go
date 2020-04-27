@@ -23,6 +23,8 @@ const (
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
 	DefaultAccessModes = 777
+	// Metadata from K8S CSI external provisioner
+	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 )
 
 // CreateVolume creates quobyte volume
@@ -70,6 +72,16 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	if err != nil {
 		return nil, err
 	}
+
+	if d.UseK8SNamespaceAsQuobyteTenant {
+		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
+			volRequest.TenantID = pvcNamespace
+		} else {
+			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping quay.io/k8scsi/csi-provisioner" +
+				"should be deployed with --extra-create-metadata=true. Please redeploy driver with the above flag and retry.")
+		}
+	}
+
 	volUUID, err := quobyteClient.CreateVolume(volRequest)
 	if err != nil {
 		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
@@ -173,7 +185,7 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 	for _, cap := range []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
-	//	csi.ControllerServiceCapability_RPC_GET_CAPACITY,
+		//	csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 	} {
 		caps = append(caps, newCap(cap))
 	}
