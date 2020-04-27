@@ -61,8 +61,14 @@ Quobyte CSI is the implementation of
 4. Deploy RBAC and Kubernetes CSI helper
  containers along with Quobyte CSI plugin containers
    
-   If your Quobyte installation uses self-signed certificates, the driver containers need some adjustments.
+   * If your Quobyte installation uses self-signed certificates, the driver containers need some adjustments.
    See the [issue](https://github.com/quobyte/quobyte-csi/issues/7) for more details.
+
+   * To use K8S namespace as Quobyte tenant, set `--use_k8s_namespace_as_tenant=true`
+     in `deploy/csi-driver(-PSP).yaml`
+     * Applicable only for dynamic provisioning
+     * Enabling this ignores `StorageClass.parameters.quobyteTenant` and uses `PVC.namespace`
+      as Quobyte Tenant.
 
     On Kubernetes **with PodSecurityPolicies**
 
