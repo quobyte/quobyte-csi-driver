@@ -42,20 +42,20 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
 	volRequest.Name = volName
-	volRequest.TenantID = DefaultTenant
+	volRequest.TenantId = DefaultTenant
 	volRequest.ConfigurationName = DefaultConfig
-	volRequest.RootUserID = DefaultUser
-	volRequest.RootGroupID = DefaultGroup
+	volRequest.RootUserId = DefaultUser
+	volRequest.RootGroupId = DefaultGroup
 	createQuota := DefaultCreateQuota
 	volRequest.AccessMode = DefaultAccessModes
 	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "quobytetenant":
-			volRequest.TenantID = v
+			volRequest.TenantId = v
 		case "user":
-			volRequest.RootUserID = v
+			volRequest.RootUserId = v
 		case "group":
-			volRequest.RootGroupID = v
+			volRequest.RootGroupId = v
 		case "quobyteconfig":
 			volRequest.ConfigurationName = v
 		case "createquota":
@@ -75,25 +75,29 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 
 	if d.UseK8SNamespaceAsQuobyteTenant {
 		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
-			volRequest.TenantID = pvcNamespace
+			volRequest.TenantId = pvcNamespace
 		} else {
 			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping quay.io/k8scsi/csi-provisioner" +
 				"should be deployed with --extra-create-metadata=true. Please redeploy driver with the above flag and retry.")
 		}
 	}
 
-	volUUID, err := quobyteClient.CreateVolume(volRequest)
+	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
+	var volUUID string
 	if err != nil {
 		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
 		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
 			return nil, err
 		}
 		volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
+	} else {
+		volUUID = volCreateResp.VolumeUuid
 	}
 	if createQuota {
 		err := quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
 		if err != nil {
-			quobyteClient.DeleteVolume(volUUID)
+			req := &quobyte.DeleteVolumeRequest{VolumeUuid: volUUID}
+			quobyteClient.DeleteVolume(req)
 			return nil, err
 		}
 	}
@@ -110,7 +114,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
 			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
 			// for pre-provisioned volumes
-			VolumeId:      volRequest.TenantID + "|" + volUUID,
+			VolumeId:      volRequest.TenantId + "|" + volUUID,
 			CapacityBytes: capacity,
 		},
 	}
