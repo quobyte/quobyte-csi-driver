@@ -10,8 +10,14 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
 else
   echo 'Building executable'
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi main.go
-  echo 'Executable is built'
-  if [[ ! -z "$1" ]]; then
+  build_success="$?"
+  if [[ ${build_success} -eq 0 ]]; then
+     echo "Build is successful"
+  else
+     echo "Build failed"
+     exit 1
+  fi
+  if [[ "${build_success}" -eq 0 && ! -z "$1" ]]; then
    echo 'Building docker image'
    IMAGE=$1
    sudo docker build -t quobyte-csi -f Dockerfile .
