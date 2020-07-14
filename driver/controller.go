@@ -149,6 +149,11 @@ func (d *QuobyteDriver) ControllerPublishVolume(ctx context.Context, req *csi.Co
 	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
+// ControllerGetVolume Quobyte CSI does not implement this method.
+func (d *QuobyteDriver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+	return &csi.ControllerGetVolumeResponse{}, nil
+}
+
 // ControllerUnpublishVolume Quobyte CSI does not implement this method.
 func (d *QuobyteDriver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	// Quobyte does not require any clean up, return to the Quobyte client
