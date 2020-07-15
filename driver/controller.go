@@ -65,7 +65,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			if err != nil {
 				return nil, err
 			}
-			volRequest.AccessMode = int32(u64)
+			volRequest.AccessMode = uint32(u64)
 		}
 	}
 	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
@@ -99,7 +99,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		volUUID = volCreateResp.VolumeUuid
 	}
 	if createQuota {
-		err := quobyteClient.SetVolumeQuota(volUUID, capacity)
+		err := quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
 		if err != nil {
 			req := &quobyte.DeleteVolumeRequest{VolumeUuid: volUUID}
 			quobyteClient.DeleteVolume(req)

@@ -48,7 +48,7 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if err != nil {
 		return err
 	}
-	err = quobyteClient.SetVolumeQuota(volUUID, int64(capacity))
+	err = quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
 	if err != nil {
 		return err
 	}
