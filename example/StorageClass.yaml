@@ -13,8 +13,12 @@ provisioner: csi.quobyte.com
 # Volume expansion only makes sense if volume is created with a quota.
 allowVolumeExpansion: true
 parameters:
-  # ignored if driver is deployed to use K8S namespace as the Quobyte tenant
-  # i.e; K8S namespace "tenant_x" maps to "tenant_x" in Quobyte storage. 
+  # quobyteTenant is used as tenant if CSI driver is deployed with 
+  # --use_k8s_namespace_as_tenant=false.
+  # If CSI driver is deployed with --use_k8s_namespace_as_tenant=true, 
+  # quobyteTenant is ignored and K8S namespace in which PVC is created
+  # becomes Quobyte tenant
+  # i.e; K8S namespace "tenant_x" maps to "tenant_x" in Quobyte storage.
   quobyteTenant: "My Tenant"
   # secret is used for dynamic volume provisioning.
   # The user credentials provided in this secret must have
