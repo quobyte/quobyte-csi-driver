@@ -21,8 +21,8 @@ const (
 
 // QuobyteDriver CSI driver type
 type QuobyteDriver struct {
-	name                           string
-	version                        string
+	Name                           string
+	Version                        string
 	endpoint                       string
 	clientMountPoint               string
 	server                         *grpc.Server
@@ -33,8 +33,8 @@ type QuobyteDriver struct {
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
-func NewQuobyteDriver(endpoint, mount, nodeName, apiURL string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
-	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes bool}
+func NewQuobyteDriver(endpoint, mount, nodeName, apiURL, driverName string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
+	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes}
 }
 
 // Run starts the grpc server for the driver

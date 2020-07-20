@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	quobyte "github.com/quobyte/api"
+	quobyte "github.com/quobyte/api/v3"
 )
 
 var (
@@ -64,7 +64,7 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if err != nil {
 		return err
 	}
-	err = quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
+	err = quobyteClient.SetVolumeQuota(volUUID, capacity)
 	if err != nil {
 		return err
 	}
@@ -103,19 +103,19 @@ func getSanitizedPodUIDFromPath(podVolPath string) string {
 	return strings.ReplaceAll(podVolPath[pod_uid_start_index:pod_uid_end_index], "-", "")
 }
 
-func parseLabels(labels string) ([]quobyte.Label, error) {
+func parseLabels(labels string) ([]*quobyte.Label, error) {
 	labelKVs := strings.Split(labels, ",")
-	parsed_labels := make([]quobyte.Label, 0)
+	parsedLabels := make([]*quobyte.Label, 0)
 	for _, lableKV := range labelKVs {
-		labelKV_arr := strings.Split(lableKV, ":")
-		if len(labelKV_arr) < 2 {
-			return parsed_labels, fmt.Errorf("Found invalid label '%s'. Label should be <Name>:<Value>", lableKV)
+		labelKVArr := strings.Split(lableKV, ":")
+		if len(labelKVArr) < 2 {
+			return parsedLabels, fmt.Errorf("Found invalid label '%s'. Label should be <Name>:<Value>", lableKV)
 		}
-		label := quobyte.Label{
-			Name:  labelKV_arr[0],
-			Value: labelKV_arr[1],
+		label := &quobyte.Label{
+			Name:  labelKVArr[0],
+			Value: labelKVArr[1],
 		}
-		parsed_labels = append(parsed_labels, label)
+		parsedLabels = append(parsedLabels, label)
 	}
-	return parsed_labels, nil
+	return parsedLabels, nil
 }

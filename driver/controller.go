@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
-	quobyte "github.com/quobyte/api"
+	quobyte "github.com/quobyte/api/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -61,7 +61,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "labels":
-			volRequest.Labels, err = parseLabels(v)
+			volRequest.Label, err = parseLabels(v)
 			if err != nil {
 				return nil, err
 			}
@@ -70,7 +70,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			if err != nil {
 				return nil, err
 			}
-			volRequest.AccessMode = uint32(u64)
+			volRequest.AccessMode = int32(u64)
 		}
 	}
 	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
@@ -104,7 +104,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		volUUID = volCreateResp.VolumeUuid
 	}
 	if createQuota {
-		err := quobyteClient.SetVolumeQuota(volUUID, uint64(capacity))
+		err := quobyteClient.SetVolumeQuota(volUUID, capacity)
 		if err != nil {
 			req := &quobyte.DeleteVolumeRequest{VolumeUuid: volUUID}
 			quobyteClient.DeleteVolume(req)
