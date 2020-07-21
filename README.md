@@ -51,10 +51,12 @@ Quobyte CSI is the implementation of
     git checkout tags/v1.0.5 # checkout release v1.0.5
     ```
 
-2. Helm is required to deploy the Quobyte CSI driver. Please install [Helm](https://helm.sh/docs/intro/install/#from-script) on K8S master node.
+2. Helm is required to deploy the Quobyte CSI driver. Please
+ install [Helm](https://helm.sh/docs/intro/install/#from-script) on K8S master node.
 
     ```bash
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+    && chmod 700 get_helm.sh && ./get_helm.sh
     ```
 
 3. Edit [CSI driver configuration](helm/values.yaml) Configure CSI driver with Quobyte API and other required information.
