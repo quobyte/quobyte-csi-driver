@@ -70,7 +70,9 @@ Quobyte CSI is the implementation of
 5. Deploy Qubotye CSI driver (deploys driver with configuration from step 3)
 
     ```bash
-    helm install ./helm
+    # Depolys helm chart with name "quobyte-csi".
+    # Please change quobyte-csi as required
+    helm install quobyte-csi ./helm
     ```
 
 6. Verify the status of Quobyte CSI driver pods
