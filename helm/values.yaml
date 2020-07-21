@@ -7,13 +7,14 @@ quobyte:
   clientMountPoint: /mnt/quobyte
   # Should be a valid DNS name. StorageClass.provisioner must be same as the value configured here. 
   csiProvisionerName: csi.quobyte.com 
-  csiImage: quay.io/quobyte/csi:3.0-pre
-  enableAccessKeys: false # Enable/disable access keys
+  useK8SNamespaceAsTenant: false # when set to true, uses PVC.namespace as Quobyte tenant
+  enableAccessKeys: false  access keys
   podSecurityPolicies: false # deploy csi driver with pod security policies
-  useK8SNamespaceAsTenant: false
   # The dev configuration is intended for Quobyte Developers.
   # Please do NOT change the dev: configuration unless otherwise adviced to change
   dev:
+    csiImage: quay.io/quobyte/csi:3.0-pre
+    # k8s sidecar containers (https://github.com/kubernetes-csi/)
     k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
     k8sClusterDriverRegistrarImage: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
     k8sResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0

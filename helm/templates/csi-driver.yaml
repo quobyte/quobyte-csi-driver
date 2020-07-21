@@ -101,7 +101,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: quobyte-csi-plugin
-          image: {{ .Values.quobyte.csiImage }}
+          image: {{ .Values.quobyte.dev.csiImage }}
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -401,7 +401,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: {{ .Values.quobyte.csiImage }}
+          image: {{ .Values.quobyte.dev.csiImage }}
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -575,7 +575,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: quobyte-csi-plugin
-          image: {{ .Values.quobyte.csiImage }}
+          image: {{ .Values.quobyte.dev.csiImage }}
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -860,7 +860,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: {{ .Values.quobyte.csiImage }}
+          image: {{ .Values.quobyte.dev.csiImage }}
           imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
