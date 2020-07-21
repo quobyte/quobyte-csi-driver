@@ -42,6 +42,7 @@ Quobyte CSI is the implementation of
     cd quobyte-csi
     git checkout tags/v1.0.5 # checkout release v1.0.5
     ```
+
     Using `SSH`
 
     ```bash
@@ -50,14 +51,27 @@ Quobyte CSI is the implementation of
     git checkout tags/v1.0.5 # checkout release v1.0.5
     ```
 
-2. Helm is required to deploy the Quobyte CSI driver. Please install [Helm](https://helm.sh/docs/using_helm/#installing-helm).
+2. Helm is required to deploy the Quobyte CSI driver. Please install [Helm](https://helm.sh/docs/intro/install/#from-script) on K8S master node.
+
+    ```bash
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
+    ```
 
 3. Edit [CSI driver configuration](helm/values.yaml) Configure CSI driver with Quobyte API and other required information.
 
-4. Deploy Qubotye CSI driver with Helm
-    ```helm install ./helm```
+4. (optional) generate driver deployment `.yaml` and verify the configuration.
 
-5. Verify the status of Quobyte CSI driver pods
+    ```bash
+    helm template ./helm --debug >> csi-driver.yaml
+    ```
+
+5. Deploy Qubotye CSI driver (deploys driver with configuration from step 3)
+
+    ```bash
+    helm install ./helm
+    ```
+
+6. Verify the status of Quobyte CSI driver pods
 
     Deploying Quobyte CSI driver should create `csi.quobyte.com` CSIDriver
      object (this may take few seconds)
@@ -74,7 +88,7 @@ Quobyte CSI is the implementation of
     kubectl -n kube-system get po -owide | grep ^quobyte-csi
     ```
 
-6. Make sure your CSI driver is running against the expected Quobyte API endpoint
+7. Make sure your CSI driver is running against the expected Quobyte API endpoint
 
     ```bash
     kubectl -n kube-system exec -it \
@@ -124,7 +138,6 @@ To run the **Nginx demo** pods,
 
 2. `nginx` user must have at least read and execute permissions on the volume
 
-
 ### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in the previous step would provision dynamic
@@ -155,7 +168,7 @@ Creating a PVC referencing the storage class created in the previous step would 
     kubectl cp example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
     ```
 
-4. Access the home page served by nginx pod from the command line
+5. Access the home page served by nginx pod from the command line
 
     ```bash
     curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
@@ -221,13 +234,13 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 1. Delete Quobyte CSI containers and corresponding RBAC
 
     List available helm charts
-    
+
     ```bash
     helm list
     ```
 
     Delete intentend chart
-        
+
     ```bash
     helm delete <Quobyte-CSI-chart-name>
     ```
