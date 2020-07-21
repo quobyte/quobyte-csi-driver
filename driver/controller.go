@@ -82,7 +82,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
 			volRequest.TenantId = pvcNamespace
 		} else {
-			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping quay.io/k8scsi/csi-provisioner" +
+			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping, quay.io/k8scsi/csi-provisioner" +
 				"should be deployed with --extra-create-metadata=true. Please redeploy driver with the above flag and retry.")
 		}
 	}

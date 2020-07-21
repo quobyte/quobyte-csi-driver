@@ -16,7 +16,7 @@ import (
 
 const (
 	// driverName    = "csi.quobyte.com"
-	driverVersion = "v1.0.0" // Based on CSI spec version v1.0.0
+	driverVersion = "v1.3.0" // Based on CSI spec version v1.3.0
 )
 
 // QuobyteDriver CSI driver type
@@ -82,7 +82,11 @@ func (qd *QuobyteDriver) Run() error {
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s' GRPC socket: '%s' mount point: '%s' API URL: '%s'.", qd.Name, qd.Version, qd.endpoint, qd.clientMountPoint, qd.ApiURL)
+	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s'"+
+		"GRPC socket: '%s' mount point: '%s' API URL: '%s' "+
+		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t",
+		qd.Name, qd.Version, qd.endpoint, qd.clientMountPoint, qd.ApiURL,
+		qd.UseK8SNamespaceAsQuobyteTenant, qd.IsQuobyteAccesskeysEnabled)
 	qd.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(qd.server, qd)
 	csi.RegisterControllerServer(qd.server, qd)
