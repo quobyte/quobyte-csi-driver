@@ -34,7 +34,7 @@ spec:
   podInfoOnMount: false
 ---
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-controller
   namespace: kube-system
@@ -51,11 +51,12 @@ spec:
       serviceAccount: quobyte-csi-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.0.1
+          image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
             - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
+            - "--extra-create-metadata=true"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -64,7 +65,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-cluster-driver-registrar
-          image: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
+          image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -76,7 +77,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.2.0
+          image: {{ .Values.quobyte.dev.k8sResizerImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -88,7 +89,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.0.1
+          image: {{ .Values.quobyte.dev.k8sAttacher }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -109,6 +110,7 @@ spec:
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+            - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
             - name: NODE_ID
               valueFrom:
@@ -351,7 +353,7 @@ roleRef:
 ---
 
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-node
   namespace: kube-system
@@ -370,9 +372,9 @@ spec:
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.0.1
+          image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           args:
-            - "--v=5"
+            - "--v=3"
             - "--csi-address=$(ADDRESS)"
             - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
           lifecycle:
@@ -408,6 +410,7 @@ spec:
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+            - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
             - name: NODE_ID
               valueFrom:
@@ -490,7 +493,8 @@ roleRef:
   kind: ClusterRole
   name: quobyte-csi-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io
-{{ else }}
+
+{{ else }} # Without pod security policies
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
@@ -500,11 +504,14 @@ spec:
   podInfoOnMount: false
 ---
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-controller
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: quobyte-csi-controller
   serviceName: "quobyte-csi"
   replicas: 1
   template:
@@ -517,11 +524,12 @@ spec:
       serviceAccount: quobyte-csi-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.3.0
+          image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
             - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
+            - "--extra-create-metadata=true"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -530,7 +538,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-cluster-driver-registrar
-          image: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
+          image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
           imagePullPolicy: "IfNotPresent"
           args:
             - "--v=3"
@@ -543,7 +551,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.2.0
+          image: {{ .Values.quobyte.dev.k8sResizerImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -555,7 +563,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.2.0
+          image: {{ .Values.quobyte.dev.k8sAttacher }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -576,6 +584,7 @@ spec:
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+            - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
             - name: NODE_ID
               valueFrom:
@@ -802,7 +811,7 @@ roleRef:
 ---
 
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: quobyte-csi-node
   namespace: kube-system
@@ -821,7 +830,7 @@ spec:
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           imagePullPolicy: "IfNotPresent"
           args:
             - "--v=3"
@@ -860,6 +869,7 @@ spec:
             - "--api_url=$(QUOBYTE_API_URL)"
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}" 
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+            - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
             - name: NODE_ID
               valueFrom:
