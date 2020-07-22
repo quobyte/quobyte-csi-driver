@@ -28,6 +28,9 @@ parameters:
   # Resize volume requires secrets to commuicate with Quobyte API
   csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-secret"
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
+  # Mount secrets
+  csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-secret"
+  csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
   # Quobyte volume configuration
   quobyteConfig: "BASE"
   # creates quota for the volume if set to true. The size of the Quota
