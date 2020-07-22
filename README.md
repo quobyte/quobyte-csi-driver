@@ -59,7 +59,7 @@ Quobyte CSI is the implementation of
     && chmod 700 get_helm.sh && ./get_helm.sh
     ```
 
-3. Edit [CSI driver configuration](helm/values.yaml) Configure CSI driver with Quobyte API and other required information.
+3. Edit [CSI driver configuration](helm/values.yaml) and configure CSI driver with Quobyte API, other required information.
 
 4. (optional) generate driver deployment `.yaml` and verify the configuration.
 
@@ -115,9 +115,9 @@ We use `quobyte` namespace for the examples. Create the namespace
   ```
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
- your Quobyte API login credentials. Kubernetes requires base64 encoding for secret data which can be obtained
- with the command `echo -n "value" | base64`. Please encode your user name, password and access key
- information in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml)
+ your Quobyte API login credentials (Kubernetes requires base64 encoding for secret data which can be obtained
+ with the command `echo -n "value" | base64`). Please encode your user name, password (and access key
+ information) in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml)
 
   ```bash
   kubectl create -f example/csi-secret.yaml
