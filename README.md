@@ -40,7 +40,7 @@ Quobyte CSI is the implementation of
     ```bash
     git clone https://github.com/quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout tags/v1.0.5 # checkout release v1.0.5
+    git checkout quobyte3.0 # checkout release quobyte-3.0-pre
     ```
 
     Using `SSH`
@@ -48,7 +48,7 @@ Quobyte CSI is the implementation of
     ```bash
     git clone git@github.com:quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout tags/v1.0.5 # checkout release v1.0.5
+    git checkout quobyte3.0 # checkout release quobyte-3.0-pre
     ```
 
 2. Helm is required to deploy the Quobyte CSI driver. Please
@@ -64,7 +64,7 @@ Quobyte CSI is the implementation of
 4. (optional) generate driver deployment `.yaml` and verify the configuration.
 
     ```bash
-    helm template ./helm --debug > csi-driver.yaml
+    helm template ./quobyte-csi-driver --debug > csi-driver.yaml
     ```
 
 5. Deploy Qubotye CSI driver (deploys driver with configuration from step 3)
