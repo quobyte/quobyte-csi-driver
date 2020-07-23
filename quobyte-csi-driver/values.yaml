@@ -1,27 +1,33 @@
 quobyte:
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
-  apiURL: "http://10.125.2.77:10330" # Example Quobyte API: http://hydrogen.quobyte.com:26801
+  # Example Quobyte API: http://hydrogen.quobyte.com:26801
+  apiURL: "http://10.125.2.77:10330" 
   
   # Quobyte clinet should be deployed with <clientMountPoint>/mounts
-  # For example, if you set clientMountPoint: /mnt/quobyte then quobyte client should
-  # be deployed with /mnt/quobyte/mounts as the mount point
+  # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
+  # client should be deployed with /mnt/quobyte/mounts as the mount point
   clientMountPoint: /mnt/quobyte
   
-  # Should be a valid DNS name. StorageClass.provisioner must be same as the value configured here. 
+  # Should be a valid DNS name. StorageClass.provisioner must 
+  # be match the value configured here
   csiProvisionerName: csi.quobyte.com 
   
-  # when set to true, uses PVC.namespace as Quobyte tenant
+  # When set to true, uses PVC.namespace as Quobyte tenant.
+  # This does not create tenants automatically, your storage system must
+  # have tenants that match the namespace.
   useK8SNamespaceAsTenant: false 
 
   # Set to true to enable Quobyte access keys.
-  # Access keys configured in mount secrets is used to securely mount volume
+  # Access keys configured in StorageClass mount secrets are used to
+  # securely mount volumes.
   enableAccessKeys: false
   
-  # deploy csi driver with pod security policies
+  # Set to true to deploy csi driver with pod security policies.
+  # Change required ONLY if you have pod security policies enabled K8S environment.
   podSecurityPolicies: false
    
-  # The dev configuration is intended for Quobyte Developers.
-  # Please do NOT change the dev: configuration unless otherwise adviced to change
+  # The dev configuration is intended for Quobyte Developers and internal use.
+  # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
     csiImage: quay.io/quobyte/csi:3.0-pre
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
