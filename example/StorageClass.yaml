@@ -39,4 +39,5 @@ parameters:
   user: root
   group: root
   accessMode: "777"
-reclaimPolicy: Retain
+# Set reclaimPolicy: Retain to keep the volume even after PV deletion  
+reclaimPolicy: Delete
