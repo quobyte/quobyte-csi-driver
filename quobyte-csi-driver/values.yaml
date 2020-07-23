@@ -17,9 +17,14 @@ quobyte:
   # have tenants that match the namespace.
   useK8SNamespaceAsTenant: false 
 
-  # Set to true to enable Quobyte access keys.
-  # Access keys configured in StorageClass mount secrets are used to
-  # securely mount volumes.
+  # Set this to true to enable Quobyte access keys. Then, add access key
+  # information to your K8S secret and use this secret in StorageClass as
+  # mount secret. Quobyte-CSI and Client uses access key information
+  # from the mount secret to securely mount volumes.
+  # When access keys are enabled in CSI driver, Quobyte client must also be 
+  # enabled with access keys. To enable access keys on native client,
+  # add "enable-access-contexts" in /etc/quobyte/client-service.cfg.
+  # For container based client configuration, see client.yaml definition.
   enableAccessKeys: false
   
   # Set to true to deploy csi driver with pod security policies.
