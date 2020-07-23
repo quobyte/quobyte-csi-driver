@@ -57,6 +57,7 @@ spec:
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
             - "--extra-create-metadata=true"
+            - "--timeout=5m"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -530,6 +531,7 @@ spec:
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
             - "--extra-create-metadata=true"
+            - "--timeout=5m"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock

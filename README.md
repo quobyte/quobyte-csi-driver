@@ -72,7 +72,7 @@ Quobyte CSI is the implementation of
     ```bash
     # Depolys helm chart with name "quobyte-csi".
     # Please change quobyte-csi as required
-    helm install quobyte-csi ./helm
+    helm install quobyte-csi ./quobyte-csi-driver
     ```
 
 6. Verify the status of Quobyte CSI driver pods
