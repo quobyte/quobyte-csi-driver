@@ -1,17 +1,25 @@
 quobyte:
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
-  apiURL: http://10.125.2.77:10330 # Example Quobyte API: http://hydrogen.quobyte.com:26801
+  apiURL: "http://10.125.2.77:10330" # Example Quobyte API: http://hydrogen.quobyte.com:26801
+  
   # Quobyte clinet should be deployed with <clientMountPoint>/mounts
   # For example, if you set clientMountPoint: /mnt/quobyte then quobyte client should
   # be deployed with /mnt/quobyte/mounts as the mount point
   clientMountPoint: /mnt/quobyte
+  
   # Should be a valid DNS name. StorageClass.provisioner must be same as the value configured here. 
   csiProvisionerName: csi.quobyte.com 
-  useK8SNamespaceAsTenant: false # when set to true, uses PVC.namespace as Quobyte tenant
+  
+  # when set to true, uses PVC.namespace as Quobyte tenant
+  useK8SNamespaceAsTenant: false 
+
   # Set to true to enable Quobyte access keys.
   # Access keys configured in mount secrets is used to securely mount volume
   enableAccessKeys: false
-  podSecurityPolicies: false # deploy csi driver with pod security policies
+  
+  # deploy csi driver with pod security policies
+  podSecurityPolicies: false
+   
   # The dev configuration is intended for Quobyte Developers.
   # Please do NOT change the dev: configuration unless otherwise adviced to change
   dev:
