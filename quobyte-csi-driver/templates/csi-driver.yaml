@@ -2,7 +2,7 @@
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: privileged
+  name: quobyte-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   annotations:
     seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
 spec:
@@ -36,19 +36,19 @@ spec:
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: quobyte-csi-controller
+  name: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
-  serviceName: "quobyte-csi"
+  serviceName: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   replicas: 1
   template:
     metadata:
       labels:
-        app: quobyte-csi-controller
-        role: quobyte-csi
+        app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+        role: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
       priorityClassName: system-cluster-critical
-      serviceAccount: quobyte-csi-controller-sa
+      serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       containers:
         - name: csi-provisioner
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
@@ -139,14 +139,14 @@ spec:
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: quobyte-csi-controller-sa
+  name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-provisioner-role
+  name: quobyte-csi-provisioner-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -173,21 +173,21 @@ rules:
     resources: ['podsecuritypolicies']
     verbs:     ['use']
     resourceNames:
-    - privileged
+    - quobyte-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 
 ---
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-provisioner-binding
+  name: quobyte-csi-provisioner-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-provisioner-role
+  name: quobyte-csi-provisioner-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -195,7 +195,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-attacher-role
+  name: quobyte-csi-attacher-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -213,20 +213,20 @@ rules:
     resources: ['podsecuritypolicies']
     verbs:     ['use']
     resourceNames:
-    - privileged
+    - quobyte-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-attacher-binding
+  name: quobyte-csi-attacher-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-attacher-role
+  name: quobyte-csi-attacher-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -235,7 +235,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-resizer-runner
+  name: external-resizer-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -257,14 +257,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-resizer-role
+  name: csi-resizer-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: external-resizer-runner
+  name: external-resizer-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -272,7 +272,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-snapshotter-role
+  name: quobyte-csi-snapshotter-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -311,14 +311,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-snapshotter-binding
+  name: quobyte-csi-snapshotter-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-snapshotter-role
+  name: quobyte-csi-snapshotter-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -326,7 +326,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-cluster-driver-registrar-role
+  name: quobyte-csi-cluster-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: ["csi.storage.k8s.io"]
     resources: ["csidrivers"]
@@ -335,20 +335,20 @@ rules:
     resources: ['podsecuritypolicies']
     verbs:     ['use']
     resourceNames:
-    - privileged
+    - quobyte-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-cluster-driver-registrar-binding
+  name: quobyte-csi-cluster-driver-registrar-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-cluster-driver-registrar-role
+  name: quobyte-csi-cluster-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -356,20 +356,20 @@ roleRef:
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: quobyte-csi-node
+  name: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: quobyte-csi-node
+      app: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   template:
     metadata:
       labels:
-        app: quobyte-csi-node
-        role: quobyte-csi
+        app: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+        role: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
       priorityClassName: system-node-critical
-      serviceAccount: quobyte-csi-node-sa
+      serviceAccount: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
@@ -460,7 +460,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: quobyte-csi-node-sa
+  name: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-" }}
   namespace: kube-system
 
 ---
@@ -468,7 +468,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-driver-registrar-role
+  name: quobyte-csi-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-" }}
   namespace: kube-system
 rules:
   - apiGroups: [""]
@@ -478,21 +478,21 @@ rules:
     resources: ['podsecuritypolicies']
     verbs:     ['use']
     resourceNames:
-    - privileged
+    - quobyte-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 
 ---
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-driver-registrar-binding
+  name: quobyte-csi-driver-registrar-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-node-sa
+    name: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-driver-registrar-role
+  name: quobyte-csi-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 {{ else }} # Without pod security policies
@@ -507,22 +507,22 @@ spec:
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: quobyte-csi-controller
+  name: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: quobyte-csi-controller
-  serviceName: "quobyte-csi"
+      app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+  serviceName: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }} 
   replicas: 1
   template:
     metadata:
       labels:
-        app: quobyte-csi-controller
-        role: quobyte-csi
+        app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+        role: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
       priorityClassName: system-cluster-critical
-      serviceAccount: quobyte-csi-controller-sa
+      serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       containers:
         - name: csi-provisioner
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
@@ -620,14 +620,14 @@ spec:
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: quobyte-csi-controller-sa
+  name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-provisioner-role
+  name: quobyte-csi-provisioner-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -656,14 +656,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-provisioner-binding
+  name: quobyte-csi-provisioner-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-provisioner-role
+  name: quobyte-csi-provisioner-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -671,7 +671,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-attacher-role
+  name: quobyte-csi-attacher-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -690,14 +690,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-attacher-binding
+  name: quobyte-csi-attacher-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-attacher-role
+  name: quobyte-csi-attacher-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -705,7 +705,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-snapshotter-role
+  name: quobyte-csi-snapshotter-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -739,14 +739,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-snapshotter-binding
+  name: quobyte-csi-snapshotter-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-snapshotter-role
+  name: quobyte-csi-snapshotter-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -754,7 +754,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-cluster-driver-registrar-role
+  name: quobyte-csi-cluster-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: ["csi.storage.k8s.io"]
     resources: ["csidrivers"]
@@ -764,7 +764,7 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-cluster-driver-registrar-binding
+  name: quobyte-csi-cluster-driver-registrar-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
     name: quobyte-csi-controller-sa
@@ -778,7 +778,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-resizer-runner
+  name: external-resizer-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -800,14 +800,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-resizer-role
+  name: csi-resizer-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-controller-sa
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: external-resizer-runner
+  name: external-resizer-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -815,20 +815,20 @@ roleRef:
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: quobyte-csi-node
+  name: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: quobyte-csi-node
+      app: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   template:
     metadata:
       labels:
-        app: quobyte-csi-node
+        app: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
         role: quobyte-csi
     spec:
       priorityClassName: system-node-critical
-      serviceAccount: quobyte-csi-node-sa
+      serviceAccount: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
@@ -926,7 +926,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: quobyte-csi-node-sa
+  name: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 
 ---
@@ -934,7 +934,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-driver-registrar-role
+  name: quobyte-csi-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 rules:
   - apiGroups: [""]
@@ -946,13 +946,13 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: quobyte-csi-driver-registrar-binding
+  name: quobyte-csi-driver-registrar-binding-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 subjects:
   - kind: ServiceAccount
-    name: quobyte-csi-node-sa
+    name: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: quobyte-csi-driver-registrar-role
+  name: quobyte-csi-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
 {{ end }}

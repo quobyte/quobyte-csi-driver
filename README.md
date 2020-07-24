@@ -77,11 +77,12 @@ Quobyte CSI is the implementation of
 
 6. Verify the status of Quobyte CSI driver pods
 
-    Deploying Quobyte CSI driver should create `csi.quobyte.com` CSIDriver
-     object (this may take few seconds)
+    Deploying Quobyte CSI driver should create CSIDriver object
+     with your `csiProvisionerName` (this may take few seconds)
 
     ```bash
-    kubectl get CSIDriver | grep ^csi.quobyte.com
+    CSI_PROVISONER="<YOUR-csiProvisionerName>"
+    kubectl get CSIDriver | grep ^${CSI_PROVISONER}
     ```
 
     The Quobyte CSI plugin is ready for use, if you see `quobyte-csi-controller-x`
@@ -89,14 +90,15 @@ Quobyte CSI is the implementation of
     running on every node of the Kubernetes cluster.
 
     ```bash
-    kubectl -n kube-system get po -owide | grep ^quobyte-csi
+    CSI_PROVISONER=$(echo $CSI_PROVISONER | tr "." "-")
+    kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-${CSI_PROVISONER}
     ```
 
 7. Make sure your CSI driver is running against the expected Quobyte API endpoint
 
     ```bash
     kubectl -n kube-system exec -it \
-    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node | cut -f 1 -d' ')" \
+    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISONER | cut -f 1 -d' ')" \
     -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL  
     ```
 
