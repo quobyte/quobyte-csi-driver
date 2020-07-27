@@ -12,7 +12,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var XattrKey string = "quobyte.access_key"
+const (
+	xattrKey        string = "quobyte.access_key"
+	accessKeyID     string = "accessKeyId"
+	accessKeySecret string = "accessKeySecret"
+)
 
 // NodePublishVolume mounts the volume to the pod with the given target path
 // QuobyteClient does the mounting of the volumes
@@ -64,18 +68,18 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	}
 	var mountPath string
 	if d.IsQuobyteAccesskeysEnabled {
-		podUID := getSanitizedPodUIDFromPath(targetPath)
-		accesskeyID, ok := secrets["access_key_id"]
+		podUUID := getSanitizedPodUUIDFromPath(targetPath)
+		accesskeyID, ok := secrets[accessKeyID]
 		if !ok {
-			return nil, fmt.Errorf("Mount secrets should have 'access_key_id: <access_key_id>'")
+			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_ID>'", accessKeyID)
 		}
-		accesskeySecret, ok := secrets["access_key_secret"]
+		accesskeySecret, ok := secrets["accessKeySecret"]
 		if !ok {
-			return nil, fmt.Errorf("Mount secrets should have 'access_key_secret: <access_key_secret>'")
+			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_SECRET>'", accessKeySecret)
 		}
-		accesskeyHandle := fmt.Sprintf("%s-%s", podUID, accesskeyID)
+		accesskeyHandle := fmt.Sprintf("%s-%s", podUUID, accesskeyID)
 		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
-		err := setfattr(XattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
+		err := setfattr(xattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
 		if err != nil {
 			return nil, err
 		}

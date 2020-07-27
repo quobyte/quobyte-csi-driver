@@ -95,7 +95,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func getSanitizedPodUIDFromPath(podVolPath string) string {
+func getSanitizedPodUUIDFromPath(podVolPath string) string {
 	// Extracts the Pod UID from the given pod volume path. Path of pod volume is of the
 	// form /var/lib/kubelet/pods/<THE-POD-ID-HERE>/volumes/kubernetes.io~csi
 	pod_uid_start_index := strings.Index(podVolPath, POD_UUID_LOCATOR) + len(POD_UUID_LOCATOR)

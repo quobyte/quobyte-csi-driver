@@ -29,7 +29,8 @@ Quobyte CSI is the implementation of
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
-  *  To use Quobyte access keys quobyte client should be deployed with **--enable-access-contexts**
+  * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
+   be deployed with **--enable-access-contexts**
 
 ## Deploy Quobyte CSI
 
@@ -40,7 +41,10 @@ Quobyte CSI is the implementation of
     ```bash
     git clone https://github.com/quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout quobyte3.0 # checkout release quobyte-3.0-pre
+    # Get release tag from https://github.com/quobyte/quobyte-csi/tags
+    # For example, to get the release v1.1.0
+    # the command should be "git checkout tags/v1.1.0"
+    git checkout tags/<RELEASE_TAG>
     ```
 
     Using `SSH`
@@ -48,11 +52,14 @@ Quobyte CSI is the implementation of
     ```bash
     git clone git@github.com:quobyte/quobyte-csi.git
     cd quobyte-csi
-    git checkout quobyte3.0 # checkout release quobyte-3.0-pre
+    # Get release tag from https://github.com/quobyte/quobyte-csi/tags
+    # For example, to get the release v1.1.0
+    # the command should be "git checkout tags/v1.1.0"
+    git checkout tags/<RELEASE_TAG>
     ```
 
 2. Helm is required to deploy the Quobyte CSI driver. Please
- install [Helm](https://helm.sh/docs/intro/install/#from-script) on K8S master node.
+ install [Helm](https://helm.sh/docs/intro/install/#from-script) on the k8s master node.
 
     ```bash
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
@@ -67,7 +74,7 @@ Quobyte CSI is the implementation of
     helm template ./quobyte-csi-driver --debug > csi-driver.yaml
     ```
 
-5. Deploy Qubotye CSI driver (deploys driver with configuration from step 3)
+5. Deploy the Quobtye CSI driver (deploys driver with configuration from step 3)
 
     ```bash
     # Depolys helm chart with name "quobyte-csi".
@@ -77,7 +84,7 @@ Quobyte CSI is the implementation of
 
 6. Verify the status of Quobyte CSI driver pods
 
-    Deploying Quobyte CSI driver should create CSIDriver object
+    Deploying Quobyte CSI driver should create a CSIDriver object
      with your `csiProvisionerName` (this may take few seconds)
 
     ```bash
@@ -118,8 +125,9 @@ We use `quobyte` namespace for the examples. Create the namespace
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte API login credentials (Kubernetes requires base64 encoding for secret data which can be obtained
- with the command `echo -n "value" | base64`). Please encode your user name, password (and access key
- information) in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml)
+ with the command `echo -n "value" | base64`). Please encode your user name, password (and optionally access key
+ information) in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml). If provided, access key
+ ensures only authorized user can access the tenant and volumes (users must be restricted to their own namespace in k8s cluster).
 
   ```bash
   kubectl create -f example/csi-secret.yaml
@@ -127,7 +135,7 @@ Quobyte requires a secret to authenticate volume create and delete requests. Cre
 
 Create a [storage class](example/StorageClass.yaml) with the `provisioner` set to `csi.quobyte.com` along with other configuration
  parameters. You could create multiple storage classes by varying `parameters` such as
-  `quobyteTenant`, `quobyteConfig` etc. If you're using `Quobyte access keys`, make sure to configure the `user:`, `group:` and `accessMode:` for the volume as required.  
+  `quobyteTenant`, `quobyteConfig` etc.
 
   ```bash
   kubectl create -f example/StorageClass.yaml
@@ -245,7 +253,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     helm list
     ```
 
-    Delete intentend chart
+    Delete intended chart
 
     ```bash
     helm delete <Quobyte-CSI-chart-name>

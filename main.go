@@ -13,10 +13,10 @@ var (
 	endpoint               = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
 	clientMountPoint       = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
 	apiURL                 = flag.String("api_url", "", "Quobyte API URL")
-	nodeName               = flag.String("node_name", "", "Node name from K8S environment")
+	nodeName               = flag.String("node_name", "", "Node name from k8s environment")
 	driverName             = flag.String("driver_name", "", "Quobyte CSI driver name")
-	useNameSpaceAsTenant   = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses K8S PVC.namespace as Quobyte tenant")
-	enableQuobyteAcceskeys = flag.Bool("enable_access_keys", false, "Enables Quobyte Access keys for mounting volumes")
+	useNameSpaceAsTenant   = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
+	enableQuobyteAcceskeys = flag.Bool("enable_access_keys", false, "Enables use of Quobyte Access keys for mounting volumes")
 )
 
 func main() {

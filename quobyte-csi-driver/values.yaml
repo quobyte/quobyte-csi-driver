@@ -3,7 +3,7 @@ quobyte:
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   apiURL: "http://10.125.2.77:10330" 
   
-  # Quobyte clinet should be deployed with <clientMountPoint>/mounts
+  # Quobyte client should be deployed with <clientMountPoint>/mounts
   # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
   # client should be deployed with /mnt/quobyte/mounts as the mount point
   clientMountPoint: /mnt/quobyte
@@ -34,7 +34,7 @@ quobyte:
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
-    csiImage: quay.io/quobyte/csi:3.0-pre
+    csiImage: quay.io/quobyte/csi:1.2.0-pre
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
     k8sClusterDriverRegistrarImage: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1

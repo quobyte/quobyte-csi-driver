@@ -29,7 +29,7 @@ spec:
             value: <YOUR_QUOBYTE_REGISTRY> # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             value: /mnt/quobyte/mounts
-          # Enabling access keys require "quay.io/quobyte/quobyte-client:3" or high
+          # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEYS
             value: false  # to enable, set it to true
           - name: NODENAME
