@@ -10,6 +10,14 @@ Quobyte CSI is the implementation of
 * Pre-provisioned volumes (Delete policy does not apply to these volumes)
 * Volume Expansion (Only dynamically provisioned volumes can be expanded)
 
+## Select Quobyte CSI Driver Release
+
+1. Choose the Quobyte CSI release from [available releases](https://github.com/quobyte/quobyte-csi/releases)
+
+2. Follow the instructions specific to that release
+  
+  ![alt text](./docs/release-instructions.jpg)
+
 ## Index
 
 * [Requirements](#requirements)
@@ -31,34 +39,26 @@ Quobyte CSI is the implementation of
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
    be deployed with **--enable-access-contexts**
+* Requires `git` on k8s master node
 
 ## Deploy Quobyte CSI
 
-1. Clone the quobyte CSI repository from github
-
-    Using `HTTPS`
+1. Set your chosen release version
 
     ```bash
-    git clone https://github.com/quobyte/quobyte-csi.git
-    cd quobyte-csi
-    # Get release tag from https://github.com/quobyte/quobyte-csi/tags
-    # For example, to get the release v1.1.0
-    # the command should be "git checkout tags/v1.1.0"
-    git checkout tags/<RELEASE_TAG>
+    # For example, to install Quobyte CSI release v1.0.5,
+    # please set RELEASE_TAG="v1.0.5"
+    RELEASE_TAG="<YOUR_CHOSEN_RELEASE>"
     ```
 
-    Using `SSH`
+2. Clone the quobyte CSI repository from github on k8s master node
 
     ```bash
-    git clone git@github.com:quobyte/quobyte-csi.git
-    cd quobyte-csi
-    # Get release tag from https://github.com/quobyte/quobyte-csi/tags
-    # For example, to get the release v1.1.0
-    # the command should be "git checkout tags/v1.1.0"
-    git checkout tags/<RELEASE_TAG>
+    git clone https://github.com/quobyte/quobyte-csi.git && cd quobyte-csi \
+     && git checkout tags/$RELEASE_TAG
     ```
 
-2. Helm is required to deploy the Quobyte CSI driver. Please
+3. Helm is required to deploy the Quobyte CSI driver. Please
  install [Helm](https://helm.sh/docs/intro/install/#from-script) on the k8s master node.
 
     ```bash
@@ -66,15 +66,15 @@ Quobyte CSI is the implementation of
     && chmod 700 get_helm.sh && ./get_helm.sh
     ```
 
-3. Edit [CSI driver configuration](quobyte-csi-driver/values.yaml) and configure CSI driver with Quobyte API, other required information.
+4. Edit [CSI driver configuration](quobyte-csi-driver/values.yaml) and configure CSI driver with Quobyte API, other required information.
 
-4. (optional) generate driver deployment `.yaml` and verify the configuration.
+5. (optional) generate driver deployment `.yaml` and verify the configuration.
 
     ```bash
     helm template ./quobyte-csi-driver --debug > csi-driver.yaml
     ```
 
-5. Deploy the Quobtye CSI driver (deploys driver with configuration from step 3)
+6. Deploy the Quobtye CSI driver (deploys driver with configuration from step 3)
 
     ```bash
     # Depolys helm chart with name "quobyte-csi".
@@ -82,7 +82,7 @@ Quobyte CSI is the implementation of
     helm install quobyte-csi ./quobyte-csi-driver
     ```
 
-6. Verify the status of Quobyte CSI driver pods
+7. Verify the status of Quobyte CSI driver pods
 
     Deploying Quobyte CSI driver should create a CSIDriver object
      with your `csiProvisionerName` (this may take few seconds)
@@ -101,7 +101,7 @@ Quobyte CSI is the implementation of
     kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-${CSI_PROVISONER}
     ```
 
-7. Make sure your CSI driver is running against the expected Quobyte API endpoint
+8. Make sure your CSI driver is running against the expected Quobyte API endpoint
 
     ```bash
     kubectl -n kube-system exec -it \
