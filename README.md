@@ -25,7 +25,7 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.16
+* Requires at least Kubernetes v1.16 (tested with v1.16.3, v1.17.7 and v1.18.5)
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
