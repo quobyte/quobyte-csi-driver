@@ -25,10 +25,11 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Kubernetes v1.16
+* Requires at least Kubernetes v1.16 (tested with v1.16.3, v1.17.7 and v1.18.5)
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
+* Requires `git` on k8s master node
 
 ## Deploy Quobyte CSI
 
@@ -37,16 +38,8 @@ Quobyte CSI is the implementation of
     Using `HTTPS`
 
     ```bash
-    git clone https://github.com/quobyte/quobyte-csi.git
-    cd quobyte-csi
-    git checkout tags/v1.0.5 # checkout release v1.0.5
-    ```
-    Using `SSH`
-
-    ```bash
-    git clone git@github.com:quobyte/quobyte-csi.git
-    cd quobyte-csi
-    git checkout tags/v1.0.5 # checkout release v1.0.5
+    git clone https://github.com/quobyte/quobyte-csi.git && cd quobyte-csi \
+      && git checkout tags/v1.1.0 # checkout release v1.1.0
     ```
 
 2. Edit [deploy/config.yaml](deploy/config.yaml) and configure `quobyte.apiURL` with your Quobyte cluster API URL.
@@ -60,7 +53,7 @@ Quobyte CSI is the implementation of
 
 4. Deploy RBAC and Kubernetes CSI helper
  containers along with Quobyte CSI plugin containers
-   
+
    * If your Quobyte installation uses self-signed certificates, the driver containers need some adjustments.
    See the [issue](https://github.com/quobyte/quobyte-csi/issues/7) for more details.
 
@@ -180,7 +173,7 @@ Creating a PVC referencing the storage class created in the previous step would 
     kubectl cp example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
     ```
 
-4. Access the home page served by nginx pod from the command line
+5. Access the home page served by nginx pod from the command line
 
     ```bash
     curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
@@ -250,6 +243,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     ```bash
     kubectl delete -f deploy/deploy/csi-driver.yaml
     ```
+
     or on Kubernetes **with Pod Security Policies**
 
     ```bash
