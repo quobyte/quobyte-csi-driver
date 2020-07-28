@@ -13,6 +13,8 @@ github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5y
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/quobyte/api v1.0.0 h1:N9rHmyqQBQ23A3TPdpkq3WH/EnEwLHekvzaLhL7E2Zg=
 github.com/quobyte/api v1.0.0/go.mod h1:yEFG6Qie1X9BssFxfAUqU4BMjz/wfa+hItANZ+CWX04=
+github.com/quobyte/api/v3 v3.0.0-pre h1:VcEwATkSUgWHsy070IUhZN9FTR8vxQyTcqEB6VF/BZA=
+github.com/quobyte/api/v3 v3.0.0-pre/go.mod h1:Yp4jgWSuH//MLFqYw4eGeao66ozPg+Eq0gHeb4jxLQo=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/net v0.0.0-20190311183353-d8887717615a h1:oWX7TPOiFAMXLq8o0ikBYfCJVlRHBcsciT5bXOrH628=

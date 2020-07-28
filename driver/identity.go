@@ -9,7 +9,7 @@ import (
 // GetPluginInfo returns information about plugin
 func (d *QuobyteDriver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
-		Name:          driverName,
+		Name:          d.Name,
 		VendorVersion: driverVersion,
 	}
 	return resp, nil

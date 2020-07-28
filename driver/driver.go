@@ -15,31 +15,35 @@ import (
 )
 
 const (
-	driverName    = "csi.quobyte.com"
-	driverVersion = "v1.0.4" // Based on CSI spec version v1.0.0
+	// driverName    = "csi.quobyte.com"
+	driverVersion = "v1.3.0" // Based on CSI spec version v1.3.0
 )
 
 // QuobyteDriver CSI driver type
 type QuobyteDriver struct {
-	name                           string
-	version                        string
+	Name                           string
+	Version                        string
 	endpoint                       string
 	clientMountPoint               string
 	server                         *grpc.Server
 	NodeName                       string
 	ApiURL                         string
 	UseK8SNamespaceAsQuobyteTenant bool
+	IsQuobyteAccesskeysEnabled     bool
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
-func NewQuobyteDriver(endpoint, mount, nodeName, apiURL string, useNamespaceAsQuobyteTenant bool) *QuobyteDriver {
-	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant}
+func NewQuobyteDriver(endpoint, mount, nodeName, apiURL, driverName string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
+	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes}
 }
 
 // Run starts the grpc server for the driver
 func (qd *QuobyteDriver) Run() error {
 	if len(qd.clientMountPoint) == 0 {
 		return fmt.Errorf("--quobyte_mount_path is required. Supplied value should match environment varialbe QUOBYTE_MOUNT_POINT of Quobyte client pod.")
+	}
+	if len(qd.Name) == 0 {
+		return fmt.Errorf("--driver_name should not be empty")
 	}
 	if len(qd.ApiURL) == 0 {
 		apiURLError := `--api_url is required.
@@ -78,7 +82,11 @@ func (qd *QuobyteDriver) Run() error {
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s' GRPC socket: '%s' mount point: '%s' API URL: '%s'.", qd.name, qd.version, qd.endpoint, qd.clientMountPoint, qd.ApiURL)
+	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s'"+
+		"GRPC socket: '%s' mount point: '%s' API URL: '%s' "+
+		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t",
+		qd.Name, qd.Version, qd.endpoint, qd.clientMountPoint, qd.ApiURL,
+		qd.UseK8SNamespaceAsQuobyteTenant, qd.IsQuobyteAccesskeysEnabled)
 	qd.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(qd.server, qd)
 	csi.RegisterControllerServer(qd.server, qd)

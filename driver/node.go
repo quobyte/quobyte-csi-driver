@@ -12,6 +12,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	xattrKey        string = "quobyte.access_key"
+	accessKeyID     string = "accessKeyId"
+	accessKeySecret string = "accessKeySecret"
+)
+
 // NodePublishVolume mounts the volume to the pod with the given target path
 // QuobyteClient does the mounting of the volumes
 func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -45,6 +51,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			return nil, err
 		}
 	}
+
 	var options []string
 	if readonly {
 		options = append(options, "ro")
@@ -60,11 +67,34 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 	}
 	var mountPath string
-	if len(volParts) == 3 { // tenant|volume|subDir
-		mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+	if d.IsQuobyteAccesskeysEnabled {
+		podUUID := getSanitizedPodUUIDFromPath(targetPath)
+		accesskeyID, ok := secrets[accessKeyID]
+		if !ok {
+			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_ID>'", accessKeyID)
+		}
+		accesskeySecret, ok := secrets["accessKeySecret"]
+		if !ok {
+			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_SECRET>'", accessKeySecret)
+		}
+		accesskeyHandle := fmt.Sprintf("%s-%s", podUUID, accesskeyID)
+		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
+		err := setfattr(xattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
+		if err != nil {
+			return nil, err
+		}
+		if len(volParts) == 3 { // tenant|volume|subDir
+			mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
+		} else {
+			mountPath = fmt.Sprintf("%s/%s@%s", d.clientMountPoint, accesskeyHandle, volUUID)
+		}
 	} else {
-		mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
-	} // tenant|volume
+		if len(volParts) == 3 { // tenant|volume|subDir
+			mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+		} else {
+			mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
+		}
+	}
 	err := Mount(mountPath, targetPath, "quobyte", options)
 	if err != nil {
 		return nil, err
