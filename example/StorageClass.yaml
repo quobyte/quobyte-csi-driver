@@ -19,7 +19,7 @@ parameters:
   # quobyteTenant is ignored and K8S namespace in which PVC is created
   # becomes Quobyte tenant
   # i.e; K8S namespace "tenant_x" maps to "tenant_x" in Quobyte storage.
-  quobyteTenant: "My Tenant"
+  quobyteTenant: "csi-test"
   # secret is used for dynamic volume provisioning.
   # The user credentials provided in this secret must have
   # volume create/delete permissions for `quobyteTenant` above.
