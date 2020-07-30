@@ -106,8 +106,8 @@ Quobyte CSI is the implementation of
 
     ```bash
     kubectl -n kube-system exec -it \
-    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISONER | cut -f 1 -d' ')" \
-    -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL  
+    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISONER \
+    |  cut -f 1 -d' ')" -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL
     ```
 
     The above command should print your Quobyte API endpoint.
