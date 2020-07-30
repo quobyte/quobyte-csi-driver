@@ -66,7 +66,8 @@ Quobyte CSI is the implementation of
     && chmod 700 get_helm.sh && ./get_helm.sh
     ```
 
-4. Edit [CSI driver configuration](quobyte-csi-driver/values.yaml) and configure CSI driver with Quobyte API, other required information.
+4. Edit [CSI driver configuration](quobyte-csi-driver/values.yaml) (./quobyte-csi-driver/values.yaml) and configure CSI driver
+   with Quobyte API, other required information.
 
 5. (optional) generate driver deployment `.yaml` and verify the configuration.
 
