@@ -186,7 +186,7 @@ Creating a PVC referencing the storage class created in the previous step would 
 5. Access the home page served by nginx pod from the command line
 
     ```bash
-    curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+    curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep ' podIP:' | awk '{print $2}'):80
     ```
 
   Above command should retrieve the Quobyte CSI welcome page (in raw html format).
@@ -239,7 +239,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 6. Access the home page served by nginx pod from the command line
 
     ```bash
-    curl http://$(kubectl get pods nginx-existing-vol -o yaml | grep 'podIP:' | awk '{print $2}'):80
+    curl http://$(kubectl get pods nginx-existing-vol -o yaml | grep ' podIP:' | awk '{print $2}'):80
     ```
 
     The above command should retrieve the Quobyte CSI welcome page (in raw html format).
