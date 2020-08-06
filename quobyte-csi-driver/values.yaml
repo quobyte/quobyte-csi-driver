@@ -34,7 +34,7 @@ quobyte:
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
-    csiImage: quay.io/quobyte/csi:1.2.0-pre
+    csiImage: quay.io/quobyte/csi:1.2.0
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
     k8sClusterDriverRegistrarImage: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
