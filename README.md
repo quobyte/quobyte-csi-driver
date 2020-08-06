@@ -28,7 +28,7 @@ Quobyte CSI is the implementation of
   * [Use existing volumes](#use-existing-volumes)
 * [Secure storage access](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
-* [Most common mistakes](docs/common_errors.md)
+* [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
 ## Requirements
