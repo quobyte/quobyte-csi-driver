@@ -36,7 +36,7 @@ The value configured for `quobyte.csiProvisionerName` must be used as `StorageCl
 
 1. Install Quobyte client following [client installation instructions](deploy_clients.md)
 
-2. Clone copies of service and configuration
+2. Clone copies of service and configuration on each k8s node
 
     ```bash
     clusters="test1 test2" # cluster names separated by single space
@@ -64,7 +64,7 @@ The value configured for `quobyte.csiProvisionerName` must be used as `StorageCl
     done
     ```
 
-5. Remove clients
+5. To remove clients, please use following commands
 
     ```bash
     remove_cluster_client="test1 test2"  # cluster names separated by single space
