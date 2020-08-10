@@ -119,11 +119,10 @@ Quobyte CSI is the implementation of
   # https://github.com/kubernetes-csi/external-snapshotter/
   wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
   wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-  wget -q https://github.com/kubernetes-csi/external-snapshotter/blob/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
   
-  kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml 2>&1 /dev/null; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml 2>&1 /dev/null;
-  kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml 2>&1 /dev/null
-  kubectl create -f k8s-snapshot-controller.yaml 2>&1 /dev/null
+  kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml;
+  kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
   
   ```
 
