@@ -101,7 +101,7 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-      { if .Values.quobyte.enableSnapshots }} 
+      {{ if .Values.quobyte.enableSnapshots }} 
         - name: csi-snapshotter
           image: {{ .Values.quobyte.dev.k8sSnapshotter }}
           args:
@@ -757,7 +757,7 @@ roleRef:
 
 ---
 
-{{ if if .Values.quobyte.enableSnapshots }}
+{{ if .Values.quobyte.enableSnapshots }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
