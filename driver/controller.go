@@ -26,6 +26,7 @@ const (
 	DefaultAccessModes = 777
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
+	pinnedKey       = "pinned"
 )
 
 // CreateVolume creates quobyte volume
@@ -221,7 +222,16 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 
 func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	// TODO(venkat): get this from params
-	isPinned := false
+	var isPinned bool
+	if pinned, ok := req.Parameters[pinnedKey]; ok {
+		pinnedVal, err := strconv.ParseBool(pinned)
+		if err != nil {
+			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be ture/false. Configured value %s is invalid.", pinned)
+		}
+		isPinned = pinnedVal
+	} else {
+	  isPinned = false
+	}
 	volumeId := req.SourceVolumeId
 	volParts := strings.Split(volumeId, SEPARATOR)
 	if len(volParts) < 2 {

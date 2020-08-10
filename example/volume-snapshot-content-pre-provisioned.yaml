@@ -1,0 +1,17 @@
+# This must be created for the pre-provisioned volume snapshot content
+# based on https://kubernetes.io/docs/concepts/storage/volume-snapshots/#volume-snapshot-contents
+
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshotContent
+metadata:
+  name: snapcontent-pre-provisioned
+spec:
+  deletionPolicy: Delete
+  driver: csi.quobyte.com # your Quobyte CSI driver
+  source:
+    volumeHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>"
+  volumeSnapshotClassName: quobyte-csi-snapclass
+  volumeSnapshotRef:
+    name: test-snapshot
+    namespace: default
+    uid: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"

@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	// driverName    = "csi.quobyte.com"
 	driverVersion = "v1.3.0" // Based on CSI spec version v1.3.0
 )
 
