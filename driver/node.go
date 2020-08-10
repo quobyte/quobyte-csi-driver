@@ -27,9 +27,9 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	// Incase of preprovisioned volumes, NodePublishSecrets are not taken from storage class but
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
 	secrets := req.GetSecrets()
-	volParts := strings.Split(volumeId, "|")
+	volParts := strings.Split(volumeId, SEPARATOR)
 	if len(volParts) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>%s<VOL_NAME/VOL_UUID>", volumeId, SEPARATOR)
 	}
 	if len(targetPath) == 0 {
 		return nil, fmt.Errorf("given target mount path is empty")

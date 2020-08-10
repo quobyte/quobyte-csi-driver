@@ -27,6 +27,9 @@ quobyte:
   # For container based client configuration, see client.yaml definition.
   enableAccessKeys: false
   
+  # Enabling this feature requires additional driver setup (see README.md) 
+  enableSnapshots: false
+  
   # Set to true to deploy csi driver with pod security policies.
   # Change required ONLY if you have pod security policies enabled K8S environment.
   podSecurityPolicies: false
@@ -41,3 +44,6 @@ quobyte:
     k8sResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0
     k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
     k8sAttacher: quay.io/k8scsi/csi-attacher:v2.2.0
+    # when updating image for snapshotter, update CRD instructions in
+    # README for snapshotter. 
+    k8sSnapshotter: quay.io/k8scsi/csi-snapshotter:v2.1.1

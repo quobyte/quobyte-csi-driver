@@ -41,7 +41,7 @@ Quobyte CSI is the implementation of
    be deployed with **--enable-access-contexts**
 * Requires `git` on k8s master node
 
-## Deploy Quobyte CSI
+## Deploy Quobyte CSI Driver
 
 1. Set your chosen release version
 
@@ -112,6 +112,20 @@ Quobyte CSI is the implementation of
 
     The above command should print your Quobyte API endpoint.
     After that, uninstall Quobyte CSI driver and install again.
+
+### Setup Snapshotter (required only if snapshots are enabled)
+
+  ```bash
+  # https://github.com/kubernetes-csi/external-snapshotter/
+  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+  wget -q https://github.com/kubernetes-csi/external-snapshotter/blob/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+  
+  kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml 2>&1 /dev/null; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml 2>&1 /dev/null;
+  kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml 2>&1 /dev/null
+  kubectl create -f k8s-snapshot-controller.yaml 2>&1 /dev/null
+  
+  ```
 
 ## Use Quobyte volumes in Kubernetes
 

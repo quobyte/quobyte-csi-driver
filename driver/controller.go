@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	SEPARATOR = "|"
 	//DefaultTenant Default Tenant to use if none provided by user
 	DefaultTenant = "My Tenant"
 	//DefaultConfig Default configuration to use if none provided by user
@@ -124,7 +125,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
 			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
 			// for pre-provisioned volumes
-			VolumeId:      volRequest.TenantId + "|" + volUUID,
+			VolumeId:      volRequest.TenantId + SEPARATOR + volUUID,
 			CapacityBytes: capacity,
 		},
 	}
@@ -138,9 +139,9 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 		return nil, fmt.Errorf("volumeId is required for DeleteVolume")
 	}
 	secrets := req.GetSecrets()
-	params := strings.Split(volID, "|")
+	params := strings.Split(volID, SEPARATOR)
 	if len(params) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
 	}
 	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
 	if err != nil {
@@ -217,17 +218,104 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 }
 
 func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "CreateSnapshot: Snapshots are not implemented by Quobyte CSI.")
+	// TODO(venkat): get this from params
+	isPinned := false
+	volumeId := req.SourceVolumeId
+	volParts := strings.Split(volumeId, SEPARATOR)
+	if len(volParts) < 2 {
+		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
+	if err != nil {
+		return nil, err
+	}
+	snapshotReq := &quobyte.CreateSnapshotRequest{VolumeUuid: volUUID, Name: req.Name, Pinned: isPinned}
+	_, err = quobyteClient.CreateSnapshot(snapshotReq)
+	if err != nil {
+		return nil, err
+	}
+	// Append tenant to make it available for delete snapshot calls.
+	// Dynamic provision always resolves (tenant/volume) name to UUID
+	// For pre-provisioned volume/snapshot, customer can configure either
+	// (tenant/volume) name/uuid, for this reason we need to resolve tenant/volume to UUID
+	// combination of tenant, volume and snapshot name
+	tenantUUID, err := quobyteClient.GetTenantUUID(volParts[0])
+	if err != nil {
+		return nil, err
+	}
+	snapshotID := tenantUUID + SEPARATOR + volUUID + SEPARATOR + req.Name
+	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID}}
+	return resp, nil
 }
 
 func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "DeleteSnapshot: Snapshots are not implemented by Quobyte CSI.")
+	snapshotID := req.SnapshotId
+	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	if len(snapshotParts) < 3 {
+		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
+			snapshotID, SEPARATOR, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	tenantUUID, err := quobyteClient.GetTenantUUID(snapshotParts[0])
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(snapshotParts[1], tenantUUID)
+	if err != nil {
+		return nil, err
+	}
+	snapshotDeleteReq := &quobyte.DeleteSnapshotRequest{VolumeUuid: volUUID, Name: snapshotParts[2]}
+	_, err = quobyteClient.DeleteSnapshot(snapshotDeleteReq)
+	if err != nil {
+		return nil, err
+	}
+	return &csi.DeleteSnapshotResponse{}, nil
 }
 
 func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListSnapshots: Snapshots are not implemented by Quobyte CSI.")
-}
+	snapshotID := req.SnapshotId
+	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	if len(snapshotParts) < 3 {
+		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
+			snapshotID, SEPARATOR, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	tenantUUID, err := quobyteClient.GetTenantUUID(snapshotParts[0])
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(snapshotParts[1], tenantUUID)
+	if err != nil {
+		return nil, err
+	}
 
+	listReq := &quobyte.ListSnapshotsRequest{VolumeUuid: volUUID}
+	listResp, err := quobyteClient.ListSnapshots(listReq)
+	if err != nil {
+		return nil, err
+	}
+	snapshotEntries := make([]*csi.ListSnapshotsResponse_Entry, len(listResp.Snapshot))
+	for i, entry := range listResp.Snapshot {
+		// important we use tenant and volume from req.SnapshotId
+		// to match the snapshot id
+		snapshotID := snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + entry.Name
+		snapshotEntries[i] = &csi.ListSnapshotsResponse_Entry{Snapshot: &csi.Snapshot{SourceVolumeId: entry.VolumeUuid, SnapshotId: snapshotID}}
+	}
+	return &csi.ListSnapshotsResponse{Entries: snapshotEntries}, nil
+}
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	capacity := req.CapacityRange.RequiredBytes
 	d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity})
