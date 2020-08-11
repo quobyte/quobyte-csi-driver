@@ -26,20 +26,24 @@ Quobyte CSI is the implementation of
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
   * [Dynamic volume provisioning](#dynamic-volume-provisioning)
   * [Use existing volumes](#use-existing-volumes)
-* [Secure storage access](docs/secure-storage-with-psp.md)
+* [Volume Snapshots](#volume-snapshots)
+  * [Dynamic Snapshots](#dynamic-snapshots)
+  * [Pre-provisioned Snapshots](#pre\-provisioned-snapshots)
+* [Secure storage access with PSPs](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
 ## Requirements
 
-* Requires at least Kubernetes v1.16 (tested with v1.16.3, v1.17.7 and v1.18.5)
+* Requires `git` on k8s master node
+* Requires at least Kubernetes v1.16 (tested with v1.18.5)
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
    be deployed with **--enable-access-contexts**
-* Requires `git` on k8s master node
+* Requires [additional setup](#setup-snapshotter) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
 
@@ -112,21 +116,6 @@ Quobyte CSI is the implementation of
 
     The above command should print your Quobyte API endpoint.
     After that, uninstall Quobyte CSI driver and install again.
-
-### Setup Snapshotter
-
- The below setup is required once per k8s cluster (only if snapshots are enabled).
-
-  ```bash
-  # https://github.com/kubernetes-csi/external-snapshotter/
-  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-  wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-  
-  kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml;
-  kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
-  
-  ```
 
 ## Use Quobyte volumes in Kubernetes
 
@@ -267,9 +256,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
 2. [Snapshotter setup](#setup-snapshotter)
 
-### Create Volume Snapshots
-
-#### Dynamic Snapshots
+### Dynamic Snapshots
 
   1. Provision a PVC for a Quobyte volume by following [instructions](#use-quobyte-volumes-in-kubernetes)
 
@@ -309,7 +296,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl create -f example/pvc-with-snapshot.yaml
         ```
 
-#### Pre-provisioned Snapshots
+### Pre-provisioned Snapshots
 
   1. Create `VolumeSnapshotContent` object for pre-provisioned volume with
    [required configuration](example/volume-snapshot-content-pre-provisioned.yaml)
@@ -352,3 +339,17 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     ```bash
     helm delete <Quobyte-CSI-chart-name>
     ```
+
+## Setup Snapshotter
+
+The below setup is required once per k8s cluster
+
+  ```bash
+    # https://github.com/kubernetes-csi/external-snapshotter/
+    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+
+    kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml 
+  ```

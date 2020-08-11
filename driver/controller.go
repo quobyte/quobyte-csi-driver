@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	quobyte "github.com/quobyte/api/v3"
@@ -264,7 +267,8 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 		}
 	}
 	snapshotID := tenantUUID + SEPARATOR + volUUID + SEPARATOR + req.Name
-	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID}}
+	timestamp := &timestamp.Timestamp{Seconds: time.Now().Unix()}
+	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID, SourceVolumeId: req.SourceVolumeId, CreationTime: timestamp, ReadyToUse: true}}
 	return resp, nil
 }
 
@@ -327,10 +331,11 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 		// important we use tenant and volume from req.SnapshotId
 		// to match the snapshot id
 		snapshotID := snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + entry.Name
-		snapshotEntries[i] = &csi.ListSnapshotsResponse_Entry{Snapshot: &csi.Snapshot{SourceVolumeId: entry.VolumeUuid, SnapshotId: snapshotID}}
+		snapshotEntries[i] = &csi.ListSnapshotsResponse_Entry{Snapshot: &csi.Snapshot{SourceVolumeId: entry.VolumeUuid, SnapshotId: snapshotID, CreationTime: &timestamp.Timestamp{Seconds: entry.Timestamp}, ReadyToUse: true}}
 	}
 	return &csi.ListSnapshotsResponse{Entries: snapshotEntries}, nil
 }
+
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	capacity := req.CapacityRange.RequiredBytes
 	d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity})

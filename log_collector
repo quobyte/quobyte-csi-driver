@@ -45,7 +45,7 @@ done
 kubectl -n kube-system get po | grep -q "snapshot-controller"
 found_snapshot_controller="$?"
 if [[ ${found_snapshot_controller} -eq 0 ]]; then
-  kubectl -n kube-system logs snapshot-controller-0 >> ./csi_logs/snapshot-controller/snapshot-controller.log
+  kubectl -n kube-system logs snapshot-controller-0 >> ./csi_logs/snapshot-controller.log
 fi
 
 # TODO(venkat): collect daemonset, statefulsets and deployment details as part of logs
