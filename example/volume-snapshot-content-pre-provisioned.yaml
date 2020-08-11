@@ -11,9 +11,10 @@ spec:
   source:
     volumeHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>"
   volumeSnapshotClassName: quobyte-csi-snapclass
+  source:
+    snapshotHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"
   volumeSnapshotRef:
     # TODO(venkat): might need to append secrets required during
     # snapshot deletion
     name: <Snapshot_Name>
     namespace: default
-    uid: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"

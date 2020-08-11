@@ -97,6 +97,33 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, err
 	}
 
+	// if snapshot request, just populate with snapshot id and return.
+	// No need to create the volume as volume already created before
+	volumeContentSource := req.GetVolumeContentSource()
+	if volumeContentSource != nil {
+		snapshot := volumeContentSource.GetSnapshot()
+		if snapshot != nil {
+			volParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
+			if len(volParts) < 3 {
+				return nil, fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshot.SnapshotId, SEPARATOR, SEPARATOR)
+			}
+			resp := &csi.CreateVolumeResponse{
+				Volume: &csi.Volume{
+					VolumeId:      volParts[0] + SEPARATOR + volParts[1],
+					CapacityBytes: capacity,
+					ContentSource: &csi.VolumeContentSource{
+						Type: &csi.VolumeContentSource_Snapshot{
+							Snapshot: &csi.VolumeContentSource_SnapshotSource{
+								SnapshotId: snapshot.SnapshotId,
+							},
+						},
+					},
+				},
+			}
+			return resp, nil
+		}
+	}
+
 	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
 	var volUUID string
 	if err != nil {
