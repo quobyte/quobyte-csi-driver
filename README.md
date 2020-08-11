@@ -89,8 +89,8 @@ Quobyte CSI is the implementation of
      with your `csiProvisionerName` (this may take few seconds)
 
     ```bash
-    CSI_PROVISONER="<YOUR-csiProvisionerName>"
-    kubectl get CSIDriver | grep ^${CSI_PROVISONER}
+    CSI_PROVISIONER="<YOUR-csiProvisionerName>"
+    kubectl get CSIDriver | grep ^${CSI_PROVISIONER}
     ```
 
     The Quobyte CSI plugin is ready for use, if you see `quobyte-csi-controller-x`
@@ -98,22 +98,24 @@ Quobyte CSI is the implementation of
     running on every node of the Kubernetes cluster.
 
     ```bash
-    CSI_PROVISONER=$(echo $CSI_PROVISONER | tr "." "-")
-    kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-${CSI_PROVISONER}
+    CSI_PROVISIONER=$(echo $CSI_PROVISIONER | tr "." "-")
+    kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-${CSI_PROVISIONER}
     ```
 
 8. Make sure your CSI driver is running against the expected Quobyte API endpoint
 
     ```bash
     kubectl -n kube-system exec -it \
-    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISONER \
+    "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISIONER \
     |  cut -f 1 -d' ')" -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL
     ```
 
     The above command should print your Quobyte API endpoint.
     After that, uninstall Quobyte CSI driver and install again.
 
-### Setup Snapshotter (required only if snapshots are enabled)
+### Setup Snapshotter
+
+ The below setup is required once per k8s cluster (only if snapshots are enabled).
 
   ```bash
   # https://github.com/kubernetes-csi/external-snapshotter/
@@ -256,6 +258,84 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     ```
 
     The above command should retrieve the Quobyte CSI welcome page (in raw html format).
+
+## Volume snapshots
+
+### Snapshot Requirements
+
+1. Quobyte CSI Driver is deployed with snapshots enabled
+
+2. [Snapshotter setup](#setup-snapshotter)
+
+### Create Volume Snapshots
+
+#### Dynamic Snapshots
+
+  1. Provision a PVC for a Quobyte volume by following [instructions](#use-quobyte-volumes-in-kubernetes)
+
+  2. Create [volume snapshot secrtes](example/csi-secret.yaml)
+
+     Our examples use same secret in all the places wherever secret is required. Please create and
+     configure secrets as per your requirements.
+
+        ```bash
+        kubectl create -f example/csi-secret.yaml
+        ```
+
+  3. Create volume [snapshot class](example/volume-snapshot-class.yaml)
+
+        ```bash
+        kubectl create -f example/volume-snapshot-class.yaml
+        ```
+
+  4. Create [dynamic volume snapshot](example/volume-snapshot-dynamic-provision.yaml)
+
+        ```bash
+        kubectl create -f example/volume-snapshot-class.yaml
+        ```
+
+     The above command should create required `volumesnapshotcontent` object dynamically
+  
+  5. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
+
+        ```bash
+        kubectl get volumesnapshot
+        kubectl get volumesnapshotcontent
+        ```
+
+  6. [Restore snapshot](example/pvc-with-snapshot.yaml)
+
+        ```bash
+        kubectl create -f example/pvc-with-snapshot.yaml
+        ```
+
+#### Pre-provisioned Snapshots
+
+  1. Create `VolumeSnapshotContent` object for pre-provisioned volume with
+   [required configuration](example/volume-snapshot-content-pre-provisioned.yaml)
+
+        ```bash
+        kubectl create -f example/volume-snapshot-content-pre-provisioned.yaml
+        ```
+
+  2. Create `VolumeSnapshot` object by adjusting the [example snapshot object](example/volume-snapshot-pre-provisioned.yaml)
+
+        ```bash
+        kubectl create -f example/volume-snapshot-pre-provisioned.yaml
+        ```
+  
+  3. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
+
+        ```bash
+        kubectl get volumesnapshot
+        kubectl get volumesnapshotcontent
+        ```
+
+  4. [Restore snapshot](example/pvc-with-snapshot.yaml)
+
+        ```bash
+        kubectl create -f example/pvc-with-snapshot.yaml
+        ```
 
 ## Uninstall Quobyte CSI
 

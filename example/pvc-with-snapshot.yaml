@@ -5,7 +5,8 @@ metadata:
 spec:
   storageClassName: quobyte-csi
   dataSource:
-    name: test-snapshot-dynamic-provision #volume snapshot name
+    #VolumeSnapshot object name (note: This is not snapshot name but VolumeSnapshot object name)
+    name: test-snapshot-dynamic-provision 
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
   accessModes:

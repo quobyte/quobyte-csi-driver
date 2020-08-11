@@ -221,7 +221,6 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 }
 
 func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
-	// TODO(venkat): get this from params
 	var isPinned bool
 	if pinned, ok := req.Parameters[pinnedKey]; ok {
 		pinnedVal, err := strconv.ParseBool(pinned)
@@ -230,7 +229,7 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 		}
 		isPinned = pinnedVal
 	} else {
-	  isPinned = false
+		isPinned = false
 	}
 	volumeId := req.SourceVolumeId
 	volParts := strings.Split(volumeId, SEPARATOR)
@@ -246,11 +245,6 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 	if err != nil {
 		return nil, err
 	}
-	snapshotReq := &quobyte.CreateSnapshotRequest{VolumeUuid: volUUID, Name: req.Name, Pinned: isPinned}
-	_, err = quobyteClient.CreateSnapshot(snapshotReq)
-	if err != nil {
-		return nil, err
-	}
 	// Append tenant to make it available for delete snapshot calls.
 	// Dynamic provision always resolves (tenant/volume) name to UUID
 	// For pre-provisioned volume/snapshot, customer can configure either
@@ -259,6 +253,15 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 	tenantUUID, err := quobyteClient.GetTenantUUID(volParts[0])
 	if err != nil {
 		return nil, err
+	}
+
+	snapshotReq := &quobyte.CreateSnapshotRequest{VolumeUuid: volUUID, Name: req.Name, Pinned: isPinned}
+	_, err = quobyteClient.CreateSnapshot(snapshotReq)
+	if err != nil {
+		// CSI requires idempotency. (calling snapshot create multiple times should return the snapshot if it already exists)
+		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+			return nil, err
+		}
 	}
 	snapshotID := tenantUUID + SEPARATOR + volUUID + SEPARATOR + req.Name
 	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID}}

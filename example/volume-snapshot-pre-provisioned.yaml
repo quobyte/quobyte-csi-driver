@@ -4,4 +4,4 @@ metadata:
   name: test-snapshot
 spec:
   source:
-    volumeSnapshotContentName: snapcontent-pre-provisioned
+    volumeSnapshotContentName: snapcontent-pre-provisioned # VolumeSnapshotContent object name

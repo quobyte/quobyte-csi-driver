@@ -1,4 +1,9 @@
 # https://github.com/kubernetes-csi/external-snapshotter/blob/v2.1.1/deploy/kubernetes/snapshot-controller/
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: snapshot-controller
+  namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

@@ -14,10 +14,6 @@ import (
 	"k8s.io/klog"
 )
 
-const (
-	driverVersion = "v1.3.0" // Based on CSI spec version v1.3.0
-)
-
 // QuobyteDriver CSI driver type
 type QuobyteDriver struct {
 	Name                           string
@@ -32,7 +28,7 @@ type QuobyteDriver struct {
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
-func NewQuobyteDriver(endpoint, mount, nodeName, apiURL, driverName string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
+func NewQuobyteDriver(endpoint, mount, nodeName, apiURL, driverName, driverVersion string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
 	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes}
 }
 
@@ -43,6 +39,10 @@ func (qd *QuobyteDriver) Run() error {
 	}
 	if len(qd.Name) == 0 {
 		return fmt.Errorf("--driver_name should not be empty")
+	}
+
+	if len(qd.Version) == 0 {
+		return fmt.Errorf("--driver_version should not be empty")
 	}
 	if len(qd.ApiURL) == 0 {
 		apiURLError := `--api_url is required.

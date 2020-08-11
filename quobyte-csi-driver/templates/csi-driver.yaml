@@ -125,6 +125,7 @@ spec:
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
             - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
@@ -374,6 +375,7 @@ spec:
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
             - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
@@ -643,6 +645,7 @@ spec:
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)" 
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}"
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
             - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
@@ -949,7 +952,8 @@ spec:
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--api_url=$(QUOBYTE_API_URL)"
-            - "--driver_name={{ .Values.quobyte.csiProvisionerName }}" 
+            - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}" 
             - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
             - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
           env:
