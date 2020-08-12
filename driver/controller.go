@@ -30,6 +30,9 @@ const (
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 	pinnedKey       = "pinned"
+	SnapshotIDKey   = "snapshot_id_key"
+	// VolumeHandle prefix for snapshots PV.
+	SnapshotVolumeHandlePrefix = "SnapshotVolumeHandle-"
 )
 
 // CreateVolume creates quobyte volume
@@ -99,17 +102,27 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 
 	// if snapshot request, just populate with snapshot id and return.
 	// No need to create the volume as volume already created before
+	volumeContext := make(map[string]string)
 	volumeContentSource := req.GetVolumeContentSource()
 	if volumeContentSource != nil {
 		snapshot := volumeContentSource.GetSnapshot()
 		if snapshot != nil {
-			volParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
-			if len(volParts) < 3 {
-				return nil, fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshot.SnapshotId, SEPARATOR, SEPARATOR)
+			snapshotIdParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
+			if len(snapshotIdParts) < 3 {
+				return nil, getInvlaidSnapshotIdError(snapshot.SnapshotId)
 			}
+			volumeContext[SnapshotIDKey] = snapshot.SnapshotId
 			resp := &csi.CreateVolumeResponse{
 				Volume: &csi.Volume{
-					VolumeId:      volParts[0] + SEPARATOR + volParts[1],
+					// k8s expects that storage system takes snapshot (during creation of VolumeSnapshot and VolumeSnapshotContent)
+					// and later populates a volume (with its own volumeId) based on the snapshot
+					// (during creation of PVC with VolumeSnapshot ref).
+					// Used to filter out snapshot based PVs during volume delete.
+					// We only create dummy PV for snapshot volumes
+					// as Quobyte doesn't create separate volumes for snapshots, there is no need
+					// to delete volume/snapshot with PV. Deletion of VolumeSnapshot and VolumeSnapshotContent
+					// should delete the snapshot.
+					VolumeId:      SnapshotVolumeHandlePrefix + req.Name,
 					CapacityBytes: capacity,
 					ContentSource: &csi.VolumeContentSource{
 						Type: &csi.VolumeContentSource_Snapshot{
@@ -118,6 +131,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 							},
 						},
 					},
+					VolumeContext: volumeContext,
 				},
 			}
 			return resp, nil
@@ -169,6 +183,13 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if len(volID) == 0 {
 		return nil, fmt.Errorf("volumeId is required for DeleteVolume")
 	}
+
+	if strings.HasPrefix(volID, SnapshotVolumeHandlePrefix) {
+		// Snapshot volume and hence the PV being deleted is a dummy volume
+		// See CreateVolume for more information
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+
 	secrets := req.GetSecrets()
 	params := strings.Split(volID, SEPARATOR)
 	if len(params) < 2 {

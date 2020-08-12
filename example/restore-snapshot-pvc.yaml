@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: restore-pvc
+  name: restore-snapshot-pvc
 spec:
   storageClassName: quobyte-csi
   dataSource:

@@ -260,7 +260,14 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
   1. Provision a PVC for a Quobyte volume by following [instructions](#use-quobyte-volumes-in-kubernetes)
 
-  2. Create [volume snapshot secrtes](example/csi-secret.yaml)
+  2. Populate backing volume with [nginx index file](example/index.html)
+
+      ```bash
+      VOLUME="<Quobyte-Volume>" # volume for which snapshot will be taken
+      wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/example/index.html -P /mnt/quobyte/mounts/$VOLUME
+      ```
+
+  3. Create [volume snapshot secrtes](example/csi-secret.yaml)
 
      Our examples use same secret in all the places wherever secret is required. Please create and
      configure secrets as per your requirements.
@@ -269,33 +276,39 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl create -f example/csi-secret.yaml
         ```
 
-  3. Create volume [snapshot class](example/volume-snapshot-class.yaml)
+  4. Create volume [snapshot class](example/volume-snapshot-class.yaml)
 
         ```bash
         kubectl create -f example/volume-snapshot-class.yaml
         ```
 
-  4. Create [dynamic volume snapshot](example/volume-snapshot-dynamic-provision.yaml)
+  5. Create [dynamic volume snapshot](example/volume-snapshot-dynamic-provision.yaml)
 
         ```bash
-        kubectl create -f example/volume-snapshot-class.yaml
+        kubectl create -f example/volume-snapshot-dynamic-provision.yaml
         ```
 
      The above command should create required `volumesnapshotcontent` object dynamically
   
-  5. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
+  6. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
 
         ```bash
         kubectl get volumesnapshot
         kubectl get volumesnapshotcontent
         ```
 
-  6. [Restore snapshot](example/pvc-with-snapshot.yaml)
+  7. [Restore snapshot](example/restore-snapshot-pvc.yaml) and create PVC
 
         ```bash
-        kubectl create -f example/pvc-with-snapshot.yaml
+        kubectl create -f example/restore-snapshot-pvc.yaml
         ```
+  
+  8. Create pod with [restored snapshot](example/nginx-demo-pod-with-snapshot-vol.yaml)
 
+        ```bash
+        kubectl create -f example/nginx-demo-pod-with-snapshot-vol.yaml
+        ```
+  
 ### Pre-provisioned Snapshots
 
   1. Create `VolumeSnapshotContent` object for pre-provisioned volume with
@@ -318,10 +331,10 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl get volumesnapshotcontent
         ```
 
-  4. [Restore snapshot](example/pvc-with-snapshot.yaml)
+  4. [Restore snapshot](example/restore-snapshot-pvc.yaml)
 
         ```bash
-        kubectl create -f example/pvc-with-snapshot.yaml
+        kubectl create -f example/restore-snapshot-pvc.yaml
         ```
 
 ## Uninstall Quobyte CSI

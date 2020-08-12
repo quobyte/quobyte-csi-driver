@@ -16,14 +16,32 @@ const (
 	xattrKey        string = "quobyte.access_key"
 	accessKeyID     string = "accessKeyId"
 	accessKeySecret string = "accessKeySecret"
+	empty_string    string = ""
+	snapshotsDir    string = ".snapshots"
 )
 
 // NodePublishVolume mounts the volume to the pod with the given target path
 // QuobyteClient does the mounting of the volumes
 func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+	var volumeId string
+
+	var snapshotName string = empty_string
+	volContext := req.GetVolumeContext()
 	targetPath := req.GetTargetPath()
 	readonly := req.Readonly
-	volumeId := req.GetVolumeId()
+	// see controller.go -- CreateVolume method. VolumeContext is only added for snapshot volumes
+	if volContext != nil && strings.HasPrefix(req.VolumeId, SnapshotVolumeHandlePrefix) {
+		if snapshotId, ok := volContext[SnapshotIDKey]; ok {
+			snapshotParts := strings.Split(snapshotId, SEPARATOR)
+			if len(snapshotParts) < 3 {
+				return nil, getInvlaidSnapshotIdError(snapshotId)
+			}
+			volumeId = snapshotParts[0] + SEPARATOR + snapshotParts[1]
+			snapshotName = snapshotParts[2]
+		}
+	} else {
+		volumeId = req.GetVolumeId()
+	}
 	// Incase of preprovisioned volumes, NodePublishSecrets are not taken from storage class but
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
 	secrets := req.GetSecrets()
@@ -50,6 +68,11 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if snapshotName != empty_string {
+		// Quobyte snapshots are readonly
+		readonly = true
 	}
 
 	var options []string
@@ -83,16 +106,36 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		if err != nil {
 			return nil, err
 		}
-		if len(volParts) == 3 { // tenant|volume|subDir
-			mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
+		if snapshotName == empty_string {
+			if len(volParts) == 3 { // tenant|volume|subDir
+				mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
+			} else {
+				mountPath = fmt.Sprintf("%s/%s@%s", d.clientMountPoint, accesskeyHandle, volUUID)
+			}
 		} else {
-			mountPath = fmt.Sprintf("%s/%s@%s", d.clientMountPoint, accesskeyHandle, volUUID)
+			// TODO (venkat): might need to support tenant|volume|snapshot|subDir
+			if len(volParts) == 3 { // tenant|volume|subDir
+				// TODO (venkat): add subDir to path volParts[2]
+				mountPath = fmt.Sprintf("%s/%s@%s/%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, snapshotsDir, snapshotName)
+			} else {
+				mountPath = fmt.Sprintf("%s/%s@%s/%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, snapshotsDir, snapshotName)
+			}
 		}
 	} else {
-		if len(volParts) == 3 { // tenant|volume|subDir
-			mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+		if snapshotName == empty_string {
+			if len(volParts) == 3 { // tenant|volume|subDir
+				mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
+			} else {
+				mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
+			}
 		} else {
-			mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
+			// TODO (venkat): might need to support tenant|volume|snapshot|subDir
+			if len(volParts) == 3 { // tenant|volume|subDir
+				// TODO (venkat): add subDir to path volParts[2]
+				mountPath = fmt.Sprintf("%s/%s/%s/%s", d.clientMountPoint, volUUID, snapshotsDir, snapshotName)
+			} else {
+				mountPath = fmt.Sprintf("%s/%s/%s/%s", d.clientMountPoint, volUUID, snapshotsDir, snapshotName)
+			}
 		}
 	}
 	err := Mount(mountPath, targetPath, "quobyte", options)
