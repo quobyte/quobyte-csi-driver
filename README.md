@@ -42,7 +42,8 @@ Quobyte CSI is the implementation of
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
-   be deployed with **--enable-access-contexts**
+   be deployed with **--enable-access-contexts**. Additionally, the metadata cache (global policy)
+   should be disabled.
 * Requires [additional setup](#setup-snapshotter) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
@@ -311,27 +312,33 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
   
 ### Pre-provisioned Snapshots
 
-  1. Create `VolumeSnapshotContent` object for pre-provisioned volume with
+  1. Create volume [snapshot class](example/volume-snapshot-class.yaml)
+
+        ```bash
+        kubectl create -f example/volume-snapshot-class.yaml
+        ```
+
+  2. Create `VolumeSnapshotContent` object for pre-provisioned volume with
    [required configuration](example/volume-snapshot-content-pre-provisioned.yaml)
 
         ```bash
         kubectl create -f example/volume-snapshot-content-pre-provisioned.yaml
         ```
 
-  2. Create `VolumeSnapshot` object by adjusting the [example snapshot object](example/volume-snapshot-pre-provisioned.yaml)
+  3. Create `VolumeSnapshot` object by adjusting the [example snapshot object](example/volume-snapshot-pre-provisioned.yaml)
 
         ```bash
         kubectl create -f example/volume-snapshot-pre-provisioned.yaml
         ```
   
-  3. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
+  4. (optional) verify created `volumesnapshot` and `volumesnapshotcontent` objects
 
         ```bash
         kubectl get volumesnapshot
         kubectl get volumesnapshotcontent
         ```
 
-  4. [Restore snapshot](example/restore-snapshot-pvc.yaml)
+  5. [Restore snapshot](example/restore-snapshot-pvc.yaml)
 
         ```bash
         kubectl create -f example/restore-snapshot-pvc.yaml
@@ -355,6 +362,8 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
 ## Setup Snapshotter
 
+### Install Snapshotter
+
 The below setup is required once per k8s cluster
 
   ```bash
@@ -364,5 +373,13 @@ The below setup is required once per k8s cluster
     wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 
     kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml;
-    kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml 
+    kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml;
   ```
+
+### Remove Snapshotter
+
+  ```bash
+    kubectl delete -f snapshot.storage.k8s.io_volumesnapshots.yaml; kubectl delete -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    kubectl delete -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml;
+  ```
+  

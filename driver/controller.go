@@ -46,6 +46,10 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	}
 	params := req.Parameters
 	secrets := req.Secrets
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("secrets are required to dynamically provision volume." +
+			"Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
+	}
 	capacity := req.GetCapacityRange().RequiredBytes
 	volName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
@@ -191,6 +195,10 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	}
 
 	secrets := req.GetSecrets()
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("secrets are required delete volume." +
+			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
+	}
 	params := strings.Split(volID, SEPARATOR)
 	if len(params) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)

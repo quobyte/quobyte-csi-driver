@@ -9,12 +9,14 @@ spec:
   deletionPolicy: Delete
   driver: csi.quobyte.com # your Quobyte CSI driver
   source:
-    volumeHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>"
+    volumeHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>" # must match the PV volume handle
   volumeSnapshotClassName: quobyte-csi-snapclass
-  source:
-    snapshotHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"
   volumeSnapshotRef:
     # TODO(venkat): might need to append secrets required during
     # snapshot deletion
     name: <Snapshot_Name>
     namespace: default
+source:
+  snapshotHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"
+  readyToUse: true
+  restoreSize: 0
