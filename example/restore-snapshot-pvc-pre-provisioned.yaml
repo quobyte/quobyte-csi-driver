@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: restore-snapshot-pvc
+  name: restore-snapshot-pvc-pre-provisioned
 spec:
   storageClassName: quobyte-csi
   dataSource:
     #VolumeSnapshot object name (note: This is not snapshot name but VolumeSnapshot object name)
-    name: test-snapshot-dynamic-provision 
+    name: volume-snapshot-pre-provisioned 
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
   accessModes:

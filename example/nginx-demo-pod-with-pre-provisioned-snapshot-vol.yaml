@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-snapshot-vol
+  name: nginx-pre-provisioned-snapshot-vol
 spec:
   containers:
   - name: server
@@ -14,4 +14,4 @@ spec:
   volumes:
     - name: quobytepvc
       persistentVolumeClaim:
-        claimName: restore-snapshot-pvc
+        claimName: restore-snapshot-pvc-pre-provisioned
