@@ -318,8 +318,8 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl create -f example/nginx-demo-pod-with-dynamic-snapshot-vol.yaml
         ```
   
-### Pre-provisioned Snapshots (**Requires corresponding snapshot in Quobyte Storage system**)
-
+### Pre-provisioned Snapshots
+  
   1. Create volume [snapshot class](example/volume-snapshot-class.yaml)
 
         ```bash
