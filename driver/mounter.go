@@ -11,11 +11,13 @@ import (
 
 // Mount bind mounts the Quobyte volume to the target
 func Mount(source, target, fsType string, opts []string) error {
+	// Readonly is left to kubelet running on host machines.
+	// Remounting from the pods is not allowed from the running container
+	// https://github.com/moby/moby/issues/31591
+	// For fuse FS, remount does not fail but making whole subtree readonly
+	// on remount with -o remount,ro,bind and we don't want that.
+
 	cmd := "mount"
-	var remount bool = false
-	if contains(opts, "ro") {
-		remount = true
-	}
 	var options []string
 	options = append(options, "-o")
 	opts = append(opts, "bind")
@@ -26,15 +28,6 @@ func Mount(source, target, fsType string, opts []string) error {
 	if out, err := exec.Command(cmd, options...).CombinedOutput(); err != nil {
 		return fmt.Errorf("failed mount: %v cmd: '%s %s %s' command output: %q", err, cmd, options, target, string(out))
 	}
-
-	if remount {
-		remoutOpts := []string{"-o", "remount,ro", target}
-		klog.Infof("Executing remount command '%s %s'", cmd, strings.Join(remoutOpts, " "))
-		if out, err := exec.Command(cmd, remoutOpts...).CombinedOutput(); err != nil {
-			return fmt.Errorf("remount read-only failed: %v cmd: '%s %s' command output: %q", err, cmd, remoutOpts, string(out))
-		}
-	}
-
 	return nil
 }
 

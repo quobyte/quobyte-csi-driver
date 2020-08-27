@@ -119,3 +119,7 @@ func parseLabels(labels string) ([]*quobyte.Label, error) {
 	}
 	return parsedLabels, nil
 }
+
+func getInvlaidSnapshotIdError(snapshotId string) error {
+	return fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshotId, SEPARATOR, SEPARATOR)
+}

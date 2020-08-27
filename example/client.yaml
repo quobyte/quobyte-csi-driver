@@ -31,7 +31,7 @@ spec:
             value: /mnt/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEYS
-            value: false  # to enable, set it to true
+            value: "false"  # to enable, set it to true
           - name: NODENAME
             valueFrom:
               fieldRef:
@@ -74,7 +74,7 @@ spec:
               chattr +i ${QUOBYTE_MOUNT_POINT} || \
                 echo "WARNING: The local filesystem does not support IMMUTABLE flag. Mount point pollution is possible."
               /usr/bin/mount.quobyte --hostname ${NODENAME} \
-                --allow-usermapping-in-volumename --http-port 55000 -f \
+                --http-port 55000 -f \
                 -d ${QUOBYTE_CLIENT_LOG_LEVEL} -l /dev/stdout ${OPTS} \
                 --minidump-path /tmp/minidumps --allow-minidump-upload \
                 ${QUOBYTE_REGISTRY}/ ${QUOBYTE_MOUNT_POINT} ${ENABLE_ACCESS_CONTEXTS}

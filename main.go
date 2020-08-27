@@ -15,6 +15,7 @@ var (
 	apiURL                 = flag.String("api_url", "", "Quobyte API URL")
 	nodeName               = flag.String("node_name", "", "Node name from k8s environment")
 	driverName             = flag.String("driver_name", "", "Quobyte CSI driver name")
+	driverVersion          = flag.String("driver_version", "", "Quobyte CSI driver version")
 	useNameSpaceAsTenant   = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
 	enableQuobyteAcceskeys = flag.Bool("enable_access_keys", false, "Enables use of Quobyte Access keys for mounting volumes")
 )
@@ -28,7 +29,7 @@ func main() {
 
 	// TODO (venkat): validate API url and node name
 
-	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL, *driverName, *useNameSpaceAsTenant, *enableQuobyteAcceskeys)
+	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL, *driverName, *driverVersion, *useNameSpaceAsTenant, *enableQuobyteAcceskeys)
 	err := qd.Run()
 	if err != nil {
 		klog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)

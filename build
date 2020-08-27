@@ -12,19 +12,19 @@ else
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi main.go
   build_success="$?"
   if [[ ${build_success} -eq 0 ]]; then
-     echo "Build is successful"
+    echo "Build is successful"
   else
-     echo "Build failed"
-     exit 1
+    echo "Build failed"
+    exit 1
   fi
   if [[ "${build_success}" -eq 0 && ! -z "$1" ]]; then
-   echo 'Building docker image'
-   IMAGE=$1
-   sudo docker build -t quobyte-csi -f Dockerfile .
-   sudo docker run -it quobyte-csi
-   CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
-   echo "Pushing $CSI_RUN_ID to $1"
-   sudo docker commit "$CSI_RUN_ID" "$IMAGE"
-   sudo docker push "$IMAGE"
+    echo 'Building docker image'
+    IMAGE=$1
+    sudo docker build -t quobyte-csi -f Dockerfile .
+    sudo docker run -it quobyte-csi
+    CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
+    echo "Pushing $CSI_RUN_ID to $1"
+    sudo docker commit "$CSI_RUN_ID" "$IMAGE"
+    sudo docker push "$IMAGE"
   fi
 fi

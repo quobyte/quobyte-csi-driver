@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	quobyte "github.com/quobyte/api/v3"
@@ -13,6 +16,7 @@ import (
 )
 
 const (
+	SEPARATOR = "|"
 	//DefaultTenant Default Tenant to use if none provided by user
 	DefaultTenant = "My Tenant"
 	//DefaultConfig Default configuration to use if none provided by user
@@ -25,6 +29,10 @@ const (
 	DefaultAccessModes = 777
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
+	pinnedKey       = "pinned"
+	SnapshotIDKey   = "snapshot_id_key"
+	// VolumeHandle prefix for snapshots PV.
+	SnapshotVolumeHandlePrefix = "SnapshotVolumeHandle-"
 )
 
 // CreateVolume creates quobyte volume
@@ -38,6 +46,10 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	}
 	params := req.Parameters
 	secrets := req.Secrets
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("secrets are required to dynamically provision volume." +
+			"Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
+	}
 	capacity := req.GetCapacityRange().RequiredBytes
 	volName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
@@ -92,6 +104,44 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, err
 	}
 
+	// if snapshot request, just populate with snapshot id and return.
+	// No need to create the volume as volume already created before
+	volumeContext := make(map[string]string)
+	volumeContentSource := req.GetVolumeContentSource()
+	if volumeContentSource != nil {
+		snapshot := volumeContentSource.GetSnapshot()
+		if snapshot != nil {
+			snapshotIdParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
+			if len(snapshotIdParts) < 3 {
+				return nil, getInvlaidSnapshotIdError(snapshot.SnapshotId)
+			}
+			volumeContext[SnapshotIDKey] = snapshot.SnapshotId
+			resp := &csi.CreateVolumeResponse{
+				Volume: &csi.Volume{
+					// k8s expects that storage system takes snapshot (during creation of VolumeSnapshot and VolumeSnapshotContent)
+					// and later populates a volume (with its own volumeId) based on the snapshot
+					// (during creation of PVC with VolumeSnapshot ref).
+					// Used to filter out snapshot based PVs during volume delete.
+					// We only create dummy PV for snapshot volumes
+					// as Quobyte doesn't create separate volumes for snapshots, there is no need
+					// to delete volume/snapshot with PV. Deletion of VolumeSnapshot and VolumeSnapshotContent
+					// should delete the snapshot.
+					VolumeId:      SnapshotVolumeHandlePrefix + req.Name,
+					CapacityBytes: capacity,
+					ContentSource: &csi.VolumeContentSource{
+						Type: &csi.VolumeContentSource_Snapshot{
+							Snapshot: &csi.VolumeContentSource_SnapshotSource{
+								SnapshotId: snapshot.SnapshotId,
+							},
+						},
+					},
+					VolumeContext: volumeContext,
+				},
+			}
+			return resp, nil
+		}
+	}
+
 	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
 	var volUUID string
 	if err != nil {
@@ -124,7 +174,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
 			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
 			// for pre-provisioned volumes
-			VolumeId:      volRequest.TenantId + "|" + volUUID,
+			VolumeId:      volRequest.TenantId + SEPARATOR + volUUID,
 			CapacityBytes: capacity,
 		},
 	}
@@ -137,10 +187,21 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if len(volID) == 0 {
 		return nil, fmt.Errorf("volumeId is required for DeleteVolume")
 	}
+
+	if strings.HasPrefix(volID, SnapshotVolumeHandlePrefix) {
+		// Snapshot volume and hence the PV being deleted is a dummy volume
+		// See CreateVolume for more information
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+
 	secrets := req.GetSecrets()
-	params := strings.Split(volID, "|")
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("secrets are required delete volume." +
+			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
+	}
+	params := strings.Split(volID, SEPARATOR)
 	if len(params) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
 	}
 	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
 	if err != nil {
@@ -204,6 +265,8 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 	for _, cap := range []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
+		csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
 		//	csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 	} {
 		caps = append(caps, newCap(cap))
@@ -217,15 +280,116 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 }
 
 func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "CreateSnapshot: Snapshots are not implemented by Quobyte CSI.")
+	var isPinned bool
+	if pinned, ok := req.Parameters[pinnedKey]; ok {
+		pinnedVal, err := strconv.ParseBool(pinned)
+		if err != nil {
+			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be ture/false. Configured value %s is invalid.", pinned)
+		}
+		isPinned = pinnedVal
+	} else {
+		isPinned = false
+	}
+	volumeId := req.SourceVolumeId
+	volParts := strings.Split(volumeId, SEPARATOR)
+	if len(volParts) < 2 {
+		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
+	if err != nil {
+		return nil, err
+	}
+	// Append tenant to make it available for delete snapshot calls.
+	// Dynamic provision always resolves (tenant/volume) name to UUID
+	// For pre-provisioned volume/snapshot, customer can configure either
+	// (tenant/volume) name/uuid, for this reason we need to resolve tenant/volume to UUID
+	// combination of tenant, volume and snapshot name
+	tenantUUID, err := quobyteClient.GetTenantUUID(volParts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	snapshotReq := &quobyte.CreateSnapshotRequest{VolumeUuid: volUUID, Name: req.Name, Pinned: isPinned}
+	_, err = quobyteClient.CreateSnapshot(snapshotReq)
+	if err != nil {
+		// CSI requires idempotency. (calling snapshot create multiple times should return the snapshot if it already exists)
+		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+			return nil, err
+		}
+	}
+	snapshotID := tenantUUID + SEPARATOR + volUUID + SEPARATOR + req.Name
+	timestamp := &timestamp.Timestamp{Seconds: time.Now().Unix()}
+	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID, SourceVolumeId: req.SourceVolumeId, CreationTime: timestamp, ReadyToUse: true}}
+	return resp, nil
 }
 
 func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "DeleteSnapshot: Snapshots are not implemented by Quobyte CSI.")
+	snapshotID := req.SnapshotId
+	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	if len(snapshotParts) < 3 {
+		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
+			snapshotID, SEPARATOR, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	tenantUUID, err := quobyteClient.GetTenantUUID(snapshotParts[0])
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(snapshotParts[1], tenantUUID)
+	if err != nil {
+		return nil, err
+	}
+	snapshotDeleteReq := &quobyte.DeleteSnapshotRequest{VolumeUuid: volUUID, Name: snapshotParts[2]}
+	_, err = quobyteClient.DeleteSnapshot(snapshotDeleteReq)
+	if err != nil {
+		return nil, err
+	}
+	return &csi.DeleteSnapshotResponse{}, nil
 }
 
 func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListSnapshots: Snapshots are not implemented by Quobyte CSI.")
+	snapshotID := req.SnapshotId
+	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	if len(snapshotParts) < 3 {
+		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
+			snapshotID, SEPARATOR, SEPARATOR)
+	}
+	secrets := req.Secrets
+	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	tenantUUID, err := quobyteClient.GetTenantUUID(snapshotParts[0])
+	if err != nil {
+		return nil, err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(snapshotParts[1], tenantUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	listReq := &quobyte.ListSnapshotsRequest{VolumeUuid: volUUID}
+	listResp, err := quobyteClient.ListSnapshots(listReq)
+	if err != nil {
+		return nil, err
+	}
+	snapshotEntries := make([]*csi.ListSnapshotsResponse_Entry, len(listResp.Snapshot))
+	for i, entry := range listResp.Snapshot {
+		// important we use tenant and volume from req.SnapshotId
+		// to match the snapshot id
+		snapshotID := snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + entry.Name
+		snapshotEntries[i] = &csi.ListSnapshotsResponse_Entry{Snapshot: &csi.Snapshot{SourceVolumeId: entry.VolumeUuid, SnapshotId: snapshotID, CreationTime: &timestamp.Timestamp{Seconds: (entry.Timestamp / 1000)}, ReadyToUse: true}}
+	}
+	return &csi.ListSnapshotsResponse{Entries: snapshotEntries}, nil
 }
 
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {

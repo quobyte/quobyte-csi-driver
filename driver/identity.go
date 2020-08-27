@@ -10,7 +10,7 @@ import (
 func (d *QuobyteDriver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
 		Name:          d.Name,
-		VendorVersion: driverVersion,
+		VendorVersion: d.Version,
 	}
 	return resp, nil
 }

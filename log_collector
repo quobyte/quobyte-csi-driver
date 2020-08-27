@@ -34,11 +34,21 @@ do
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-attacher >> ./csi_logs/$el/csi-attacher.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-cluster-driver-registrar >> ./csi_logs/$el/csi-cluster-driver-registrar.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-plugin >> ./csi_logs/$el/quobyte-csi-plugin.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c csi-snapshotter >> ./csi_logs/$el/csi-snapshotter.log
   elif [[ $el =~ quobyte-csi-node.* ]];then
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-node-driver-registrar >> ./csi_logs/$el/csi-node-driver-registrar.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-plugin  >> ./csi_logs/$el/quobyte-csi-node-plugin.log
  fi
 done
+
+# when snapshots are enabled we should also get logs from snapshot-controller
+kubectl -n kube-system get po | grep -q "snapshot-controller"
+found_snapshot_controller="$?"
+if [[ ${found_snapshot_controller} -eq 0 ]]; then
+  kubectl -n kube-system logs snapshot-controller-0 >> ./csi_logs/snapshot-controller.log
+fi
+
+# TODO(venkat): collect daemonset, statefulsets and deployment details as part of logs
 
 if [[ -f quobyte_csi_logs.tar.gz ]]; then
  rm quobyte_csi_logs.tar.gz
