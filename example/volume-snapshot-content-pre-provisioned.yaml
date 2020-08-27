@@ -5,16 +5,22 @@ apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshotContent
 metadata:
   name: snapcontent-pre-provisioned
+  annotations:
+    # secrets are used during snapshot deletion and
+    # should contain quobyte user credentials
+    snapshot.storage.kubernetes.io/deletion-secret-name: quobyte-admin-secret
+    snapshot.storage.kubernetes.io/deletion-secret-namespace: quobyte
 spec:
   deletionPolicy: Delete
   driver: csi.quobyte.com # your Quobyte CSI driver
   source:
+    # snapshotHandle is combination of Quobyte Tenant, Volume and snapshot name
     snapshotHandle: "<Tenant_Name/UUID>|<Volume_Name/UUID>|<Snapshot_Name>"
   volumeSnapshotClassName: quobyte-csi-snapshotclass
   volumeSnapshotRef:
     # Name of the VolumeSnapshot object created in the future,
     # see volume-snapshot-pre-provisioned.yaml
-    # This VolumeSnapshotContent can only bind to VolumeSnapshot create with
-    # below matching name and namespace
+    # This VolumeSnapshotContent can only bind to future VolumeSnapshot 
+    # that is created with following matching name and namespace
     name: volume-snapshot-pre-provisioned 
     namespace: default

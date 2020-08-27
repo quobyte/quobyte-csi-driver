@@ -1,7 +1,14 @@
 apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshot
 metadata:
-  name: test-snapshot
+  # Should match VolumeSnapshotContent.spec.volumeSnapshotRef.name
+  # of pre-provisioned VolumeSnapshotContent object
+  name: volume-snapshot-pre-provisioned
+  # Should match VolumeSnapshotContent.spec.volumeSnapshotRef.namespace
+  # of pre-provisioned VolumeSnapshotContent object
+  namespace: default
 spec:
   source:
-    volumeSnapshotContentName: snapcontent-pre-provisioned # VolumeSnapshotContent object name
+    # VolumeSnapshotContent object name
+    # Match with the VolumeSnapshotContent.metadata.name
+    volumeSnapshotContentName: snapcontent-pre-provisioned 

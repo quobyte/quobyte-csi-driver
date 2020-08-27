@@ -14,4 +14,4 @@ spec:
   volumes:
     - name: quobytepvc
       persistentVolumeClaim:
-        claimName: restore-snapshot-pvc-pre-provisioned
+        claimName: restore-snapshot-pvc-pre-provisioned # restored snapshot PVC name

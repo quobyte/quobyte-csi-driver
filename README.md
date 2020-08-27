@@ -24,7 +24,7 @@ Quobyte CSI is the implementation of
 * [Requirements](#requirements)
 * [Deploy Quobyte clients](docs/deploy_clients.md)
 * [Deploy Quobyte CSI](#deploy-quobyte-CSI)
-* [Setup Snapshotter](#setup-snapshotter) (**required only if snapshots are enabled**)
+* [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
   * [Dynamic volume provisioning](#dynamic-volume-provisioning)
   * [Use existing volumes](#use-existing-volumes)
@@ -50,7 +50,7 @@ Quobyte CSI is the implementation of
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
    be deployed with **--enable-access-contexts**. Additionally, the metadata cache (global policy)
    should be disabled.
-* Requires [additional setup](#setup-snapshotter) to use volume snapshots
+* Requires [additional setup](#snapshotter-setup) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
 
@@ -261,7 +261,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
 1. [Quobyte CSI Driver](./quobyte-csi-driver/values.yaml) is deployed with `enableSnapshots: true`
 
-2. [Snapshotter setup](#setup-snapshotter)
+2. [Snapshotter setup](#snapshotter-setup)
 
 ### Dynamic Snapshots
 
@@ -309,7 +309,9 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         ```bash
         kubectl create -f example/restore-snapshot-pvc-dynamic-provision.yaml
         ```
-  
+
+     This should create a PVC and a PV for the restored snapshot
+
   8. Create pod with [restored snapshot](example/nginx-demo-pod-with-dynamic-snapshot-vol.yaml)
 
         ```bash
@@ -383,7 +385,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     helm delete <Quobyte-CSI-chart-name>
     ```
 
-## Setup Snapshotter
+## Snapshotter Setup
 
 ### Install Snapshotter
 

@@ -14,4 +14,4 @@ spec:
   volumes:
     - name: quobytepvc
       persistentVolumeClaim:
-        claimName: restore-snapshot-pvc-dynamic-provision
+        claimName: restore-snapshot-pvc-dynamic-provision # restored snapshot PVC name
