@@ -57,8 +57,10 @@ spec:
           - -xec
           - |
             ENABLE_ACCESS_CONTEXTS=""
+            NO_DEFAULT_PERMISSIONS_FLAG=""
             if [[ ${ENABLE_ACCESS_KEYS} = true ]]; then
               ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
+              NO_DEFAULT_PERMISSIONS_FLAG="--no-default-permissions"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then
               umount -l ${QUOBYTE_MOUNT_POINT}
@@ -77,7 +79,7 @@ spec:
                 --http-port 55000 -f \
                 -d ${QUOBYTE_CLIENT_LOG_LEVEL} -l /dev/stdout ${OPTS} \
                 --minidump-path /tmp/minidumps --allow-minidump-upload \
-                ${QUOBYTE_REGISTRY}/ ${QUOBYTE_MOUNT_POINT} ${ENABLE_ACCESS_CONTEXTS}
+                ${QUOBYTE_REGISTRY}/ ${QUOBYTE_MOUNT_POINT} ${ENABLE_ACCESS_CONTEXTS} ${NO_DEFAULT_PERMISSIONS_FLAG}
             fi
         securityContext:
           privileged: true

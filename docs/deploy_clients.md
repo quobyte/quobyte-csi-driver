@@ -29,9 +29,7 @@ Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/
       [remote_user@remote_ip]
     ```
 
-    To use access keys, `quobyte-client.service` must be started with `--enable-access-contexts`.
-
-    
+    To use access keys, `quobyte-client.service`/`mount.quobyte` must be started with `--enable-access-contexts` and `--no-default-permissions`.
 
 `Note:`  
 
