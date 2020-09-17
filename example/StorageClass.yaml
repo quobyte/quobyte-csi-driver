@@ -13,9 +13,9 @@ provisioner: csi.quobyte.com
 # Volume expansion only makes sense if volume is created with a quota.
 allowVolumeExpansion: true
 parameters:
-  # quobyteTenant is used as tenant if CSI driver is deployed with 
+  # quobyteTenant is used as tenant if CSI driver is deployed with
   # --use_k8s_namespace_as_tenant=false.
-  # If CSI driver is deployed with --use_k8s_namespace_as_tenant=true, 
+  # If CSI driver is deployed with --use_k8s_namespace_as_tenant=true,
   # quobyteTenant is ignored and K8S namespace in which PVC is created
   # becomes Quobyte tenant
   # i.e; K8S namespace "tenant_x" maps to "tenant_x" in Quobyte storage.
@@ -34,10 +34,12 @@ parameters:
   # Quobyte volume configuration
   quobyteConfig: "BASE"
   # creates quota for the volume if set to true. The size of the Quota
-  # is the storage requested in PVC. If false, creates volume without size limit.  
+  # is the storage requested in PVC. If false, creates volume without size limit.
   createQuota: "true"
   user: root
   group: root
   accessMode: "777"
-# Set reclaimPolicy: Retain to keep the volume even after PV deletion  
+  #spaces are not allowed
+  labels: "encrypted:yes,mediatype:hdd"
+# Set reclaimPolicy: Retain to keep the volume even after PV deletion
 reclaimPolicy: Delete
