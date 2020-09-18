@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Requirements (manual)
+# ----------------------
+# 1. Quobyte CSI driver, clients with proper mountpoint and registry
+# 2. CSI secret with proper data (API user and password)
+# 3. Storage Class with proper tenant and tenant in storage cluster
+# 4. Use IP for API URL to get around docker hostname to IP resolution issues on kubespray setups
+# 5. Get ./log_collector and look logs after tests 
+
+
+# TODO(venkat): Add "My Tenant" tenant and configure accessible network
+# TODO(venkat): import access key and add it to secret
+#sudo yum install -y wget git
+
+
+#if [[ -d quobyte-csi ]]; then
+#  rm -rf quobyte-csi
+#fi
+
+#git clone https://github.com/quobyte/quobyte-csi.git
+
+# TODO(venkat): checkout specific commit
+# TODO(venkat): setup clients, even better setup as part of vagrant setup
+# cd quobyte-csi
+
+# TODO(venkat): update driver (./quobyte-csi-driver/values.yaml)
+
+# set kubectl home (kubespray doesn't set this)
+if [[ ! -d $HOME/.kube ]]; then
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+fi
+
+#kubectl get ns quobyte 2>&1  >> /dev/null
+#quobyte_ns_exists="$?"
+
+#if [[ "${quobyte_ns_exists}" -ne 0 ]]; then
+#  kubectl create ns quobyte
+#fi
+
+#kubectl create -f example/csi-secret.yaml 2>&1  >> /dev/null
+
+# TODO(venkat) setup snapshots controller
+
+if [[ -f /tmp/quobyte-csi-driver.yaml ]]; then
+  rm /tmp/quobyte-csi-driver.yaml
+fi
+  
+cat> /tmp/quobyte-csi-driver.yaml<<EOF
+ShortName: quobyte-csi
+StorageClass:
+  FromFile: $(pwd)/quobyte-csi/example/StorageClass.yaml
+SnapshotClass:
+  FromFile: $(pwd)/quobyte-csi/example/volume-snapshot-class.yaml
+DriverInfo:
+  Name: csi.quobyte.com
+  # Add  new capabilites from here (sample for v1.18.5)
+  # https://github.com/kubernetes/kubernetes/blob/e6503f8d8f769ace2f338794c914a96fc335df0f/test/e2e/storage/testsuites/testdriver.go#L137
+  Capabilities:
+    persistence: true
+    fsGroup: true
+    exec: true
+    multipods: true
+    controllerExpansion: true
+    nodeExpansion: true
+    singleNodeVolume: true
+    snapshotDataSource: true
+    RWX: true
+EOF
+
+if [[ -d kubernetes ]]; then
+ rm -rf kubernetes
+fi
+
+K8S_TARBALL="kubernetes-test-linux-amd64.tar"
+K8S_ZIP="${K8S_TARBALL}.gz"
+
+if [[ -f ${K8S_ZIP} ]]; then
+  rm ${K8S_ZIP}
+fi
+
+if [[ -f "${K8S_TARBALL}" ]]; then 
+  rm "${K8S_TARBALL}"
+fi
+
+if [[ -f tests.txt ]]; then
+  rm "tests.txt"
+fi
+  
+wget -q https://storage.googleapis.com/kubernetes-release/release/$(kubectl version | grep -o 'GitVersion:"[^"]*"' -m1 | cut -d":" -f2 | tr -d '"')/${K8S_ZIP} \
+&& gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar \
+&& kubernetes/test/bin/ginkgo -p -focus='External.Storage.*csi.quobyte.com.*' \
+-skip='\[Disruptive\]' \
+kubernetes/test/bin/e2e.test -- -storage.testdriver=/tmp/quobyte-csi-driver.yaml -kubeconfig='/home/vagrant/.kube/config' 2>&1 | tee tests.txt
+

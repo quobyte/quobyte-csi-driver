@@ -1,11 +1,86 @@
 
 #!/bin/bash
+DEFAULT_CONTAINER_URL_BASE="quay.io/quobyte/csi:"
+# change default with with CONTAINER_URL_BASE="<container-base-url>" ./build
+CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
+# https://helm.sh/docs/topics/chart_repository/#github-pages-example
+# Quobyte CSI charts are hosted as github pages. Artifacthub.io uses this
+# location to grab the deployable charts from docs/index.yaml
+CHART_PACKAGE_DIR="docs" 
+CHART_DIR="quobyte-csi-driver"
+
+container_build_and_push(){
+    if [[ -z "${CONTAINER_URL_BASE}" ]]; then
+      echo "FAILURE: container base url should not be empty"
+    fi
+    VERSION=$1
+    if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
+      echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
+    fi
+    IMAGE="${CONTAINER_URL_BASE}${$1}"
+    echo 'Building docker image and push to ${IMAGE}'
+    sudo docker build -t quobyte-csi -f Dockerfile .
+    sudo docker run -it quobyte-csi
+    CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
+    echo "Pushing $CSI_RUN_ID to ${IMAGE}"
+    sudo docker commit "$CSI_RUN_ID" "$IMAGE"
+    sudo docker push "$IMAGE"
+    push_succeeded="$?"
+    if [[ ${push_succeeded} -ne 0 ]]; then
+      echo 'FAILURE: container image ${IMAGE} cannot be pushed'
+      echo 'Please fix the reported issues and retry'
+      exit 1
+    fi
+}
+
+rebase_charts_on_master(){
+  echo 'updating master with version files...'
+  git push origin master
+  git checkout charts
+  echo 'rebasing charts on current master...'
+  git rebase master
+  echo 'updating charts with rebased version...'
+  git push charts
+  echo 'switching back to master...'
+  git checkout master
+}
+
+print_post_release_instructions(){
+  echo 'Please go to https://github.com/quobyte/quobyte-csi/releases'
+  echo 'and make a release for the tag version ${VERSION} with release notes'
+}
+
+build_helm_package(){
+  helm package -d "${CHART_PACKAGE_DIR}" "${CHART_DIR}" 
+  helm repo index "${CHART_PACKAGE_DIR}"
+}
+
+update_files_with_version(){
+  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^appVersion:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/appVersion: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^version:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/version: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiProvisionerVersion:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/    csiProvisionerVersion: \"${VERSION}\"/g" "${CHART_DIR}/values.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiImage:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/    csiImage: \"${CONTAINER_URL_BASE}${VERSION}\"/g" "${CHART_DIR}/values.yaml"
+  fi
+}
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
-  echo './build                    Builds the executable'
-  echo './build  <CONTAINER_URL>   Builds the executable, docker image and'
-  echo '                            pushes it to the given <CONTAINER_URL>'
-  echo "Example: ./build quay.io/quobyte/csi:v0.2.0"
+  echo './build                                Builds the executable'
+  echo './build container <release-tag>"       Builds pre and pushes container'
+  echo './build release "<release-tag>"        Builds the executable, docker image and'
+  echo '                                         pushes the container and creates a helm chart'
+  ehco '                                         for the release'
+  echo "Example: ./build v0.2.0"
   exit 0
 else
   echo 'Building executable'
@@ -14,17 +89,39 @@ else
   if [[ ${build_success} -eq 0 ]]; then
     echo "Build is successful"
   else
-    echo "Build failed"
+    echo "Build FAILURE"
     exit 1
   fi
-  if [[ "${build_success}" -eq 0 && ! -z "$1" ]]; then
-    echo 'Building docker image'
-    IMAGE=$1
-    sudo docker build -t quobyte-csi -f Dockerfile .
-    sudo docker run -it quobyte-csi
-    CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
-    echo "Pushing $CSI_RUN_ID to $1"
-    sudo docker commit "$CSI_RUN_ID" "$IMAGE"
-    sudo docker push "$IMAGE"
+  if [[ "${build_success}" -eq 0 && "$1" == "container" ]]; then
+    container_build_and_push $2
+  elif [[ "${build_success}" -eq 0 && "$1" == "release" ]]; then
+    if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
+      echo 'FAILURE: release can only be made on master branch'
+      exit 1
+    fi
+    if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
+      echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
+      echo "Please commit your changes and retry"
+      exit 1
+    fi
+    git pull
+    container_build_and_push $2
+    if [[ ! command -v helm &> /dev/null ]]; then 
+       (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+          && chmod 700 get_helm.sh && ./get_helm.sh)
+    fi
+    echo "Updating chart, and CSI driver files with release version ${VERSION}"
+    update_files_with_version   
+    build_helm_package
+    echo "Adding built chart docs"
+    git add docs/index.yaml
+    git add docs/*.tgz
+    # Assumption is, at this point we do not have any modified files except
+    # those modified by the script 
+    git add -u
+    git commit -m "Release version ${VERSION}"
+    git tag "${VERSION}"
+    rebase_charts_on_master
+    print_post_release_instructions
   fi
 fi
