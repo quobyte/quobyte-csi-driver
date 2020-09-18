@@ -40,12 +40,14 @@ rebase_charts_on_master(){
   echo 'rebasing charts on current master...'
   git rebase master
   echo 'updating charts with rebased version...'
-  git push charts
+  git push origin charts
   echo 'switching back to master...'
   git checkout master
 }
 
 print_post_release_instructions(){
+  echo ''
+  echo ''
   echo 'Please go to https://github.com/quobyte/quobyte-csi/releases'
   echo "and make a release for the tag version ${VERSION} with release notes"
 }
@@ -83,16 +85,16 @@ else
   if [[ "${build_success}" -eq 0 && "$1" == "container" ]]; then
     container_build_and_push $2
   elif [[ "${build_success}" -eq 0 && "$1" == "release" ]]; then
-    #if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
-    #  echo 'FAILURE: release can only be made on master branch'
-    #  exit 1
-    #fi
-    #if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
-    #  echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
-    #  echo "Please commit your changes and retry"
-    #  exit 1
-    #fi
-    #git pull
+    if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
+      echo 'FAILURE: release can only be made on master branch'
+      exit 1
+    fi
+    if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
+      echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
+      echo "Please commit your changes and retry"
+      exit 1
+    fi
+    git pull
     container_build_and_push $2
     if [[ $(command -v helm &> /dev/null; echo "$?" ) -eq 1 ]]; then 
        (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
