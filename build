@@ -1,6 +1,6 @@
 
 #!/bin/bash
-DEFAULT_CONTAINER_URL_BASE="quay.io/quobyte/csi:"
+DEFAULT_CONTAINER_URL_BASE="quay.io/quobyte/csi"
 # change default with with CONTAINER_URL_BASE="<container-base-url>" ./build
 CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
 # https://helm.sh/docs/topics/chart_repository/#github-pages-example
@@ -17,7 +17,7 @@ container_build_and_push(){
     if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
       echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
     fi
-    IMAGE="${CONTAINER_URL_BASE}${$1}"
+    IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
     echo 'Building docker image and push to ${IMAGE}'
     sudo docker build -t quobyte-csi -f Dockerfile .
     sudo docker run -it quobyte-csi
@@ -47,7 +47,7 @@ rebase_charts_on_master(){
 
 print_post_release_instructions(){
   echo 'Please go to https://github.com/quobyte/quobyte-csi/releases'
-  echo 'and make a release for the tag version ${VERSION} with release notes'
+  echo "and make a release for the tag version ${VERSION} with release notes"
 }
 
 build_helm_package(){
@@ -56,22 +56,10 @@ build_helm_package(){
 }
 
 update_files_with_version(){
-  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^appVersion:')"
-  if [[ ! -z ${old_string} ]]; then
-    sed -i -e "s/${old_string}/appVersion: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
-  fi
-  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^version:')"
-  if [[ ! -z ${old_string} ]]; then
-    sed -i -e "s/${old_string}/version: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
-  fi
-  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiProvisionerVersion:')"
-  if [[ ! -z ${old_string} ]]; then
-    sed -i -e "s/${old_string}/    csiProvisionerVersion: \"${VERSION}\"/g" "${CHART_DIR}/values.yaml"
-  fi
-  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiImage:')"
-  if [[ ! -z ${old_string} ]]; then
-    sed -i -e "s/${old_string}/    csiImage: \"${CONTAINER_URL_BASE}${VERSION}\"/g" "${CHART_DIR}/values.yaml"
-  fi
+  sed -i "s|appVersion:.*|appVersion: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
+  sed -i "s|version:.*|version: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
+  sed -i "s|.*csiProvisionerVersion:.*|    csiProvisionerVersion: \"${VERSION}\"|g" "${CHART_DIR}/values.yaml"
+  sed -i "s|.*csiImage:.*|    csiImage: \"${CONTAINER_URL_BASE}:${VERSION}\"|g" "${CHART_DIR}/values.yaml"
 }
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
@@ -80,7 +68,7 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   echo './build release "<release-tag>"        Builds the executable, docker image and'
   echo '                                         pushes the container and creates a helm chart'
   ehco '                                         for the release'
-  echo "Example: ./build v0.2.0"
+  echo "Example: ./build [container/release] v0.2.0"
   exit 0
 else
   echo 'Building executable'
@@ -95,25 +83,25 @@ else
   if [[ "${build_success}" -eq 0 && "$1" == "container" ]]; then
     container_build_and_push $2
   elif [[ "${build_success}" -eq 0 && "$1" == "release" ]]; then
-    if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
-      echo 'FAILURE: release can only be made on master branch'
-      exit 1
-    fi
-    if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
-      echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
-      echo "Please commit your changes and retry"
-      exit 1
-    fi
-    git pull
+    #if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
+    #  echo 'FAILURE: release can only be made on master branch'
+    #  exit 1
+    #fi
+    #if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
+    #  echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
+    #  echo "Please commit your changes and retry"
+    #  exit 1
+    #fi
+    #git pull
     container_build_and_push $2
-    if [[ ! command -v helm &> /dev/null ]]; then 
+    if [[ $(command -v helm &> /dev/null; echo "$?" ) -eq 1 ]]; then 
        (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
           && chmod 700 get_helm.sh && ./get_helm.sh)
     fi
     echo "Updating chart, and CSI driver files with release version ${VERSION}"
     update_files_with_version   
     build_helm_package
-    echo "Adding built chart docs"
+    echo "Adding packaged chart to docs"
     git add docs/index.yaml
     git add docs/*.tgz
     # Assumption is, at this point we do not have any modified files except
@@ -121,6 +109,7 @@ else
     git add -u
     git commit -m "Release version ${VERSION}"
     git tag "${VERSION}"
+    # update chart index fiel for Artifacthub to get new update
     rebase_charts_on_master
     print_post_release_instructions
   fi
