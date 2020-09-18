@@ -51,10 +51,27 @@ print_post_release_instructions(){
 }
 
 build_helm_package(){
-  # TODO(venkat): add version info to chart files (Chart.aml, Values.yaml)
-  
   helm package -d "${CHART_PACKAGE_DIR}" "${CHART_DIR}" 
   helm repo index "${CHART_PACKAGE_DIR}"
+}
+
+update_files_with_version(){
+  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^appVersion:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/appVersion: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/Chart.yaml" | grep '^version:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/version: \"${VERSION}\"/g" "${CHART_DIR}/Chart.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiProvisionerVersion:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/    csiProvisionerVersion: \"${VERSION}\"/g" "${CHART_DIR}/values.yaml"
+  fi
+  old_string="$(cat "${CHART_DIR}/values.yaml" | grep 'csiImage:')"
+  if [[ ! -z ${old_string} ]]; then
+    sed -i -e "s/${old_string}/    csiImage: \"${CONTAINER_URL_BASE}${VERSION}\"/g" "${CHART_DIR}/values.yaml"
+  fi
 }
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
@@ -83,17 +100,27 @@ else
       exit 1
     fi
     if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
-      echo "FAILURE: Branch has modified files, cannot make a release"
+      echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
+      echo "Please commit your changes and retry"
       exit 1
     fi
+    git pull
     container_build_and_push $2
     if [[ ! command -v helm &> /dev/null ]]; then 
        (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
           && chmod 700 get_helm.sh && ./get_helm.sh)
     fi
+    echo "Updating chart, and CSI driver files with release version ${VERSION}"
+    update_files_with_version   
     build_helm_package
-    # TODO(venkat): commit and push version and chart zip
-    # TODO(venkat): create version tag
+    echo "Adding built chart docs"
+    git add docs/index.yaml
+    git add docs/*.tgz
+    # Assumption is, at this point we do not have any modified files except
+    # those modified by the script 
+    git add -u
+    git commit -m "Release version ${VERSION}"
+    git tag "${VERSION}"
     rebase_charts_on_master
     print_post_release_instructions
   fi

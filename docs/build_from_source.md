@@ -50,7 +50,8 @@ To build Quobyte CSI, golang and docker must be installed on host machine.
   
     Running e2e tests require k8s cluster, please set it up with [kubespray](https://github.com/kubernetes-sigs/kubespray). Edit Vagrantfile pf the cloned repo and increase resources (cpus, memory). The default 3 node setup is sufficient to run e2e tests.
 
-6. Build release and publish the version on github by following post build instructions
+6. Build release and publish the version (merge change onto master and make release on merged master) on
+ github by following post build instructions
 
     ```bash
     ./build release RELEASE-VERSION
