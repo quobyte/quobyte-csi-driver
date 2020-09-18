@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  quobyte-csi:
+  - apiVersion: v1
+    appVersion: v1.4.0
+    created: "2020-09-18T14:29:53.619865232+02:00"
+    description: Quobyte CSI Helm chart
+    digest: 17dc9bdb88fa9b6a8e28d2b639dde0b4c9a113e8c22dacfc6551b3a409020a7b
+    name: quobyte-csi
+    urls:
+    - quobyte-csi-v1.4.0.tgz
+    version: v1.4.0
+generated: "2020-09-18T14:29:53.619442518+02:00"
