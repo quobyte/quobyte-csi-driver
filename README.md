@@ -31,8 +31,9 @@ Quobyte CSI is the implementation of
 * [Volume Snapshots](#volume-snapshots)
   * [Dynamic Snapshots](#dynamic-snapshots)
   * [Pre-provisioned Snapshots](#pre\-provisioned-snapshots)
-* [Secure storage access with PSPs](docs/secure-storage-with-psp.md)
+* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
+* [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
