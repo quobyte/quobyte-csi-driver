@@ -23,6 +23,8 @@ Quobyte CSI is the implementation of
 
 * [Requirements](#requirements)
 * [Deploy Quobyte clients](docs/deploy_clients.md)
+  * [Client update procedure](docs/client_update_crash.md#quobyte-client-upgrade-procedure)
+  * [Application pod recovery](docs/client_update_crash.md#application-pod-recovery)
 * [Deploy Quobyte CSI](#deploy-quobyte-CSI)
 * [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
@@ -31,8 +33,9 @@ Quobyte CSI is the implementation of
 * [Volume Snapshots](#volume-snapshots)
   * [Dynamic Snapshots](#dynamic-snapshots)
   * [Pre-provisioned Snapshots](#pre\-provisioned-snapshots)
-* [Secure storage access with PSPs](docs/secure-storage-with-psp.md)
+* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
+* [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
