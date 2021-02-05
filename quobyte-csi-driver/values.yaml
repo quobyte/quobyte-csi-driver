@@ -42,8 +42,8 @@ quobyte:
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
-    # Release version
-    csiProvisionerVersion: "v1.4.1"
+    # CSI Release version
+    csiProvisionerVersion: "v1.4.0"
     # Release container
     # github.com/quobyte/quobyte-csi
     csiImage: "quay.io/quobyte/csi:v1.4.0"
