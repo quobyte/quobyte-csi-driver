@@ -33,20 +33,28 @@ quobyte:
   # Set to true to deploy csi driver with pod security policies.
   # Change required ONLY if you have pod security policies enabled K8S environment.
   podSecurityPolicies: false
+
+  podKiller:
+    enable: true
+    # should be a valid golang time.Duration 
+    monitoringInterval: 5s
    
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
     # Release version
-    csiProvisionerVersion: "v1.4.0"
+    csiProvisionerVersion: "v1.4.1"
     # Release container
+    # github.com/quobyte/quobyte-csi
     csiImage: "quay.io/quobyte/csi:v1.4.0"
+    # github.com/quobyte/pod-killer
+    podKillerImage: quay.io/quobyte/pod-killer:v0.1.0
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
     k8sClusterDriverRegistrarImage: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
     k8sResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0
     k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
-    k8sAttacher: quay.io/k8scsi/csi-attacher:v2.2.0
+    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0
     # when updating image for snapshotter, update snaptshotter setup CRD
     # instructions in README
-    k8sSnapshotter: quay.io/k8scsi/csi-snapshotter:v2.1.1
+    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.1

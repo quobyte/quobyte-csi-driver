@@ -17,12 +17,14 @@ Quobyte CSI is the implementation of
 
 2. Follow the instructions specific to that release
   
-  ![alt text](./docs/release-instructions.jpg)
+  ![release_instructions_image](./docs/release-instructions.jpg)
 
 ## Index
 
 * [Requirements](#requirements)
 * [Deploy Quobyte clients](docs/deploy_clients.md)
+  * [Client update procedure](docs/client_update_crash.md#quobyte-client-upgrade-procedure)
+  * [Application pod recovery](docs/client_update_crash.md#application-pod-recovery)
 * [Deploy Quobyte CSI](#deploy-quobyte-CSI)
 * [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
@@ -31,8 +33,9 @@ Quobyte CSI is the implementation of
 * [Volume Snapshots](#volume-snapshots)
   * [Dynamic Snapshots](#dynamic-snapshots)
   * [Pre-provisioned Snapshots](#pre\-provisioned-snapshots)
-* [Secure storage access with PSPs](docs/secure-storage-with-psp.md)
+* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md)
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
+* [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
 
@@ -53,6 +56,12 @@ Quobyte CSI is the implementation of
 * Requires [additional setup](#snapshotter-setup) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
+
+**Note:** Quobyte CSI driver automatically deletes all the application pods with
+ [stale](https://github.com/kubernetes/kubernetes/issues/70013) Quobyte CSI volumes
+ and leaves the new pod creation to kubernetes. To reschedule a new pod
+ automatically by k8s, applications should be deployed with `Deployment/ReplicaSet/StatefulSets`
+ but not as a plain `Pod`.
 
 1. Set your chosen release version
 
