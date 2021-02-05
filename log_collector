@@ -38,6 +38,7 @@ do
   elif [[ $el =~ quobyte-csi-node.* ]];then
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-node-driver-registrar >> ./csi_logs/$el/csi-node-driver-registrar.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-plugin  >> ./csi_logs/$el/quobyte-csi-node-plugin.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-pod-killer  >> ./csi_logs/$el/quobyte-pod-killer.log
  fi
 done
 
