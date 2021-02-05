@@ -25,7 +25,7 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
 ---
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
   name: {{ .Values.quobyte.csiProvisionerName }}
@@ -90,7 +90,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: {{ .Values.quobyte.dev.k8sAttacher }}
+          image: {{ .Values.quobyte.dev.k8sAttacherImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -103,7 +103,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ if .Values.quobyte.enableSnapshots }} 
         - name: csi-snapshotter
-          image: {{ .Values.quobyte.dev.k8sSnapshotter }}
+          image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -440,6 +440,14 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
+  {{ if .Values.quobyte.podKiller.enable }}
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["list"]
+  {{ end }}
   - apiGroups: ['policy']
     resources: ['podsecuritypolicies']
     verbs:     ['use']
@@ -541,7 +549,7 @@ roleRef:
 {{ end }}
 
 {{ else }} # Without pod security policies
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
   name: {{ .Values.quobyte.csiProvisionerName }}
@@ -610,7 +618,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: {{ .Values.quobyte.dev.k8sAttacher }}
+          image: {{ .Values.quobyte.dev.k8sAttacherImage }}
           args:
             - "--v=3"
             - "--csi-address=$(ADDRESS)"
@@ -623,7 +631,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ if .Values.quobyte.enableSnapshots }}        
         - name: csi-snapshotter
-          image: {{ .Values.quobyte.dev.k8sSnapshotter }}
+          image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
           imagePullPolicy: Always
           args:
             - "--v=3"
@@ -669,6 +677,30 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
             - name: log-dir
               mountPath: /tmp
+       {{ if .Values.quobyte.podKiller.enable }}
+        - name: quobyte-pod-killer
+          securityContext:
+            privileged: true
+          image: {{ .Values.quobyte.dev.podKillerImage }}
+          imagePullPolicy: "Always"
+          args :
+            - "--node_name=$(KUBE_NODE_NAME)"
+            - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+       {{ end }}
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -982,6 +1014,30 @@ spec:
               mountPath: /csi
             - name: log-dir
               mountPath: /tmp
+       {{ if .Values.quobyte.podKiller.enable }}
+        - name: quobyte-pod-killer
+          securityContext:
+            privileged: true
+          image: {{ .Values.quobyte.dev.podKillerImage }}
+          imagePullPolicy: "Always"
+          args :
+            - "--node_name=$(KUBE_NODE_NAME)"
+            - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+         {{ end }}
       volumes:
         - name: kubelet-dir
           hostPath:
@@ -1024,7 +1080,14 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
-
+  {{ if .Values.quobyte.podKiller.enable }}
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["list"]
+  {{ end }}
 ---
 
 kind: ClusterRoleBinding
