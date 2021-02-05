@@ -8,8 +8,9 @@ quobyte:
   # client should be deployed with /mnt/quobyte/mounts as the mount point
   clientMountPoint: /mnt/quobyte
   
-  # Should be a valid DNS name. StorageClass.provisioner must 
-  # match the value configured here. 
+  # Should be a valid DNS name. Do not change this between upgrades, otherwise
+  # requires manual delete of Pods, PVCs, PVs and backing volumes.
+  # StorageClass.provisioner must match the value configured here. 
   csiProvisionerName: csi.quobyte.com 
   
   # When set to true, uses PVC.namespace as Quobyte tenant.
@@ -35,6 +36,8 @@ quobyte:
   podSecurityPolicies: false
 
   podKiller:
+    # To disable pod killer, uninstall current CSI driver (helm uinstall <chart-name>)
+    # set enable: false and install CSI driver again 
     enable: true
     # should be a valid golang time.Duration 
     monitoringInterval: 5s
