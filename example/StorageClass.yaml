@@ -39,7 +39,8 @@ parameters:
   user: root
   group: root
   accessMode: "777"
-  #spaces are not allowed
-  labels: "encrypted:yes,mediatype:hdd"
+  
+  # spaces are not allowed and requires Quobyte 3.x
+  #labels: "encrypted:yes,mediatype:hdd"
 # Set reclaimPolicy: Retain to keep the volume even after PV deletion
 reclaimPolicy: Delete
