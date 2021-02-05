@@ -17,7 +17,7 @@ Quobyte CSI is the implementation of
 
 2. Follow the instructions specific to that release
   
-  ![alt text](./docs/release-instructions.jpg)
+  ![release_instructions_image](./docs/release-instructions.jpg)
 
 ## Index
 
@@ -53,6 +53,12 @@ Quobyte CSI is the implementation of
 * Requires [additional setup](#snapshotter-setup) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
+
+**Note:** Quobyte CSI driver automatically deletes all the application pods with
+ [stale](https://github.com/kubernetes/kubernetes/issues/70013) Quobyte CSI volumes
+ and leaves the new pod creation to kubernetes. To reschedule a new pod
+ automatically by k8s, applications should be deployed with `Deployment/ReplicaSet/StatefulSets`
+ but not as a plain `Pod`.
 
 1. Set your chosen release version
 
