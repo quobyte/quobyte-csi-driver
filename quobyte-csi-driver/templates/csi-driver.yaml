@@ -147,9 +147,19 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+            {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+            - name: certs
+              mountPath: /etc/ssl/certs/
+            {{ end }}
       volumes:
         - name: socket-dir
           emptyDir: {}
+        {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+        - name: certs
+          hostPath:
+            path: /etc/ssl/certs/
+            type: Directory
+        {{ end }}
 ---
 
 kind: ServiceAccount
@@ -402,6 +412,10 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
+            {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+            - name: certs
+              mountPath: /etc/ssl/certs/
+            {{ end }}
         {{ if .Values.quobyte.podKiller.enable }}
         - name: quobyte-pod-killer
           securityContext:
@@ -445,6 +459,12 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins_registry/
             type: DirectoryOrCreate
+        {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+        - name: certs
+          hostPath:
+            path: /etc/ssl/certs/
+            type: Directory
+        {{ end }}
 ---
 
 apiVersion: v1
@@ -701,6 +721,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
             - name: log-dir
               mountPath: /tmp
+            {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+            - name: certs
+              mountPath: /etc/ssl/certs/
+            {{ end }}
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -708,6 +732,12 @@ spec:
           hostPath:
             path: /tmp
             type: Directory
+        {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+        - name: certs
+          hostPath:
+            path: /etc/ssl/certs/
+            type: Directory
+        {{ end }}
 ---
 
 kind: ServiceAccount
@@ -1014,6 +1044,10 @@ spec:
               mountPath: /csi
             - name: log-dir
               mountPath: /tmp
+            {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+            - name: certs
+              mountPath: /etc/ssl/certs/
+            {{ end }}
        {{ if .Values.quobyte.podKiller.enable }}
         - name: quobyte-pod-killer
           securityContext:
@@ -1061,6 +1095,12 @@ spec:
           hostPath:
             path: /tmp
             type: Directory
+        {{ if .Values.quobyte.mapHostCertsIntoContainer }}
+        - name: certs
+          hostPath:
+            path: /etc/ssl/certs/
+            type: Directory
+        {{ end }}
 ---
 
 apiVersion: v1
