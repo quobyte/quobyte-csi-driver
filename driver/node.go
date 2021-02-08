@@ -188,5 +188,9 @@ func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpan
 }
 
 func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	// VolumeStats are not exported due to missing API credentials from CSI spec
+	// https://github.com/container-storage-interface/spec/blob/396c3332ca1216dea620f64f5f2d60686ae9a0a5/csi.proto#L1337
+
+	// internal developer note: see #12052
 	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats: Not implented by Quobyte CSI")
 }
