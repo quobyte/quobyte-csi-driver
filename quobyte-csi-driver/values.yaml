@@ -46,10 +46,10 @@ quobyte:
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
     # CSI Release version
-    csiProvisionerVersion: "v1.4.0"
+    csiProvisionerVersion: "v1.4.1"
     # Release container
     # github.com/quobyte/quobyte-csi
-    csiImage: "quay.io/quobyte/csi:v1.4.0"
+    csiImage: "quay.io/quobyte/csi:v1.4.1"
     # github.com/quobyte/pod-killer
     podKillerImage: quay.io/quobyte/pod-killer:v0.1.0
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
