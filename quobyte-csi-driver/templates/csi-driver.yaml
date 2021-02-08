@@ -402,30 +402,30 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
-            {{ if .Values.quobyte.podKiller.enable }}
-            - name: quobyte-pod-killer
-              securityContext:
-                privileged: true
-              image: {{ .Values.quobyte.dev.podKillerImage }}
-              imagePullPolicy: "Always"
-              args :
-                - "--node_name=$(KUBE_NODE_NAME)"
-                - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
-                - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
-              env:
-                - name: NODE_ID
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: spec.nodeName
-                - name: KUBE_NODE_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: spec.nodeName
-              volumeMounts:
-                - name: kubelet-dir
-                  mountPath: /var/lib/kubelet/pods
-                  mountPropagation: "Bidirectional"
-            {{ end }}
+        {{ if .Values.quobyte.podKiller.enable }}
+        - name: quobyte-pod-killer
+          securityContext:
+            privileged: true
+          image: {{ .Values.quobyte.dev.podKillerImage }}
+          imagePullPolicy: "Always"
+          args :
+            - "--node_name=$(KUBE_NODE_NAME)"
+            - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
+            - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+        {{ end }}
       volumes:
         - name: kubelet-dir
           hostPath:
