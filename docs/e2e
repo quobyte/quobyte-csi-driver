@@ -60,7 +60,7 @@ DriverInfo:
   # https://github.com/kubernetes/kubernetes/blob/e6503f8d8f769ace2f338794c914a96fc335df0f/test/e2e/storage/testsuites/testdriver.go#L137
   Capabilities:
     persistence: true
-    fsGroup: true
+    fsGroup: false
     exec: true
     multipods: true
     controllerExpansion: true
