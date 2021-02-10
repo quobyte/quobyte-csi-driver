@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
@@ -28,6 +29,13 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	var snapshotName string = empty_string
 	volContext := req.GetVolumeContext()
 	targetPath := req.GetTargetPath()
+	if len(targetPath) == 0 {
+		return nil, fmt.Errorf("given target mount path is empty")
+	}
+
+	if err := os.MkdirAll(targetPath, 0750); err != nil {
+		return nil, err
+	}
 
 	// see controller.go -- CreateVolume method. VolumeContext is only added for snapshot volumes
 	if volContext != nil && strings.HasPrefix(req.VolumeId, SnapshotVolumeHandlePrefix) {
@@ -53,9 +61,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	if len(volParts) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>%s<VOL_NAME/VOL_UUID>", volumeId, SEPARATOR)
 	}
-	if len(targetPath) == 0 {
-		return nil, fmt.Errorf("given target mount path is empty")
-	}
+
 	var volUUID string
 	if len(secrets) == 0 {
 		klog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
@@ -142,7 +148,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	target := req.GetTargetPath()
 	if len(target) == 0 {
-		return nil, fmt.Errorf("target for unmount is empty")
+		return nil, fmt.Errorf("target path for unmount is empty")
 	}
 	klog.Infof("Unmounting %s", target)
 	err := Unmount(target)
