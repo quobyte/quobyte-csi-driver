@@ -1,7 +1,14 @@
 quobyte:
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
-  apiURL: "http://10.125.2.77:10330" 
+  apiURL: "http://10.125.2.77:10330"
+  
+  # Maps /etc/ssl/certs/ from host into Quobyte CSI containers.
+  # Must set to true, if you have https:// API URL. Otherwise,
+  # can be set to false.
+  # If you are using private CA certificate, add the CA to
+  # all k8s hosts before deploying driver.
+  mapHostCertsIntoContainer: true
   
   # Quobyte client should be deployed with <clientMountPoint>/mounts
   # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
@@ -26,9 +33,11 @@ quobyte:
   # enabled with access keys. To enable access keys on native client,
   # add "enable-access-contexts" in /etc/quobyte/client-service.cfg.
   # For container based client configuration, see client.yaml definition.
+  # Requires Quobyte 3.x to enable access keys
   enableAccessKeys: false
   
-  # Enabling this feature requires additional driver setup (see README.md) 
+  # Enabling this feature requires additional driver setup (see README.md)
+  # Quobyte 3.x is recommended for snapshots
   enableSnapshots: false
   
   # Set to true to deploy csi driver with pod security policies.
@@ -46,10 +55,10 @@ quobyte:
   # Please do NOT change the dev: configuration unless otherwise adviced to change.
   dev:
     # CSI Release version
-    csiProvisionerVersion: "v1.4.1"
+    csiProvisionerVersion: "v1.5.0"
     # Release container
     # github.com/quobyte/quobyte-csi
-    csiImage: "quay.io/quobyte/csi:v1.4.1"
+    csiImage: "quay.io/quobyte/csi:v1.5.0"
     # github.com/quobyte/pod-killer
     podKillerImage: quay.io/quobyte/pod-killer:v0.1.0
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
