@@ -118,7 +118,6 @@ spec:
       {{ end }}
         - name: quobyte-csi-plugin
           image: {{ .Values.quobyte.dev.csiImage }}
-          imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
@@ -690,7 +689,6 @@ spec:
        {{ end }}
         - name: quobyte-csi-plugin
           image: {{ .Values.quobyte.dev.csiImage }}
-          imagePullPolicy: "Always"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
