@@ -39,6 +39,9 @@ metadata:
   name: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   serviceName: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   replicas: 1
   template:
