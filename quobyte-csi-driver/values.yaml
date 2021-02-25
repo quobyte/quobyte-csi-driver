@@ -1,3 +1,5 @@
+# Used to generate CSI deployment files specific to given k8s version
+k8sVersion: "1.20.2"
 quobyte:
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
