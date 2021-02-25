@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
+	"golang.org/x/sys/unix"
 	"k8s.io/klog"
 
 	"google.golang.org/grpc/codes"
@@ -194,9 +195,38 @@ func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpan
 }
 
 func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	// VolumeStats are not exported due to missing API credentials from CSI spec
-	// https://github.com/container-storage-interface/spec/blob/396c3332ca1216dea620f64f5f2d60686ae9a0a5/csi.proto#L1337
+	volumePath := req.GetVolumePath()
+	if len(volumePath) <= 0 {
+		return nil, fmt.Errorf("volume path must not be empty")
+	}
+	var statfs unix.Statfs_t
+	if err := unix.Statfs(volumePath, &statfs); err != nil {
+		return nil, err
+	}
 
-	// internal developer note: see #12052
-	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats: Not implented by Quobyte CSI")
+	usedBytes := (int64(statfs.Blocks) - int64(statfs.Bfree)) * int64(statfs.Bsize)
+	availbleBytes := int64(statfs.Bavail) * int64(statfs.Bsize)
+	totalBytes := int64(statfs.Blocks) * int64(statfs.Bsize)
+
+	usedInodes := int64(statfs.Files) - int64(statfs.Ffree)
+	availbleInodes := int64(statfs.Ffree)
+	totalInodes := int64(statfs.Files)
+
+	resp := &csi.NodeGetVolumeStatsResponse{
+		Usage: []*csi.VolumeUsage{
+			{
+				Unit:      csi.VolumeUsage_BYTES,
+				Used:      usedBytes,
+				Available: availbleBytes,
+				Total:     totalBytes,
+			},
+			{
+				Unit:      csi.VolumeUsage_INODES,
+				Used:      usedInodes,
+				Available: availbleInodes,
+				Total:     totalInodes,
+			},
+		},
+	}
+	return resp, nil
 }
