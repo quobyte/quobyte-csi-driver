@@ -69,7 +69,7 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   echo './build container <release-tag>"       Builds pre and pushes container'
   echo './build release "<release-tag>"        Builds the executable, docker image and'
   echo '                                         pushes the container and creates a helm chart'
-  ehco '                                         for the release'
+  echo '                                         for the release'
   echo "Example: ./build [container/release] v0.2.0"
   exit 0
 else
