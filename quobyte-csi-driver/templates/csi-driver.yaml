@@ -25,7 +25,11 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
 ---
+{{ if semverCompare ">=1.19.0" .Values.k8sVersion }}
 apiVersion: storage.k8s.io/v1
+{{ else }}
+apiVersion: storage.k8s.io/v1beta1  
+{{ end }}
 kind: CSIDriver
 metadata:
   name: {{ .Values.quobyte.csiProvisionerName }}
@@ -594,7 +598,11 @@ roleRef:
 {{ end }}
 
 {{ else }} # Without pod security policies
+{{ if semverCompare ">=1.19.0" .Values.k8sVersion }}
 apiVersion: storage.k8s.io/v1
+{{ else }}
+apiVersion: storage.k8s.io/v1beta1  
+{{ end }}
 kind: CSIDriver
 metadata:
   name: {{ .Values.quobyte.csiProvisionerName }}
