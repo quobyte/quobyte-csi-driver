@@ -166,7 +166,7 @@ func (d *QuobyteDriver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGe
 			{
 				Type: &csi.NodeServiceCapability_Rpc{
 					Rpc: &csi.NodeServiceCapability_RPC{
-						Type: csi.NodeServiceCapability_RPC_UNKNOWN,
+						Type: csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 					},
 				},
 			},
