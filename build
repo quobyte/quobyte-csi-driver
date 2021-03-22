@@ -18,7 +18,7 @@ container_build_and_push(){
       echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
     fi
     IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
-    echo 'Building docker image and push to ${IMAGE}'
+    echo "Building docker image and push to ${IMAGE}"
     sudo docker build -t quobyte-csi -f Dockerfile .
     sudo docker run -it quobyte-csi
     CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
