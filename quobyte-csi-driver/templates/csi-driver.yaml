@@ -62,6 +62,10 @@ spec:
 {{- end }}
       containers:
         - name: csi-provisioner
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
             - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
@@ -77,6 +81,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-cluster-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
           args:
             - "--v=3"
@@ -89,6 +97,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sResizerImage }}
           args:
             - "--v=3"
@@ -101,6 +113,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sAttacherImage }}
           args:
             - "--v=3"
@@ -114,6 +130,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ if .Values.quobyte.enableSnapshots }} 
         - name: csi-snapshotter
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
           args:
             - "--v=3"
@@ -128,6 +148,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ end }}
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.csiImage }}
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -362,6 +386,10 @@ spec:
 {{- end }}
       containers:
         - name: csi-node-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           args:
             - "--v=3"
@@ -386,6 +414,10 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           securityContext:
             privileged: true
             capabilities:
@@ -1001,6 +1033,10 @@ spec:
 {{- end }}
       containers:
         - name: csi-node-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           imagePullPolicy: "IfNotPresent"
           args:
@@ -1026,6 +1062,10 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           securityContext:
             privileged: true
             capabilities:
