@@ -80,22 +80,6 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-cluster-driver-registrar
-{{- if .Values.resources }}
-          resources: 
-{{ toYaml .Values.resources | indent 12 }}
-{{- end }}
-          image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
-          args:
-            - "--v=3"
-            - "--csi-address=$(ADDRESS)"
-            - "--driver-requires-attachment=false"
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
 {{- if .Values.resources }}
           resources: 
@@ -689,19 +673,6 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-cluster-driver-registrar
-          image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
-          imagePullPolicy: "IfNotPresent"
-          args:
-            - "--v=3"
-            - "--csi-address=$(ADDRESS)"
-            - "--driver-requires-attachment=false"
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
           image: {{ .Values.quobyte.dev.k8sResizerImage }}
           args:
@@ -732,14 +703,7 @@ spec:
           imagePullPolicy: Always
           args:
             - "--v=3"
-            - "--csi-address=$(ADDRESS)"
             - "--leader-election=false"
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
        {{ end }}
         - name: quobyte-csi-plugin
           image: {{ .Values.quobyte.dev.csiImage }}

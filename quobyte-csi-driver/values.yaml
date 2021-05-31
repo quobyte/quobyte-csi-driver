@@ -64,11 +64,10 @@ quobyte:
     # github.com/quobyte/pod-killer
     podKillerImage: quay.io/quobyte/pod-killer:v0.1.1
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
-    k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
-    k8sClusterDriverRegistrarImage: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
-    k8sResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0
-    k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
-    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0
+    k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v2.1.2
+    k8sResizerImage: quay.io/k8scsi/csi-resizer:v1.1.0
+    k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
+    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v3.1.0
     # when updating image for snapshotter, update snaptshotter setup CRD
     # instructions in README
-    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.1
+    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v3.0.3
