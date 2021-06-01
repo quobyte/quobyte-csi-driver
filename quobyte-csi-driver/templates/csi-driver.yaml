@@ -36,6 +36,10 @@ metadata:
 spec:
   attachRequired: false
   podInfoOnMount: false
+  fsGroupPolicy: None
+  requiresRepublish: false
+  volumeLifecycleModes:
+    - Persistent
 ---
 kind: StatefulSet
 apiVersion: apps/v1
@@ -633,6 +637,10 @@ metadata:
 spec:
   attachRequired: false
   podInfoOnMount: false
+  fsGroupPolicy: None
+  requiresRepublish: false
+  volumeLifecycleModes:
+    - Persistent
 ---
 kind: StatefulSet
 apiVersion: apps/v1
