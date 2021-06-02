@@ -55,9 +55,17 @@ spec:
         role: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
       priorityClassName: system-cluster-critical
-      serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+      serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-" }}
+{{- if .Values.quobyte.tolerations }}
+      tolerations: 
+{{ toYaml .Values.quobyte.tolerations | indent 6 }}
+{{- end }}
       containers:
         - name: csi-provisioner
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
             - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
@@ -73,6 +81,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-cluster-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sClusterDriverRegistrarImage }}
           args:
             - "--v=3"
@@ -85,6 +97,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sResizerImage }}
           args:
             - "--v=3"
@@ -97,6 +113,10 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sAttacherImage }}
           args:
             - "--v=3"
@@ -110,6 +130,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ if .Values.quobyte.enableSnapshots }} 
         - name: csi-snapshotter
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
           args:
             - "--v=3"
@@ -124,6 +148,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ end }}
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.csiImage }}
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
@@ -352,8 +380,16 @@ spec:
       priorityClassName: system-node-critical
       serviceAccount: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       hostNetwork: true
+{{- if .Values.quobyte.tolerations }}
+      tolerations: 
+{{ toYaml .Values.quobyte.tolerations | indent 6 }}
+{{- end }}
       containers:
         - name: csi-node-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           args:
             - "--v=3"
@@ -378,6 +414,10 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           securityContext:
             privileged: true
             capabilities:
@@ -629,6 +669,10 @@ spec:
     spec:
       priorityClassName: system-cluster-critical
       serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+{{- if .Values.quobyte.tolerations }}
+      tolerations: 
+{{ toYaml .Values.quobyte.tolerations | indent 6 }}
+{{- end }}
       containers:
         - name: csi-provisioner
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
@@ -983,8 +1027,16 @@ spec:
       priorityClassName: system-node-critical
       serviceAccount: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
       hostNetwork: true
+{{- if .Values.quobyte.tolerations }}
+      tolerations: 
+{{ toYaml .Values.quobyte.tolerations | indent 6 }}
+{{- end }}
       containers:
         - name: csi-node-driver-registrar
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
           imagePullPolicy: "IfNotPresent"
           args:
@@ -1010,6 +1062,10 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: quobyte-csi-plugin
+{{- if .Values.resources }}
+          resources: 
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
           securityContext:
             privileged: true
             capabilities:
