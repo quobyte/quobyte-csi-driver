@@ -122,17 +122,10 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
 {{- end }}
           image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
+          imagePullPolicy: IfNotPresent
           args:
             - "--v=3"
-            - "--csi-address=$(ADDRESS)"
             - "--leader-election=false"
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
       {{ end }}
         - name: quobyte-csi-plugin
 {{- if .Values.resources }}
