@@ -72,7 +72,6 @@ spec:
 {{- end }}
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
-            - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
             - "--extra-create-metadata=true"
@@ -80,7 +79,7 @@ spec:
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -112,7 +111,7 @@ spec:
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -130,7 +129,7 @@ spec:
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -165,7 +164,7 @@ spec:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: {{ .Values.quobyte.apiURL }} 
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -290,13 +289,16 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update", "patch"]
+    verbs: ["get", "list", "watch", "patch"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
     resources: ["persistentvolumeclaims/status"]
-    verbs: ["update", "patch"]
+    verbs: ["patch"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
@@ -412,7 +414,7 @@ spec:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
           image: {{ .Values.quobyte.dev.csiImage }}
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
@@ -455,7 +457,7 @@ spec:
           securityContext:
             privileged: true
           image: {{ .Values.quobyte.dev.podKillerImage }}
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           args :
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
@@ -669,7 +671,6 @@ spec:
         - name: csi-provisioner
           image: {{ .Values.quobyte.dev.k8sProvisionerImage }}
           args:
-            - "--provisioner={{ .Values.quobyte.csiProvisionerName }}"
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
             - "--extra-create-metadata=true"
@@ -708,7 +709,7 @@ spec:
       {{ if .Values.quobyte.enableSnapshots }}        
         - name: csi-snapshotter
           image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
-          imagePullPolicy: Always
+          imagePullPolicy: "IfNotPresent"
           args:
             - "--v=3"
             - "--leader-election=false"
@@ -739,7 +740,7 @@ spec:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: {{ .Values.quobyte.apiURL }} 
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -954,13 +955,16 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update", "patch"]
+    verbs: ["get", "list", "watch", "patch"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
     resources: ["persistentvolumeclaims/status"]
-    verbs: ["update", "patch"]
+    verbs: ["patch"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
@@ -1044,7 +1048,7 @@ spec:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
           image: {{ .Values.quobyte.dev.csiImage }}
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           args :
             - "--csi_socket=$(CSI_ENDPOINT)"
             - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
@@ -1089,7 +1093,7 @@ spec:
           securityContext:
             privileged: true
           image: {{ .Values.quobyte.dev.podKillerImage }}
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           args :
             - "--node_name=$(KUBE_NODE_NAME)"
             - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
