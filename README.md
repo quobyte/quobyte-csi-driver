@@ -9,6 +9,8 @@ Quobyte CSI is the implementation of
 * Volume Delete
 * Pre-provisioned volumes (Delete policy does not apply to these volumes)
 * Volume Expansion (Only dynamically provisioned volumes can be expanded)
+  * Quobyte supports volumes with unlimited size, expanding an unlimited sized
+    volume restricts the volume size to expanded size.
 * Volume snapshots
 
 ## Select Quobyte CSI Driver Release
