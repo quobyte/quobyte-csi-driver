@@ -44,4 +44,3 @@ spec:
       {{- include "quobyte-csi.controllerPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}
-
