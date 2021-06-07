@@ -30,6 +30,6 @@ spec:
         {{- include "csi.sidecar.nodeRegistrarContainer" . | indent 8 }}
         {{- include "quobyte-csi.nodePluginContainer" . | indent 8 }}
         {{- include "quobyte-csi.podKillerContainer" . | indent 8 }}
-        {{- include "quobyte-csi.nodePluginPodVolumeAttachments" . | indent 6 }}
+      {{- include "quobyte-csi.nodePluginPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}
