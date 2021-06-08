@@ -76,18 +76,18 @@ roleRef:
   kind: Role
   name: snapshot-controller-leaderelection
   apiGroup: rbac.authorization.k8s.io
----
 
+---
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
   name: snapshot-controller
-  namespace: kube-system 
+  namespace: kube-system
 spec:
   serviceName: "snapshot-controller"
   replicas: 1
   selector:
-    matchLabels: 
+    matchLabels:
       app: snapshot-controller
   template:
     metadata:
@@ -97,8 +97,8 @@ spec:
       serviceAccount: snapshot-controller
       containers:
         - name: snapshot-controller
-          image: quay.io/k8scsi/snapshot-controller:v2.1.1
+          image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.3
           args:
             - "--v=3"
             - "--leader-election=false"
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent

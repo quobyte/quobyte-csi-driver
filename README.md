@@ -9,6 +9,8 @@ Quobyte CSI is the implementation of
 * Volume Delete
 * Pre-provisioned volumes (Delete policy does not apply to these volumes)
 * Volume Expansion (Only dynamically provisioned volumes can be expanded)
+  * Quobyte supports volumes with unlimited size, expanding an unlimited sized
+    volume restricts the volume size to expanded size.
 * Volume snapshots
 
 ## Select Quobyte CSI Driver Release
@@ -23,7 +25,7 @@ Quobyte CSI is the implementation of
 
 * [Requirements](#requirements)
 * [Deploy Quobyte clients](docs/deploy_clients.md)
-* [Deploy Quobyte CSI](#deploy-quobyte-CSI)
+* [Deploy Quobyte CSI](#deploy-quobyte-csi-driver)
 * [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Usage Examples](#use-quobyte-volumes-in-kubernetes)
   * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
@@ -45,11 +47,7 @@ Quobyte CSI is the implementation of
 ## Requirements
 
 * Requires `git` on k8s master node
-* Requires
-  * At least Kubernetes v1.16 (**snapshots are not supported**)
-  * At least Kubernetes v1.17 (**includes snapshots support**). Please look at
-   [Quobyte CSI driver configuration](quobyte-csi-driver/values.yaml),
-   [Volume Snapshots](#volume-snapshots) for configuration and usage examples.
+* Requires at least Kubernetes v1.17
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
  [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
@@ -405,17 +403,19 @@ The below setup is required once per k8s cluster
 
   ```bash
     # https://github.com/kubernetes-csi/external-snapshotter/
-    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    wget -q https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v2.1.1/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
 
-    kubectl create -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml; kubectl create -f snapshot.storage.k8s.io_volumesnapshots.yaml;
-    kubectl create -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml;
   ```
 
 ### Remove Snapshotter
 
   ```bash
-    kubectl delete -f snapshot.storage.k8s.io_volumesnapshots.yaml; kubectl delete -f snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    kubectl delete -f snapshot.storage.k8s.io_volumesnapshotclasses.yaml; kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml;
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
+
   ```
