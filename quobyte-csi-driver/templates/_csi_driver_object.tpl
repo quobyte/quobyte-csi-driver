@@ -13,7 +13,9 @@ spec:
   attachRequired: false
   podInfoOnMount: false
   fsGroupPolicy: None
+  {{- if semverCompare ">=1.20.0" .Values.k8sVersion }}
   requiresRepublish: false
+  {{- end }}
   volumeLifecycleModes:
     - Persistent
 ---
