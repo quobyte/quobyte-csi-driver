@@ -64,7 +64,7 @@ DriverInfo:
     exec: true
     multipods: true
     controllerExpansion: true
-    nodeExpansion: true
+    nodeExpansion: false
     singleNodeVolume: true
     snapshotDataSource: true
     RWX: true
