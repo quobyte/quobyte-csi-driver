@@ -24,7 +24,7 @@ Quobyte CSI is the implementation of
 ## Index
 
 * [Requirements](#requirements)
-* Deploy Quobyte clients
+* [Deploy Quobyte clients](docs/install_client)
   * [Quobyte 2.x](docs/install_client/deploy_clients_2_x.md)
   * [Quobyte 3.x](docs/install_client/deploy_clients_3_x.md)
 * [Deploy Quobyte CSI](#deploy-quobyte-csi-driver)
