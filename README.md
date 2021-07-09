@@ -283,7 +283,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
       ```bash
       VOLUME="<Quobyte-Volume>" # volume for which snapshot will be taken
-      wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/example/index.html -P /mnt/quobyte/mounts/$VOLUME
+      wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/example/index.html -P <values.clientMountPoint>/mounts/$VOLUME
       ```
 
   3. Create [volume snapshot secrtes](example/csi-secret.yaml)
