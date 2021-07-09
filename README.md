@@ -24,7 +24,9 @@ Quobyte CSI is the implementation of
 ## Index
 
 * [Requirements](#requirements)
-* [Deploy Quobyte clients](docs/deploy_clients.md)
+* Deploy Quobyte clients
+  * [Quobyte 2.x](docs/install_client/deploy_clients_2_x.md)
+  * [Quobyte 3.x](docs/install_client/deploy_clients_3_x.md)
 * [Deploy Quobyte CSI](#deploy-quobyte-csi-driver)
 * [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Usage Examples](#use-quobyte-volumes-in-kubernetes)
@@ -49,8 +51,8 @@ Quobyte CSI is the implementation of
 * Requires `git` on k8s master node
 * Requires at least Kubernetes v1.17
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
-* Quobyte client with mount path as `/mnt/quobyte/mounts`. Please see
- [Deploy Quobyte clients](docs/deploy_clients.md) for Quobyte client installation instructions.
+* Quobyte client with mount path as
+  <[values.clientMountPoint](https://github.com/quobyte/quobyte-csi/blob/4671450b0dec5fe162f78f9e35c6c6fe90e3f86b/quobyte-csi-driver/values.yaml#L18)>`/mounts`. Please see [Deploy Quobyte clients](docs/install_client) for Quobyte client installation instructions.
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
    be deployed with **--enable-access-contexts**. Additionally, the metadata cache (global policy)
    should be disabled.

@@ -1,6 +1,7 @@
 # Deploy Quobyte clients
 
-Quobyte CSI driver requires a running Quobyte client with the mount point `/mnt/quobyte/mounts` on every host node.
+Quobyte CSI driver requires a running Quobyte client with the mount point <[values.clientMountPoint](https://github.com/quobyte/quobyte-csi/blob/4671450b0dec5fe162f78f9e35c6c6fe90e3f86b/quobyte-csi-driver/values.yaml#L18)>`/mounts` on every host node. This example deployment of clients assumes
+`values.clientMountPoint: /mnt/quobyte`
 
 ## Deploy quobyte-client package (systemd service) -- **Recommended**
 
