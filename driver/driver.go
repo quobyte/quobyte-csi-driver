@@ -22,14 +22,31 @@ type QuobyteDriver struct {
 	clientMountPoint               string
 	server                         *grpc.Server
 	NodeName                       string
-	ApiURL                         string
+	ApiURL                         *url.URL
 	UseK8SNamespaceAsQuobyteTenant bool
 	IsQuobyteAccesskeysEnabled     bool
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
-func NewQuobyteDriver(endpoint, mount, nodeName, apiURL, driverName, driverVersion string, useNamespaceAsQuobyteTenant bool, enableQuobyteSecrtes bool) *QuobyteDriver {
-	return &QuobyteDriver{driverName, driverVersion, endpoint, mount, nil, nodeName, apiURL, useNamespaceAsQuobyteTenant, enableQuobyteSecrtes}
+func NewQuobyteDriver(
+	endpoint,
+	mount,
+	nodeName,
+	driverName,
+	driverVersion string,
+	apiURL *url.URL,
+	useNamespaceAsQuobyteTenant,
+	enableQuobyteSecrtes bool) *QuobyteDriver {
+	return &QuobyteDriver{
+		driverName,
+		driverVersion,
+		endpoint,
+		mount,
+		nil,
+		nodeName,
+		apiURL,
+		useNamespaceAsQuobyteTenant,
+		enableQuobyteSecrtes}
 }
 
 // Run starts the grpc server for the driver
@@ -43,12 +60,6 @@ func (qd *QuobyteDriver) Run() error {
 
 	if len(qd.Version) == 0 {
 		return fmt.Errorf("--driver_version should not be empty")
-	}
-	if len(qd.ApiURL) == 0 {
-		apiURLError := `--api_url is required.
-		Please make sure you have deployed deploy/config.yaml with your Quobyte API endpoint. 
-		Changing and redeploying deploy/config.yaml requires reinstallation of Quobyte CSI driver.`
-		return fmt.Errorf(apiURLError)
 	}
 	u, err := url.Parse(qd.endpoint)
 	if err != nil {

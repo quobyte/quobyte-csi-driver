@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/url"
 	"os"
 
 	"k8s.io/klog"
@@ -12,7 +13,7 @@ import (
 var (
 	endpoint               = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
 	clientMountPoint       = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
-	apiURL                 = flag.String("api_url", "", "Quobyte API URL")
+	apiUrlStr              = flag.String("api_url", "", "Quobyte API URL")
 	nodeName               = flag.String("node_name", "", "Node name from k8s environment")
 	driverName             = flag.String("driver_name", "", "Quobyte CSI driver name")
 	driverVersion          = flag.String("driver_version", "", "Quobyte CSI driver version")
@@ -27,10 +28,22 @@ func main() {
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
-	// TODO (venkat): validate API url and node name
+	apiURL, err := url.Parse(*apiUrlStr)
+	if err != nil {
+		klog.Errorf("Could not parse API '%s' url due to eroro: %s.", *apiUrlStr, err.Error())
+		os.Exit(1)
+	}
 
-	qd := driver.NewQuobyteDriver(*endpoint, *clientMountPoint, *nodeName, *apiURL, *driverName, *driverVersion, *useNameSpaceAsTenant, *enableQuobyteAcceskeys)
-	err := qd.Run()
+	qd := driver.NewQuobyteDriver(
+		*endpoint,
+		*clientMountPoint,
+		*nodeName,
+		*driverName,
+		*driverVersion,
+		apiURL,
+		*useNameSpaceAsTenant,
+		*enableQuobyteAcceskeys)
+	err = qd.Run()
 	if err != nil {
 		klog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)
 		os.Exit(1)

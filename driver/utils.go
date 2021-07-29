@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"k8s.io/klog"
+	"net/url"
 	"os/exec"
 	"strings"
 
@@ -30,7 +31,7 @@ func initClientCache() {
 	}
 }
 
-func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteClient, error) {
+func getAPIClient(secrets map[string]string, apiURL *url.URL) (*quobyte.QuobyteClient, error) {
 	if clientCache == nil {
 		initClientCache()
 	}
@@ -57,7 +58,7 @@ func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteCli
 		return nil, fmt.Errorf("Cached API client is not QuobyteClient type")
 	}
 
-	apiClient := quobyte.NewQuobyteClient(apiURL, apiUser, apiPass)
+	apiClient := quobyte.NewQuobyteClient(apiURL.String(), apiUser, apiPass)
 	clientCache.Add(cacheKey, apiClient)
 
 	return apiClient, nil
