@@ -2,11 +2,14 @@ package driver
 
 import (
 	"fmt"
+	"k8s.io/klog"
+	"net/url"
 	"os/exec"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	quobyte "github.com/quobyte/api/v3"
+	cache "github.com/hashicorp/golang-lru"
+	quobyte "github.com/quobyte/api/quobyte"
 )
 
 var (
@@ -16,7 +19,22 @@ var (
 	POD_VOL_LOCATOR  = "/volume"
 )
 
-func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteClient, error) {
+var clientCache *cache.Cache = nil
+
+func initClientCache() {
+	if clientCache == nil {
+		var err error
+		clientCache, err = cache.New(1000)
+		if err != nil {
+			klog.Fatalf("Could not initialize client cache")
+		}
+	}
+}
+
+func getAPIClient(secrets map[string]string, apiURL *url.URL) (*quobyte.QuobyteClient, error) {
+	if clientCache == nil {
+		initClientCache()
+	}
 	var apiUser, apiPass string
 	var ok bool
 
@@ -28,7 +46,22 @@ func getAPIClient(secrets map[string]string, apiURL string) (*quobyte.QuobyteCli
 		return nil, fmt.Errorf("Quobyte API password missing in secret")
 	}
 
-	return quobyte.NewQuobyteClient(apiURL, apiUser, apiPass), nil
+	// API url is unique for deployment and cannot be changed once driver is installed.
+	// Therefore, it is not need as part of key.
+	// Add password to key to create a new client if the password for the user is changed.
+	cacheKey := apiUser + apiPass
+
+	if apiClientIf, ok := clientCache.Get(cacheKey); ok {
+		if apiClient, ok := apiClientIf.(*quobyte.QuobyteClient); ok {
+			return apiClient, nil
+		}
+		return nil, fmt.Errorf("Cached API client is not QuobyteClient type")
+	}
+
+	apiClient := quobyte.NewQuobyteClient(apiURL.String(), apiUser, apiPass)
+	clientCache.Add(cacheKey, apiClient)
+
+	return apiClient, nil
 }
 
 func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
