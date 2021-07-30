@@ -109,7 +109,7 @@ else
     # Assumption is, at this point we do not have any modified files except
     # those modified by the script 
     git add -u
-    git commit -m "Release version ${VERSION}"
+    git commit -m "Release version ${VERSION} by ./build release command"
     git tag "${VERSION}"
     # update chart index fiel for Artifacthub to get new update
     rebase_charts_on_master
