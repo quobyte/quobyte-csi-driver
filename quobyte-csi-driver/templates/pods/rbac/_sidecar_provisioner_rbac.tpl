@@ -41,7 +41,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-    namespace: kube-system
+    namespace: "{{ .Values.quobyte.namespace }}"
 roleRef:
   kind: ClusterRole
   name: quobyte-csi-provisioner-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}

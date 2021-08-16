@@ -8,7 +8,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  namespace: kube-system
+  namespace: "{{ .Values.quobyte.namespace }}"
 spec:
   selector:
     matchLabels:

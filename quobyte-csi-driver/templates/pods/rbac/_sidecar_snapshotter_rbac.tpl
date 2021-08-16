@@ -40,7 +40,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-    namespace: kube-system
+    namespace: "{{ .Values.quobyte.namespace }}"
 roleRef:
   kind: ClusterRole
   name: external-snapshotter-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
