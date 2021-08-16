@@ -1,0 +1,23 @@
+{{ range $storageClass := .Values.quobyte.storageClasses }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $storageClass.name }}
+provisioner: csi.quobyte.com
+allowVolumeExpansion: {{ $storageClass.allowVolumeExpansion }}
+reclaimPolicy: "{{ $storageClass.reclaimPolicy }}"
+parameters:
+  csi.storage.k8s.io/provisioner-secret-name: "{{ $storageClass.name }}-secret"
+  csi.storage.k8s.io/provisioner-secret-namespace: "{{ $.Values.quobyte.namespace }}"
+  csi.storage.k8s.io/controller-expand-secret-name: "{{ $storageClass.name }}-secret"
+  csi.storage.k8s.io/controller-expand-secret-namespace: "{{ $.Values.quobyte.namespace }}"
+  csi.storage.k8s.io/node-publish-secret-name: "{{ $storageClass.name }}-secret"
+  csi.storage.k8s.io/node-publish-secret-namespace: "{{ $.Values.quobyte.namespace }}"
+  quobyteTenant: "{{ $storageClass.tenant }}"
+  quobyteConfig: "{{ $storageClass.config }}"
+  createQuota: "{{ $storageClass.createQuota }}"
+  user: root
+  group: root
+  accessMode: "777"
+{{ end }}
