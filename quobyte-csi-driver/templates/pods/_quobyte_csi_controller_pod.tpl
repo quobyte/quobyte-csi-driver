@@ -14,7 +14,7 @@ kind: StatefulSet
 apiVersion: apps/v1
 metadata:
   name: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  namespace: kube-system
+  namespace: "{{ .Values.quobyte.namespace }}"
 spec:
   selector:
     matchLabels:
