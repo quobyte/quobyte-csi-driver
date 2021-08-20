@@ -3,7 +3,7 @@ entries:
   quobyte-csi:
   - apiVersion: v1
     appVersion: v1.7.0-pre
-    created: "2021-07-30T11:13:14.151929224+02:00"
+    created: "2021-08-20T12:56:10.907137634+02:00"
     description: Quobyte CSI Helm chart
     digest: 30ad7a9e57aa2f0fdf4272da644e0193c3efe19222884dfd92d3b73ae8d5bee5
     name: quobyte-csi
@@ -11,8 +11,17 @@ entries:
     - quobyte-csi-v1.7.0-pre.tgz
     version: v1.7.0-pre
   - apiVersion: v1
+    appVersion: 1.7.0-dev1
+    created: "2021-08-20T12:56:10.905561054+02:00"
+    description: Quobyte CSI Helm chart
+    digest: 1d2b5f55c96ee04049f7a272647a1789a905b673e0e4c128ffec595838442fab
+    name: quobyte-csi
+    urls:
+    - quobyte-csi-1.7.0-dev1.tgz
+    version: 1.7.0-dev1
+  - apiVersion: v1
     appVersion: v1.7.0-dev
-    created: "2021-07-30T11:13:14.151507357+02:00"
+    created: "2021-08-20T12:56:10.906271877+02:00"
     description: Quobyte CSI Helm chart
     digest: 9088f0fb7356121f8fdcbaeeef36dec23a4f740018174f4db6a93192df308fad
     name: quobyte-csi
@@ -21,11 +30,11 @@ entries:
     version: v1.7.0-dev
   - apiVersion: v1
     appVersion: v1.4.0
-    created: "2021-07-30T11:13:14.150510178+02:00"
+    created: "2021-08-20T12:56:10.905803433+02:00"
     description: Quobyte CSI Helm chart
     digest: 17dc9bdb88fa9b6a8e28d2b639dde0b4c9a113e8c22dacfc6551b3a409020a7b
     name: quobyte-csi
     urls:
     - quobyte-csi-v1.4.0.tgz
     version: v1.4.0
-generated: "2021-07-30T11:13:14.150098691+02:00"
+generated: "2021-08-20T12:56:10.904163312+02:00"
