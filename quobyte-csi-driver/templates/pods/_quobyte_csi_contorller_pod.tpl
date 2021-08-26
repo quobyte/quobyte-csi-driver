@@ -29,10 +29,10 @@ spec:
     spec:
       priorityClassName: system-cluster-critical
       serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-     {{- if .Values.quobyte.tolerations }}
+{{- if .Values.quobyte.tolerations }}
       tolerations: 
-     {{- toYaml .Values.quobyte.tolerations | indent 6 }}
-     {{- end }}
+{{ toYaml .Values.quobyte.tolerations | indent 8 }}
+{{- end }}
       containers:
         {{- include "csi.sidecar.provisionerContainer" . | indent 8 }}
         {{- include "csi.sidecar.resizerContainer" . | indent 8 }}
