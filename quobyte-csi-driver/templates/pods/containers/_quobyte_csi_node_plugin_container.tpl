@@ -1,9 +1,9 @@
 {{- define "quobyte-csi.nodePluginContainer" }}
 - name: quobyte-csi-plugin
-  {{- if .Values.resources }}
+{{- if .Values.resources }}
   resources: 
-    {{ toYaml .Values.resources | indent 4 }}
-  {{- end }}
+{{ toYaml .Values.resources | indent 4 }}
+{{- end }}
   securityContext:
     privileged: true
     capabilities:
