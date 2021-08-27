@@ -1,11 +1,14 @@
 name: Test helm chart
 on: [push, pull_request]
 jobs:
-  container-job:
+  helm-test-job:
     runs-on: ubuntu-latest
-    container:
-      image: quintush/helm-unittest:3.3.0-0.2.2
     steps:
-    - uses: actions/checkout@v1
-    - run: helm unittest -3 .
-      working-directory: ./quobyte-csi-driver
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Hello world action step
+        uses: ./.github/actions/helm-test-action # Uses an action in the root directory
+        with:
+          path-to-chart: ./quobyte-csi-driver
