@@ -1,13 +1,5 @@
 name: Test helm chart
-
-on:
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
-
+on: [push, pull_request]
 jobs:
   container-job:
     runs-on: ubuntu-latest
