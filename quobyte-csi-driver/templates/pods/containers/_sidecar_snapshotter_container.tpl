@@ -1,8 +1,10 @@
 {{- define "csi.sidecar.snapshotterContainer" }}
 - name: csi-snapshotter
 {{- if .Values.resources }}
+{{- if .Values.resources.snapshotterContainer }}
   resources: 
-{{ toYaml .Values.resources | indent 4 }}
+{{ toYaml .Values.resources.snapshotterContainer | indent 4 }}
+{{- end }}
 {{- end }}
   image: {{ .Values.quobyte.dev.k8sSnapshotterImage }}
   imagePullPolicy: "IfNotPresent"

@@ -2,8 +2,10 @@
 {{- if .Values.quobyte.podKiller.enable }}
 - name: quobyte-pod-killer
 {{- if .Values.resources }}
+{{- if .Values.resources.podKillerContainer }}
   resources: 
-{{ toYaml .Values.resources | indent 4 }}
+{{ toYaml .Values.resources.podKillerContainer | indent 4 }}
+{{- end }}
 {{- end }}
   securityContext:
     privileged: true

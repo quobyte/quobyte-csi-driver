@@ -1,8 +1,10 @@
 {{- define "quobyte-csi.controllerContainer" }}
 - name: quobyte-csi-plugin
 {{- if .Values.resources }}
+{{- if .Values.resources.controllerContainer }}
   resources: 
-{{ toYaml .Values.resources | indent 4 }}
+{{ toYaml .Values.resources.controllerContainer | indent 4 }}
+{{- end }}
 {{- end }}
   image: {{ .Values.quobyte.dev.csiImage }}
   imagePullPolicy: "IfNotPresent"
