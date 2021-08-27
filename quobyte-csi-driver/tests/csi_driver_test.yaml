@@ -1,0 +1,143 @@
+suite: test csi driver
+templates: 
+- csi-driver.yaml
+tests:
+  - it: "should render with default values"
+    asserts:
+      - matchSnapshot: {}
+  - it: "should render when resource limits are provided"
+    set:
+      quobyte:
+        enableSnapshots: true
+      resources:
+        controllerContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        nodePluginContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        podKillerContainer: 
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        attacherContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        nodeRegistrarContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        provisionerContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        resizerContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        snapshotterContainer:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+    asserts:
+      - matchSnapshot: {}
+      - equal: 
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 50m
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 50Mi
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[1].resources.limits.cpu
+          value: 50m
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[1].resources.limits.memory
+          value: 50Mi
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[2].resources.limits.cpu
+          value: 50m
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[2].resources.limits.memory
+          value: 50Mi
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[3].resources.limits.cpu
+          value: 50m
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[3].resources.limits.memory
+          value: 50Mi
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[4].resources.limits.cpu
+          value: 50m
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[4].resources.limits.memory
+          value: 50Mi
+        documentIndex: 10
+      - equal: 
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 50m
+        documentIndex: 14
+      - equal: 
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 50Mi
+        documentIndex: 14
+      - equal: 
+          path: spec.template.spec.containers[1].resources.limits.cpu
+          value: 50m
+        documentIndex: 14
+      - equal: 
+          path: spec.template.spec.containers[1].resources.limits.memory
+          value: 50Mi
+        documentIndex: 14
+      - equal: 
+          path: spec.template.spec.containers[2].resources.limits.cpu
+          value: 50m
+        documentIndex: 14
+      - equal: 
+          path: spec.template.spec.containers[2].resources.limits.memory
+          value: 50Mi
+        documentIndex: 14
+  - it: "should render when tolerations are provided"
+    set:
+      quobyte:
+        tolerations: 
+        - key: ""
+          operator: "Exists"
+          effect: "NoSchedule"
+    asserts:
+      - matchSnapshot: {}
+      - equal: 
+          path: spec.template.spec.tolerations[0].effect
+          value: "NoSchedule"
+        documentIndex: 8
+      - equal: 
+          path: spec.template.spec.tolerations[0].key
+          value: ""
+        documentIndex: 8
+      - equal: 
+          path: spec.template.spec.tolerations[0].operator
+          value: "Exists"
+        documentIndex: 8
+      - equal: 
+          path: spec.template.spec.tolerations[0].effect
+          value: "NoSchedule"
+        documentIndex: 12
+      - equal: 
+          path: spec.template.spec.tolerations[0].key
+          value: ""
+        documentIndex: 12
+      - equal: 
+          path: spec.template.spec.tolerations[0].operator
+          value: "Exists"
+        documentIndex: 12
