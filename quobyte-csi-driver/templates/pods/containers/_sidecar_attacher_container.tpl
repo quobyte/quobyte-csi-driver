@@ -1,11 +1,11 @@
 {{- define "csi.sidecar.attacherContainer" }}
 - name: csi-attacher
-{{- if .Values.resources }}
-{{- if .Values.resources.attacherContainer }}
+  {{- if .Values.resources }}
+  {{- if .Values.resources.attacherContainer }}
   resources: 
-{{ toYaml .Values.resources.attacherContainer | indent 4 }}
-{{- end }}
-{{- end }}
+    {{- toYaml .Values.resources.attacherContainer | indent 4 }}
+  {{- end }}
+  {{- end }}
   image: {{ .Values.quobyte.dev.k8sAttacherImage }}
   imagePullPolicy: "IfNotPresent"
   args:

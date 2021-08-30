@@ -1,11 +1,11 @@
 {{- define "csi.sidecar.nodeRegistrarContainer" }}
 - name: csi-node-driver-registrar
-{{- if .Values.resources }}
-{{- if .Values.resources.nodeRegistrarContainer }}
+  {{- if .Values.resources }}
+  {{- if .Values.resources.nodeRegistrarContainer }}
   resources: 
-{{ toYaml .Values.resources.nodeRegistrarContainer | indent 4 }}
-{{- end }}
-{{- end }}
+    {{- toYaml .Values.resources.nodeRegistrarContainer | indent 4 }}
+  {{- end }}
+  {{- end }}
   image: {{ .Values.quobyte.dev.k8sNodeRegistrarImage }}
   imagePullPolicy: "IfNotPresent"
   args:
