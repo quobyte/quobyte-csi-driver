@@ -1,9 +1,11 @@
 {{- define "csi.sidecar.resizerContainer" }}
 - name: csi-resizer
-  {{- if .Values.resources }}
+{{- if .Values.resources }}
+{{- if .Values.resources.resizerContainer }}
   resources: 
-    {{ toYaml .Values.resources | indent 4 }}
-  {{- end }}
+{{ toYaml .Values.resources.resizerContainer | indent 4 }}
+{{- end }}
+{{- end }}
   image: {{ .Values.quobyte.dev.k8sResizerImage }}
   imagePullPolicy: "IfNotPresent"
   args:
