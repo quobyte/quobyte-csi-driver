@@ -28,6 +28,8 @@ spec:
             # Your Quobyte registry endpoint
             value: <YOUR_QUOBYTE_REGISTRY> # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
+            # Corresponding volume mount must be one directory below this path
+            # Example volumeMount is : /mnt/quobyte and clientMountPoint is /mnt/quobyte/mounts
             value: /mnt/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEYS
