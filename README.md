@@ -28,6 +28,7 @@ Quobyte CSI is the implementation of
   * [Quobyte 2.x](docs/install_client/deploy_clients_2_x.md)
   * [Quobyte 3.x](docs/install_client/deploy_clients_3_x.md)
 * [Deploy Quobyte CSI](#deploy-quobyte-csi-driver)
+* [Quobyte Version Compatibility](docs/quobyte_versions.md)
 * [Snapshotter Setup](#snapshotter-setup) (**required only if snapshots are enabled**)
 * [Usage Examples](#use-quobyte-volumes-in-kubernetes)
   * [Use Quobyte volumes in Kubernetes](#use-quobyte-volumes-in-kubernetes)
