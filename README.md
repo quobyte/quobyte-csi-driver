@@ -57,6 +57,8 @@ Quobyte CSI is the implementation of
   * To use Quobyte access keys, the Quobyte client (requires Quobyte version 3.0 or above) should
    be deployed with **--enable-access-contexts**. Additionally, the metadata cache (global policy)
    should be disabled.
+* If you have load balancer for Quobyte API, the load balancer must be configured with sticky
+  sessions.
 * Requires [additional setup](#snapshotter-setup) to use volume snapshots
 
 ## Deploy Quobyte CSI Driver
