@@ -1,6 +1,8 @@
 # Used to generate CSI deployment files specific to given k8s version
 k8sVersion: "1.20.2"
 quobyte:
+  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
+  version: 2
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   apiURL: "http://10.125.2.77:10330"
@@ -46,15 +48,18 @@ quobyte:
   # Change required ONLY if you have pod security policies enabled K8S environment.
   podSecurityPolicies: false
 
+  # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
+  immediateErase: false
+
   podKiller:
-    # To disable pod killer, uninstall current CSI driver (helm uinstall <chart-name>)
+    # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again 
     enable: true
     # should be a valid golang time.Duration 
     monitoringInterval: 5s
    
   # The dev configuration is intended for Quobyte Developers and internal use.
-  # Please do NOT change the dev: configuration unless otherwise adviced to change.
+  # Please do NOT change the dev: configuration unless otherwise advised to change.
   dev:
     # CSI Release version
     csiProvisionerVersion: "1.7.0"

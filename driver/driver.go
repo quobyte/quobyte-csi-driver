@@ -25,6 +25,8 @@ type QuobyteDriver struct {
 	ApiURL                         *url.URL
 	UseK8SNamespaceAsQuobyteTenant bool
 	IsQuobyteAccesskeysEnabled     bool
+	ImmediateErase                 bool
+	QuobyteVersion                 int
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
@@ -36,7 +38,9 @@ func NewQuobyteDriver(
 	driverVersion string,
 	apiURL *url.URL,
 	useNamespaceAsQuobyteTenant,
-	enableQuobyteSecrtes bool) *QuobyteDriver {
+	enableQuobyteSecrets bool,
+	immediateErase bool,
+	quobyteVersion int) *QuobyteDriver {
 	return &QuobyteDriver{
 		driverName,
 		driverVersion,
@@ -46,7 +50,10 @@ func NewQuobyteDriver(
 		nodeName,
 		apiURL,
 		useNamespaceAsQuobyteTenant,
-		enableQuobyteSecrtes}
+		enableQuobyteSecrets,
+		immediateErase,
+		quobyteVersion,
+	}
 }
 
 // Run starts the grpc server for the driver

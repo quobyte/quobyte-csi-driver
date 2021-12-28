@@ -18,7 +18,9 @@ var (
 	driverName             = flag.String("driver_name", "", "Quobyte CSI driver name")
 	driverVersion          = flag.String("driver_version", "", "Quobyte CSI driver version")
 	useNameSpaceAsTenant   = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
-	enableQuobyteAcceskeys = flag.Bool("enable_access_keys", false, "Enables use of Quobyte Access keys for mounting volumes")
+	enableQuobyteAccesskeys = flag.Bool("enable_access_keys", false, "Enables use of Quobyte Access keys for mounting volumes")
+	immediateErase          = flag.Bool("immediate_erase", false, "Schedules erase volume task immediately (supported from Quobyte 3.x)")
+	quobyteVersion 	       = flag.Int("quobyte_version", 2, "Specify Quobyte major version (2 for Quobyte 2.x and 3 for Quobyte 3.x)")
 )
 
 func main() {
@@ -28,9 +30,14 @@ func main() {
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
+	if *quobyteVersion != 2 && *quobyteVersion != 3 {
+		klog.Errorf("--quobyte_version must be 2 for Quobyte 2.x/3 for Quobyte 3.x (given %d)", *quobyteVersion)
+		os.Exit(1)
+	}
+
 	apiURL, err := url.Parse(*apiUrlStr)
 	if err != nil {
-		klog.Errorf("Could not parse API '%s' url due to eroro: %s.", *apiUrlStr, err.Error())
+		klog.Errorf("Could not parse API '%s' url due to error: %s.", *apiUrlStr, err.Error())
 		os.Exit(1)
 	}
 
@@ -42,10 +49,12 @@ func main() {
 		*driverVersion,
 		apiURL,
 		*useNameSpaceAsTenant,
-		*enableQuobyteAcceskeys)
+		*enableQuobyteAccesskeys,
+		*immediateErase,
+		*quobyteVersion)
 	err = qd.Run()
 	if err != nil {
-		klog.Errorf("Failed to start Quobyte CSI grpc server due to eroro: %v.", err)
+		klog.Errorf("Failed to start Quobyte CSI grpc server due to error: %v.", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

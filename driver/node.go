@@ -93,7 +93,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 	}
 	var mountPath string
-	if d.IsQuobyteAccesskeysEnabled {
+	if d.QuobyteVersion >= 3 && d.IsQuobyteAccesskeysEnabled {
 		podUUID := getSanitizedPodUUIDFromPath(targetPath)
 		accesskeyID, ok := secrets[accessKeyID]
 		if !ok {

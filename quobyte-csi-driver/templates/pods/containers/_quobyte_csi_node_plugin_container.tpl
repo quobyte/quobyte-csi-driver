@@ -21,6 +21,8 @@
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
     - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}" 
     - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+    - "--quobyte_version={{ .Values.quobyte.version }}"
+    - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
     - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
   env:
     - name: NODE_ID

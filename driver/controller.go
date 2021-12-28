@@ -73,9 +73,11 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "labels":
-			volRequest.Label, err = parseLabels(v)
-			if err != nil {
-				return nil, err
+			if d.QuobyteVersion == 3 {
+				volRequest.Label, err = parseLabels(v)
+				if err != nil {
+					return nil, err
+				}
 			}
 		case "accessmode":
 			u64, err := strconv.ParseUint(v, 10, 32)
@@ -156,8 +158,11 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	if createQuota {
 		err := quobyteClient.SetVolumeQuota(volUUID, capacity)
 		if err != nil {
-			req := &quobyte.DeleteVolumeRequest{VolumeUuid: volUUID}
-			quobyteClient.DeleteVolume(req)
+			if d.QuobyteVersion == 2 {
+				quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
+			} else {
+				quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
+			}
 			return nil, err
 		}
 	}
@@ -207,7 +212,13 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if err != nil {
 		return nil, err
 	}
-	err = quobyteClient.DeleteVolumeByResolvingNamesToUUID(params[1], params[0])
+
+	if d.QuobyteVersion == 2 {
+		err = quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(params[1], params[0])
+	} else {
+		err= quobyteClient.EraseVolumeByResolvingNamesToUUID(params[1], params[0], d.ImmediateErase)
+	}
+
 	if err != nil {
 		return nil, err
 	}

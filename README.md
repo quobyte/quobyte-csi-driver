@@ -101,10 +101,10 @@ Quobyte CSI is the implementation of
     helm template ./quobyte-csi-driver --debug > csi-driver.yaml
     ```
 
-6. Deploy the Quobtye CSI driver (deploys driver with configuration from step 3)
+6. Deploy the Quobyte CSI driver (deploys driver with configuration from step 3)
 
     ```bash
-    # Depolys helm chart with name "quobyte-csi".
+    # Deploys helm chart with name "quobyte-csi".
     # Please change quobyte-csi as required
     helm install quobyte-csi ./quobyte-csi-driver
     ```
@@ -289,7 +289,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
       wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/example/index.html -P <values.clientMountPoint>/mounts/$VOLUME
       ```
 
-  3. Create [volume snapshot secrtes](example/csi-secret.yaml)
+  3. Create [volume snapshot secrets](example/csi-secret.yaml)
 
      Our examples use same secret in all the places wherever secret is required. Please create and
      configure secrets as per your requirements.
@@ -341,7 +341,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl create -f example/volume-snapshot-class.yaml
         ```
 
-  2. Create volume snapshot secrtes
+  2. Create volume snapshot secrets
 
      Our examples use same secret in all the places wherever secret is required.
       Please create and configure secrets as per your requirements.
