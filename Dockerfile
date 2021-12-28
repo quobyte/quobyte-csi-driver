@@ -1,6 +1,6 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
-RUN apt-get -y update && apt-get install -y attr
+RUN apt-get -y update && apt-get -y upgrade && apt-get install -y attr
 
 ADD quobyte-csi /bin
 
