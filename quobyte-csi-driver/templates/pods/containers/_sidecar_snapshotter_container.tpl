@@ -11,4 +11,11 @@
   args:
     - "--v=3"
     - "--leader-election=false"
+    - "--csi-address=$(ADDRESS)"
+  env:
+    - name: ADDRESS
+      value: /var/lib/csi/sockets/pluginproxy/csi.sock
+  volumeMounts:
+    - name: socket-dir
+      mountPath: /var/lib/csi/sockets/pluginproxy/
 {{- end }}
