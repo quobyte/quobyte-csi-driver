@@ -348,6 +348,10 @@ should render when resource limits are provided:
           - args:
             - --v=3
             - --leader-election=false
+            - --csi-address=$(ADDRESS)
+            env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
             image: quay.io/k8scsi/csi-snapshotter:v3.0.3
             imagePullPolicy: IfNotPresent
             name: csi-snapshotter
@@ -355,6 +359,9 @@ should render when resource limits are provided:
               limits:
                 cpu: 50m
                 memory: 50Mi
+            volumeMounts:
+            - mountPath: /var/lib/csi/sockets/pluginproxy/
+              name: socket-dir
           - args:
             - --csi_socket=$(CSI_ENDPOINT)
             - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
