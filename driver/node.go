@@ -64,8 +64,9 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	}
 
 	var volUUID string
-	if len(secrets) == 0 {
-		klog.Infof("csiNodePublishSecret is  not received. Assuming volume given with UUID")
+	if len(secrets) == 0 || !hasApiCredentials(secrets) {
+		// cannot resolve volume Id without Quobyte API credentials if tenant name & volume name is given..assume volume uuid
+		klog.Infof("csiNodePublishSecret is  not received with sufficient Quobyte API credential. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
 		quobyteClient, err := getAPIClient(secrets, d.ApiURL)

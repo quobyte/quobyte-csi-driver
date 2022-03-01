@@ -2,10 +2,11 @@ package driver
 
 import (
 	"fmt"
-	"k8s.io/klog"
 	"net/url"
 	"os/exec"
 	"strings"
+
+	"k8s.io/klog"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	cache "github.com/hashicorp/golang-lru"
@@ -17,6 +18,11 @@ var (
 	VOL_UUID_LOCATOR = "used by volume "
 	POD_UUID_LOCATOR = "/pods/"
 	POD_VOL_LOCATOR  = "/volume"
+)
+
+const (
+	secretUserKey     string = "user"
+	secretPasswordKey string = "password"
 )
 
 var clientCache *cache.Cache = nil
@@ -38,11 +44,11 @@ func getAPIClient(secrets map[string]string, apiURL *url.URL) (*quobyte.QuobyteC
 	var apiUser, apiPass string
 	var ok bool
 
-	if apiUser, ok = secrets["user"]; !ok {
+	if apiUser, ok = secrets[secretUserKey]; !ok {
 		return nil, fmt.Errorf("Quobyte API user missing in secret")
 	}
 
-	if apiPass, ok = secrets["password"]; !ok {
+	if apiPass, ok = secrets[secretPasswordKey]; !ok {
 		return nil, fmt.Errorf("Quobyte API password missing in secret")
 	}
 
@@ -81,6 +87,7 @@ func setfattr(key, val, mountPath string) error {
 	}
 	return nil
 }
+
 func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	volID := req.volID
 	volParts := strings.Split(volID, "|")
@@ -155,4 +162,10 @@ func parseLabels(labels string) ([]*quobyte.Label, error) {
 
 func getInvlaidSnapshotIdError(snapshotId string) error {
 	return fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshotId, SEPARATOR, SEPARATOR)
+}
+
+func hasApiCredentials(secrets map[string]string) bool {
+	_, hasQuobyteApiUser := secrets[secretUserKey]
+	_, hasQuobyteApiPassword := secrets[secretPasswordKey]
+	return hasQuobyteApiUser && hasQuobyteApiPassword
 }
