@@ -139,10 +139,10 @@ func getSanitizedPodUUIDFromPath(podVolPath string) string {
 func parseLabels(labels string) ([]*quobyte.Label, error) {
 	labelKVs := strings.Split(labels, ",")
 	parsedLabels := make([]*quobyte.Label, 0)
-	for _, lableKV := range labelKVs {
-		labelKVArr := strings.Split(lableKV, ":")
+	for _, labelKV := range labelKVs {
+		labelKVArr := strings.Split(labelKV, ":")
 		if len(labelKVArr) < 2 {
-			return parsedLabels, fmt.Errorf("Found invalid label '%s'. Label should be <Name>:<Value>", lableKV)
+			return parsedLabels, fmt.Errorf("Found invalid label '%s'. Label should be <Name>:<Value>", labelKV)
 		}
 		label := &quobyte.Label{
 			Name:  labelKVArr[0],

@@ -295,7 +295,7 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 	if pinned, ok := req.Parameters[pinnedKey]; ok {
 		pinnedVal, err := strconv.ParseBool(pinned)
 		if err != nil {
-			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be ture/false. Configured value %s is invalid.", pinned)
+			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be true/false. Configured value %s is invalid.", pinned)
 		}
 		isPinned = pinnedVal
 	} else {
