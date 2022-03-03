@@ -25,7 +25,7 @@ parameters:
   # volume create/delete permissions for `quobyteTenant` above.
   csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-secret"
   csi.storage.k8s.io/provisioner-secret-namespace: "quobyte"
-  # Resize volume requires secrets to commuicate with Quobyte API
+  # Resize volume requires secrets to communicate with Quobyte API
   csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-secret"
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
   # Mount secrets
