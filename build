@@ -62,7 +62,12 @@ update_files_with_version(){
   sed -i "s|version:.*|version: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
   sed -i "s|.*csiProvisionerVersion:.*|    csiProvisionerVersion: \"${VERSION}\"|g" "${CHART_DIR}/values.yaml"
   sed -i "s|.*csiImage:.*|    csiImage: \"${CONTAINER_URL_BASE}:${VERSION}\"|g" "${CHART_DIR}/values.yaml"
+  sed -i "s|- --driver_version=.*|- --driver_version=${VERSION}|g" "${CHART_DIR}/tests/__snapshot__/csi_driver_test.yaml.snap"
+  sed -i "s|image: quay.io/quobyte/csi:.*|image: quay.io/quobyte/csi:${VERSION}|g" "${CHART_DIR}/tests/__snapshot__/csi_driver_test.yaml.snap"
 }
+
+if [[ "$1" = 'file_update' ]]; then
+update_files_with_version
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   echo './build                                Builds the executable'

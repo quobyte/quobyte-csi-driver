@@ -368,7 +368,7 @@ should render when resource limits are provided:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -388,7 +388,7 @@ should render when resource limits are provided:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             resources:
@@ -520,7 +520,7 @@ should render when resource limits are provided:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -540,7 +540,7 @@ should render when resource limits are provided:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             resources:
@@ -900,7 +900,7 @@ should render when tolerations are provided:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -920,7 +920,7 @@ should render when tolerations are provided:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             volumeMounts:
@@ -1048,7 +1048,7 @@ should render when tolerations are provided:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -1068,7 +1068,7 @@ should render when tolerations are provided:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             securityContext:
@@ -1424,7 +1424,7 @@ should render with default values:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -1444,7 +1444,7 @@ should render with default values:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             volumeMounts:
@@ -1568,7 +1568,7 @@ should render with default values:
             - --node_name=$(KUBE_NODE_NAME)
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
-            - --driver_version=1.8.0
+            - --driver_version=1.8.1
             - --enable_access_keys=false
             - --quobyte_version=2
             - --immediate_erase=false
@@ -1588,7 +1588,7 @@ should render with default values:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
               value: http://10.125.2.77:10330
-            image: quay.io/quobyte/csi:1.8.0
+            image: quay.io/quobyte/csi:1.8.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
             securityContext:
