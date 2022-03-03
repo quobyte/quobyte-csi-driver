@@ -6,7 +6,7 @@ require (
 	github.com/container-storage-interface/spec v1.3.0
 	github.com/golang/protobuf v1.3.1
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/quobyte/api v1.2.1
+	github.com/quobyte/api v1.2.2
 	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.21.0

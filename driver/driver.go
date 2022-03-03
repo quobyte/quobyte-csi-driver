@@ -59,7 +59,7 @@ func NewQuobyteDriver(
 // Run starts the grpc server for the driver
 func (qd *QuobyteDriver) Run() error {
 	if len(qd.clientMountPoint) == 0 {
-		return fmt.Errorf("--quobyte_mount_path is required. Supplied value should match environment varialbe QUOBYTE_MOUNT_POINT of Quobyte client pod.")
+		return fmt.Errorf("--quobyte_mount_path is required. Supplied value should match environment variable QUOBYTE_MOUNT_POINT of Quobyte client pod.")
 	}
 	if len(qd.Name) == 0 {
 		return fmt.Errorf("--driver_name should not be empty")

@@ -64,8 +64,9 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	}
 
 	var volUUID string
-	if len(secrets) == 0 {
-		klog.Infof("csiNodePublishSecret is  not recieved. Assuming volume given with UUID")
+	if len(secrets) == 0 || !hasApiCredentials(secrets) {
+		// cannot resolve volume Id without Quobyte API credentials if tenant name & volume name is given..assume volume uuid
+		klog.Infof("csiNodePublishSecret is  not received with sufficient Quobyte API credential. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
 		quobyteClient, err := getAPIClient(secrets, d.ApiURL)
@@ -205,11 +206,11 @@ func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGet
 	}
 
 	usedBytes := (int64(statfs.Blocks) - int64(statfs.Bfree)) * int64(statfs.Bsize)
-	availbleBytes := int64(statfs.Bavail) * int64(statfs.Bsize)
+	availableBytes := int64(statfs.Bavail) * int64(statfs.Bsize)
 	totalBytes := int64(statfs.Blocks) * int64(statfs.Bsize)
 
 	usedInodes := int64(statfs.Files) - int64(statfs.Ffree)
-	availbleInodes := int64(statfs.Ffree)
+	availableInodes := int64(statfs.Ffree)
 	totalInodes := int64(statfs.Files)
 
 	resp := &csi.NodeGetVolumeStatsResponse{
@@ -217,13 +218,13 @@ func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGet
 			{
 				Unit:      csi.VolumeUsage_BYTES,
 				Used:      usedBytes,
-				Available: availbleBytes,
+				Available: availableBytes,
 				Total:     totalBytes,
 			},
 			{
 				Unit:      csi.VolumeUsage_INODES,
 				Used:      usedInodes,
-				Available: availbleInodes,
+				Available: availableInodes,
 				Total:     totalInodes,
 			},
 		},

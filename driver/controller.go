@@ -201,7 +201,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 
 	secrets := req.GetSecrets()
 	if len(secrets) == 0 {
-		return nil, fmt.Errorf("secrets are required delete volume." +
+		return nil, fmt.Errorf("secrets are required to delete a volume." +
 			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
 	}
 	params := strings.Split(volID, SEPARATOR)
@@ -216,7 +216,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if d.QuobyteVersion == 2 {
 		err = quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(params[1], params[0])
 	} else {
-		err= quobyteClient.EraseVolumeByResolvingNamesToUUID(params[1], params[0], d.ImmediateErase)
+		err = quobyteClient.EraseVolumeByResolvingNamesToUUID(params[1], params[0], d.ImmediateErase)
 	}
 
 	if err != nil {
@@ -295,7 +295,7 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 	if pinned, ok := req.Parameters[pinnedKey]; ok {
 		pinnedVal, err := strconv.ParseBool(pinned)
 		if err != nil {
-			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be ture/false. Configured value %s is invalid.", pinned)
+			return nil, fmt.Errorf("VolumeSnapshotClass.Parameters.pinned must be true/false. Configured value %s is invalid.", pinned)
 		}
 		isPinned = pinnedVal
 	} else {
