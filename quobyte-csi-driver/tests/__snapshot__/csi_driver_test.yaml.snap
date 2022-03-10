@@ -1623,7 +1623,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.1
+            image: quay.io/quobyte/pod-killer:v0.1.2
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             securityContext:
