@@ -579,7 +579,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.1
+            image: quay.io/quobyte/pod-killer:v0.1.2
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             resources:
