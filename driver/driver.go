@@ -16,17 +16,17 @@ import (
 
 // QuobyteDriver CSI driver type
 type QuobyteDriver struct {
-	Name                           string
-	Version                        string
-	endpoint                       string
-	clientMountPoint               string
-	server                         *grpc.Server
-	NodeName                       string
-	ApiURL                         *url.URL
-	UseK8SNamespaceAsQuobyteTenant bool
-	IsQuobyteAccesskeysEnabled     bool
-	ImmediateErase                 bool
-	QuobyteVersion                 int
+	Name                            string
+	Version                         string
+	endpoint                        string
+	clientMountPoint                string
+	server                          *grpc.Server
+	NodeName                        string
+	ApiURL                          *url.URL
+	UseK8SNamespaceAsQuobyteTenant  bool
+	IsQuobyteAccessKeyMountsEnabled bool
+	ImmediateErase                  bool
+	QuobyteVersion                  int
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
@@ -38,7 +38,7 @@ func NewQuobyteDriver(
 	driverVersion string,
 	apiURL *url.URL,
 	useNamespaceAsQuobyteTenant,
-	enableQuobyteSecrets bool,
+	enableQuobyteAccessKeyMounts bool,
 	immediateErase bool,
 	quobyteVersion int) *QuobyteDriver {
 	return &QuobyteDriver{
@@ -50,7 +50,7 @@ func NewQuobyteDriver(
 		nodeName,
 		apiURL,
 		useNamespaceAsQuobyteTenant,
-		enableQuobyteSecrets,
+		enableQuobyteAccessKeyMounts,
 		immediateErase,
 		quobyteVersion,
 	}
@@ -103,7 +103,7 @@ func (qd *QuobyteDriver) Run() error {
 		"GRPC socket: '%s' mount point: '%s' API URL: '%s' "+
 		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t",
 		qd.Name, qd.Version, qd.endpoint, qd.clientMountPoint, qd.ApiURL,
-		qd.UseK8SNamespaceAsQuobyteTenant, qd.IsQuobyteAccesskeysEnabled)
+		qd.UseK8SNamespaceAsQuobyteTenant, qd.IsQuobyteAccessKeyMountsEnabled)
 	qd.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(qd.server, qd)
 	csi.RegisterControllerServer(qd.server, qd)

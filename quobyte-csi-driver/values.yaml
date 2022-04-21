@@ -33,16 +33,16 @@ quobyte:
   # have tenants that match the namespace.
   useK8SNamespaceAsTenant: false 
 
-  # Set this to true to enable Quobyte access keys. Then, add access key
-  # information to your K8S secret and use this secret in StorageClass as
+  # Set this to true to mount Quobyte volumes using Quobyte file system access keys.
+  # Then, add access key information to your K8S secret and use this secret in StorageClass as
   # mount secret. Quobyte-CSI and Client uses access key information
-  # from the mount secret to securely mount volumes.
-  # When access keys are enabled in CSI driver, Quobyte client must also be 
-  # enabled with access keys. To enable access keys on native client,
+  # from the mount secret to securely mount volumes into k8s.
+  # When mount access keys are enabled in CSI driver, Quobyte client must also be 
+  # enabled with access key contexts. To enable access key contexts on native client,
   # add "enable-access-contexts" in /etc/quobyte/client-service.cfg.
   # For container based client configuration, see client.yaml definition.
-  # Requires Quobyte 3.x to enable access keys
-  enableAccessKeys: false
+  # Requires Quobyte 3.x to enable mount access keys
+  enableAccessKeyMounts: false
   
   # Enabling this feature requires additional driver setup (see README.md)
   # Quobyte 3.x is recommended for snapshots

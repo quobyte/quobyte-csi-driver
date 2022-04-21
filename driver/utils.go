@@ -23,6 +23,8 @@ var (
 const (
 	secretUserKey     string = "user"
 	secretPasswordKey string = "password"
+	accessKeyID       string = "accessKeyId"
+	accessKeySecret   string = "accessKeySecret"
 )
 
 var clientCache *cache.Cache = nil
@@ -42,14 +44,16 @@ func getAPIClient(secrets map[string]string, apiURL *url.URL) (*quobyte.QuobyteC
 		initClientCache()
 	}
 	var apiUser, apiPass string
-	var ok bool
 
-	if apiUser, ok = secrets[secretUserKey]; !ok {
-		return nil, fmt.Errorf("Quobyte API user missing in secret")
-	}
-
-	if apiPass, ok = secrets[secretPasswordKey]; !ok {
-		return nil, fmt.Errorf("Quobyte API password missing in secret")
+	// TODO (venkat): priority to access key after 2.x support EOL
+	if hasApiUserAndPassword(secrets) { // Quobyte API access using user and password
+		apiUser = secrets[secretUserKey]
+		apiPass = secrets[secretPasswordKey]
+	} else if hasApiAcessKeyIdAndSecrect(secrets) { // Quobyte API access using access key & secret
+		apiUser = secrets[accessKeyID]
+		apiPass = secrets[accessKeySecret]
+	} else {
+		return nil, fmt.Errorf("Requires Quobyte management API user/password or accessKeyId/accessKeySecret combination")
 	}
 
 	// API url is unique for deployment and cannot be changed once driver is installed.
@@ -165,6 +169,16 @@ func getInvlaidSnapshotIdError(snapshotId string) error {
 }
 
 func hasApiCredentials(secrets map[string]string) bool {
+	return hasApiUserAndPassword(secrets) || hasApiAcessKeyIdAndSecrect(secrets)
+}
+
+func hasApiAcessKeyIdAndSecrect(secrets map[string]string) bool {
+	_, hasQuobyteApiKeyId := secrets[accessKeyID]
+	_, hasQuobyteApiSecret := secrets[accessKeySecret]
+	return hasQuobyteApiKeyId && hasQuobyteApiSecret
+}
+
+func hasApiUserAndPassword(secrets map[string]string) bool {
 	_, hasQuobyteApiUser := secrets[secretUserKey]
 	_, hasQuobyteApiPassword := secrets[secretPasswordKey]
 	return hasQuobyteApiUser && hasQuobyteApiPassword

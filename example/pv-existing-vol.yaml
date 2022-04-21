@@ -29,5 +29,5 @@ spec:
     # nodePublishSecretRef is required only if you use volume name in volumeHandle.
     # Example volumeHandle: <TENANT_NAME>|<VOLUME_NAME>
     nodePublishSecretRef:
-      name: quobyte-admin-secret
+      name: quobyte-admin-credentials
       namespace: quobyte

@@ -26,3 +26,37 @@ func TestGetVolUUIDFromErrorMSG(t *testing.T) {
 		t.Errorf("Expected: %s but got: %s", expectedVolUUID, resultUUID)
 	}
 }
+
+func TestQuobyteApiClientSecretsCheck(t *testing.T) {
+	var secrets = make(map[string]string)
+
+	check := hasApiCredentials(secrets)
+
+	if check {
+		t.Errorf("expected: false got: %t", check)
+	}
+
+	secrets[secretUserKey] = "dummyUser"
+	secrets[secretPasswordKey] = "dummyPassword"
+
+	check = hasApiUserAndPassword(secrets)
+
+	if !check {
+		t.Errorf("expected: true got: %t", check)
+	}
+
+	check = hasApiCredentials(secrets)
+	if !check {
+		t.Errorf("expected: true got: %t", check)
+	}
+
+	secrets = make(map[string]string)
+	secrets[accessKeyID] = "dummyAccessKeyId"
+	secrets[accessKeySecret] = "dummyAccessKeySecert"
+
+	check = hasApiAcessKeyIdAndSecrect(secrets)
+	if !check {
+		t.Errorf("expected: true got: %t", check)
+	}
+
+}

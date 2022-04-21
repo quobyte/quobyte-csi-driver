@@ -2,7 +2,7 @@
 
 **Quobyte access keys are highly recommended for multi-cluster deployments**
 
-Quobyte CSI Driver supports access to mutliple Quobyte storage clusters
+Quobyte CSI Driver supports access to multiple Quobyte storage clusters
  (for example, production and testing) from single k8s cluster.
 
 To use one Quobyte cluster, you always need one Quobyte CSI driver
@@ -24,7 +24,7 @@ Adjust the driver configuration and deploy driver with `helm install <SOME_UNIQU
 The value configured for `quobyte.csiProvisionerName` must be used as `StorageClass.provisioner` to refer
  this Quobyte Cluster/CSI driver combination
 
-## Installation of mulitple native clients
+## Installation of multiple native clients
 
 ### Limitations
 

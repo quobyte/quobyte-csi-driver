@@ -15,7 +15,7 @@
     - "--api_url=$(QUOBYTE_API_URL)" 
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
     - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}"
-    - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+    - "--enable_access_key_mounts={{ .Values.quobyte.enableAccessKeyMounts }}"
     - "--quobyte_version={{ .Values.quobyte.version }}"
     - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
     - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 

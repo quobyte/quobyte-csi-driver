@@ -15,11 +15,9 @@ import (
 )
 
 const (
-	xattrKey        string = "quobyte.access_key"
-	accessKeyID     string = "accessKeyId"
-	accessKeySecret string = "accessKeySecret"
-	empty_string    string = ""
-	snapshotsDir    string = ".snapshots"
+	xattrKey     string = "quobyte.access_key"
+	empty_string string = ""
+	snapshotsDir string = ".snapshots"
 )
 
 // NodePublishVolume mounts the volume to the pod with the given target path
@@ -94,7 +92,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 	}
 	var mountPath string
-	if d.QuobyteVersion >= 3 && d.IsQuobyteAccesskeysEnabled {
+	if d.QuobyteVersion >= 3 && d.IsQuobyteAccessKeyMountsEnabled {
 		podUUID := getSanitizedPodUUIDFromPath(targetPath)
 		accesskeyID, ok := secrets[accessKeyID]
 		if !ok {

@@ -368,7 +368,7 @@ should render when resource limits are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -520,7 +520,7 @@ should render when resource limits are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -900,7 +900,7 @@ should render when tolerations are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1048,7 +1048,7 @@ should render when tolerations are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1424,7 +1424,7 @@ should render with default values:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1568,7 +1568,7 @@ should render with default values:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false

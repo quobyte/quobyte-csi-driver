@@ -11,16 +11,16 @@ import (
 )
 
 var (
-	endpoint               = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
-	clientMountPoint       = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
-	apiUrlStr              = flag.String("api_url", "", "Quobyte API URL")
-	nodeName               = flag.String("node_name", "", "Node name from k8s environment")
-	driverName             = flag.String("driver_name", "", "Quobyte CSI driver name")
-	driverVersion          = flag.String("driver_version", "", "Quobyte CSI driver version")
-	useNameSpaceAsTenant   = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
-	enableQuobyteAccesskeys = flag.Bool("enable_access_keys", false, "Enables use of Quobyte Access keys for mounting volumes")
-	immediateErase          = flag.Bool("immediate_erase", false, "Schedules erase volume task immediately (supported from Quobyte 3.x)")
-	quobyteVersion 	       = flag.Int("quobyte_version", 2, "Specify Quobyte major version (2 for Quobyte 2.x and 3 for Quobyte 3.x)")
+	endpoint                     = flag.String("csi_socket", "unix:///var/lib/kubelet/plugins/quobyte-csi/csi.sock", "CSI endpoint")
+	clientMountPoint             = flag.String("quobyte_mount_path", "/mnt/quobyte/mounts", "Mount point for Quobyte Client")
+	apiUrlStr                    = flag.String("api_url", "", "Quobyte API URL")
+	nodeName                     = flag.String("node_name", "", "Node name from k8s environment")
+	driverName                   = flag.String("driver_name", "", "Quobyte CSI driver name")
+	driverVersion                = flag.String("driver_version", "", "Quobyte CSI driver version")
+	useNameSpaceAsTenant         = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
+	enableQuobyteAccessKeyMounts = flag.Bool("enable_access_key_mounts", false, "Enables use of Quobyte Access keys for mounting volumes")
+	immediateErase               = flag.Bool("immediate_erase", false, "Schedules erase volume task immediately (supported from Quobyte 3.x)")
+	quobyteVersion               = flag.Int("quobyte_version", 2, "Specify Quobyte major version (2 for Quobyte 2.x and 3 for Quobyte 3.x)")
 )
 
 func main() {
@@ -49,7 +49,7 @@ func main() {
 		*driverVersion,
 		apiURL,
 		*useNameSpaceAsTenant,
-		*enableQuobyteAccesskeys,
+		*enableQuobyteAccessKeyMounts,
 		*immediateErase,
 		*quobyteVersion)
 	err = qd.Run()
