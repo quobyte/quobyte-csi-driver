@@ -46,6 +46,7 @@ Quobyte CSI is the implementation of
 * [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
 * [Collect Quobyte CSI logs](docs/collect_quobyte_csi_logs.md)
+* [Run e2e tests on kind cluster](docs/Kind-cluster-for-e2e-tests.md)
 
 ## Requirements
 
