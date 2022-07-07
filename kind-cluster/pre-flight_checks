@@ -1,0 +1,64 @@
+#!/bin/bash
+# https://github.com/quobyte/quobyte-csi/tree/management_api_access_keys#use-quobyte-volumes-in-kubernetes
+
+SUPPORTED_COMMANDS='/cleanup/'
+
+if [ ! "$BASH_VERSION" ] ; then
+    echo 'Script requires to be executed with bash.'
+    echo "Please run the script with /bin/bash $0"
+    echo " or as a binary (requires executable permissions)"
+    echo ''
+    exit 1
+fi
+
+
+if [[ $1 = "" ]]; then
+
+echo "# # # Setting up Quobyte volumes in Kubernetes"
+
+cd /quobyte-csi/
+
+sed -i 's/user: YWRtaW4=/user: a21fc3VzZXI=/' ./example/csi-secret.yaml
+sed -i 's/password: cXVvYnl0ZQ==/password: cXVvYnl0ZQ==/' ./example/csi-secret.yaml
+
+echo '# # # creating secret'
+kubectl apply -f example/csi-secret.yaml
+
+echo '# # # creating StorageClass quobyte-csi'
+kubectl apply -f example/StorageClass.yaml
+
+
+echo "# # # creating PersistentVolumeClaim quobyte-csi-test"
+kubectl apply -f example/pvc-dynamic-provision.yaml
+
+echo '# # # creating pod nginx-dynamic-vol and waiting until pod will become available'
+kubectl apply -f example/nginx-demo-pod-with-dynamic-vol.yaml
+kubectl get po | grep 'nginx-dynamic-vol'
+read -p "Waiting 15s before pod will become available" -t 15
+
+echo ''
+kubectl get po | grep 'nginx-dynamic-vol'
+
+kubectl cp /quobyte-csi/example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
+
+curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep ' podIP:' | awk '{print $2}'):80
+exit 0
+
+elif [[ $1 = "cleanup" ]]; then
+
+echo ''
+echo '# # # deleting StorageClass quobyte-csi'
+kubectl delete StorageClass quobyte-csi
+echo ''
+echo '# # # deleting pvc quobyte-csi-test'
+kubectl patch pvc quobyte-csi-test -p '{"metadata": {"finalizers": null}}'
+kubectl delete pvc quobyte-csi-test --grace-period=0 --force=true &
+echo ''
+echo '# # # deleting pv preprovisioned-quobyte-csi'
+kubectl patch pv preprovisoned-quobyte-csi -p '{"metadata": {"finalizers": null}}'
+kubectl delete pv preprovisoned-quobyte-csi --grace-period=0 --force=true &
+echo ''
+echo '# # # deleting pod nginx-dynamic-vol'
+kubectl delete pod nginx-dynamic-vol
+fi
+exit 0

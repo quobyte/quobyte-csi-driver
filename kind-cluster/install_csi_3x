@@ -1,0 +1,130 @@
+#!/bin/bash
+# Requirements https://github.com/quobyte/quobyte-csi#requirements
+# ./testing--setup_kind_cluster successfully executed
+# this sript should be run from kind cluster control-plane node
+
+if [[ $1 = '' ]]; then
+echo "Usage: ./install_csi_3x [options]
+Options:
+  install		deploy Quobyte CSI Driver and Quobyte Clients
+  e2e			run end-to-end Quobyte CSI Driver tests
+  uninstall		delete all entities, created with 'install' script"
+
+exit 0
+
+elif [[ $1 = "install" ]]; then
+
+#install wget, git, update and clean
+apt-get -y update 
+apt-get -y install wget && apt-get install -y git && apt install -y nano
+apt-get clean
+
+#install helm
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
+
+# set Quobyte CSI driver being used:
+# For example, to install Quobyte CSI release v1.0.5,
+# please set RELEASE_TAG="v1.0.5"
+
+# clone quobyte-csi repo and e2e script
+echo ''
+echo '# # # Cloning quobyte-csi repo'
+git clone https://github.com/quobyte/quobyte-csi.git 
+
+# Updating CSI driver files to use an actual Quobyte version
+sed -i 's/"My Tenant"/"csi-test"/' ./quobyte-csi/example/psp/StorageClass-PSP.yaml
+sed -i 's/"My Tenant"/"csi-test"/' ./quobyte-csi/example/StorageClass.yaml
+
+sed -i 's/\"quobyte_version\", 2/\"quobyte_version\", 3/' quobyte-csi/main.go 
+sed -i 's/version: 2/version: 3/' quobyte-csi/quobyte-csi-driver/values.yaml
+sed -i 's/--quobyte_version=2/--quobyte_version=3/' quobyte-csi/quobyte-csi-driver/tests/__snapshot__/csi_driver_test.yaml.snap
+
+
+cd quobyte-csi
+mv docs/e2e ../ # move out of csi code base
+chmod +x ../e2e
+
+kubectl config set-context --current --namespace=quobyte
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+## https://github.com/quobyte/quobyte-csi/blob/master/docs/install_client/deploy_clients_3_x.md
+echo ''
+echo '# # # # Editing example/client.yaml'
+sed -i 's/namespace: <CHANGE-NAMESPACE>/namespace: quobyte/' ./example/client.yaml
+sed -i 's/version: \"2\"/version: \"3\"/' ./example/client.yaml # set client version to an actual one
+sed -i 's/image: quay.io\/quobyte\/quobyte-client:2/image: quay.io\/quobyte\/quobyte-client:3/' ./example/client.yaml # set client version to an actual one
+#sed -i 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' ./example/client.yaml # change imagePullPollsicy if needed
+sed -i 's/value: <YOUR_QUOBYTE_REGISTRY>/value: testing.corp.quobyte.com/' ./example/client.yaml  # set quobyte registry address
+sed -i 's/value: <QUOBYTE_MOUNT_POINT>/value: $QUOBYTE_MOUNT_POINT/' ./example/client.yaml
+sed -i 's/mount.quobyte --hostname/mount.quobyte --no-default-permissions --ca-file \/tmp\/ca.pem --cert-file \/tmp\/client-cert.pem --key-file \/tmp\/client-key.pem --hostname/' ./example/client.yaml
+#sed -i 's/value: "false"/value: true/' ./example/client.yaml #enabling accesskeys
+
+awk '/volumeMounts:/{print $0 RS "          - name: ca-pemstore" RS "            mountPath: /tmp/ca.pem" RS "            subPath: ca.pem" RS "            readOnly: false" RS "          - name: cert-pemstore" RS "            mountPath: /tmp/client-cert.pem" RS "            subPath: client-cert.pem" RS "            readOnly: false" RS "          - name: key-pemstore" RS "            mountPath: /tmp/client-key.pem" RS "            subPath: client-key.pem" RS "            readOnly: false";next}1' ./example/client.yaml > tmp && mv tmp ./example/client.yaml
+awk '/volumes:/{print $0 RS "      - name: ca-pemstore" RS "        configMap:" RS "          name: quobyte-ca.pem" RS "      - name: cert-pemstore" RS "        configMap:" RS "          name: quobyte-cert.pem" RS "      - name: key-pemstore" RS "        configMap:" RS "          name: quobyte-key.pem";next}1' ./example/client.yaml > tmp && mv tmp ./example/client.yaml
+
+#Deploy Quobyte CSI Driver https://github.com/quobyte/quobyte-csi#deploy-quobyte-csi-driver
+
+echo ''
+echo '# # # # # Deploying Quobyte CSI Driver'
+# Edit Quobyte CSI driver configuration (./quobyte-csi-driver/values.yaml) and configure CSI driver with Quobyte API, other required information.
+sed -i 's/k8sVersion: \"1.20.2\"/k8sVersion: \"1.23.6\"/' ./quobyte-csi-driver/values.yaml  # set valid kubectl Client version -- find a way to extract version from $(kubectl version --short 2>1)
+echo '# # # # updating version to 3 (3.X format is allowed) at //quobyte-csi-driver/values.yaml'
+sed -i 's/version: 2/version: 3/' ./quobyte-csi-driver/values.yaml # set needed quobyte version (3.X format is allowed)
+sed -i 's/apiURL: \"http:\/\/10.125.2.77:10330\"/apiURL: $QUOBYTE_API_URL/' ./quobyte-csi-driver/values.yaml
+#sed -i 's/clientMountPoint: \/mnt\/quobyte/clientMountPoint: $QUOBYTE_MOUNT_POINT/' ./quobyte-csi-driver/values.yaml # set client mount point to the expected one - 
+#sed -i 's/enableAccessKeys: false/enableAccessKeys: true/' ./quobyte-csi-driver/values.yaml
+#sed -i 's/csiProvisionerVersion: \"1.8.2\"/csiProvisionerVersion: \"1.8.X\"/' ./quobyte-csi-driver/values.yaml # set Quobyte CSI version to the latest one
+#sed -i 's/csiImage: \"quay.io\/quobyte\/csi:1.8.2\"/csiImage: \"quay.io\/quobyte\/csi:1.8.X\"/' ./quobyte-csi-driver/values.yaml # set Quobyte CSI image to the latest one
+sed -i 's/podKillerImage: quay.io\/quobyte\/pod-killer:v0.1.2/podKillerImage: quay.io\/quobyte\/pod-killer:v0.1.3/' ./quobyte-csi-driver/values.yaml 
+
+
+echo ''
+echo '# # # # generate driver deployment .yaml and verify the configuration.'
+helm template ./quobyte-csi-driver --debug > csi-driver.yaml
+
+
+#install csi helm package and verify if it's successfully installed
+helm install $CSI_DRIVER ./quobyte-csi-driver --set quobyte.apiURL=$QUOBYTE_API_URL
+helm list | grep "$CSI_DRIVER":q:q
+
+echo ''
+echo '# # # # Verify the status of Quobyte CSI driver pods'
+echo 'kubectl get CSIDriver | grep ^${CSI_PROVISIONER}'
+kubectl get CSIDriver | grep ^${CSI_PROVISIONER}
+
+echo ''
+read -p "Waiting 15s before containers will be Running" -t 15
+
+echo 'cluster nodes status:'
+echo 'kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-$CSI_PROVISIONER'
+kubectl -n kube-system get po -owide | grep ^quobyte-csi-.*-$CSI_PROVISIONER
+
+echo ''
+echo '# # # # Deploying Containerized Quobyte client  '
+echo '# # kubectl apply -f example/client.yaml'
+kubectl apply -f example/client.yaml
+
+echo 'list client pods'
+echo 'kubectl get pods'
+kubectl get pods
+exit 0
+
+
+elif [[ $1 = "e2e" ]]; then
+	../e2e
+exit 0
+
+elif [[ $1 = "uninstall" ]]; then
+	echo 'deleting created daemonset client'
+	echo ''
+	kubectl delete daemonset client -n quobyte
+	rm -rf /etc/quobyte
+	rm -rf /root/.quobyte
+	rm -rf /mnt/quobyte
+	rm -rf /quobyte-csi
+	echo 'deleting CSI driver'
+	echo ''
+	echo 'deleting configMaps'
+	kubectl delete configmaps quobyte-ca.pem quobyte-cert.pem quobyte-key.pem
+	helm delete $CSI_DRIVER
+fi
+exit 0
