@@ -62,22 +62,22 @@ quobyte:
   # Please do NOT change the dev: configuration unless otherwise advised to change.
   dev:
     # CSI Release version
-    csiProvisionerVersion: "1.8.2"
+    csiProvisionerVersion: "v1.8.3-dev"
     # Release container
     # github.com/quobyte/quobyte-csi
-    csiImage: "quay.io/quobyte/csi:1.8.2"
+    csiImage: "quay.io/quobyte/csi:v1.8.3-dev"
     # github.com/quobyte/pod-killer
     podKillerImage: quay.io/quobyte/pod-killer:v0.1.2
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
-    k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v2.1.2
-    k8sResizerImage: quay.io/k8scsi/csi-resizer:v1.1.0
-    k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
-    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v3.1.0
+    k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v3.1.0
+    k8sResizerImage: quay.io/k8scsi/csi-resizer:v1.3.0
+    k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v2.5.0
+    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v3.5.0
     # when updating image for snapshotter, update snaptshotter setup CRD with
     # instructions in README (CRD should be pulled from matched release).
     # Additionally, ./quobyte-csi-driver/k8s-snapshot-controller.yaml 
     # (see this file for source link) should be updated with appropriate version
     # files (Do NOT forget updating namespace to kube-system)
-    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v3.0.3
+    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v5.0.1
