@@ -3,6 +3,9 @@
 # Pre-requirements:
 # valid ca.pem, client-cert.pem and client-key.pem files were added to working directory
 # Docker, k8s, kind are installed and configured
+
+PATH="$(pwd):$PATH"
+
 rm -rf  kind-csi-experiment-testing-corp
 
 mkdir kind-csi-experiment-testing-corp
@@ -13,7 +16,11 @@ echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *
 echo ""
 echo ""
 tee -a Dockerfile << END
-FROM kindest/node:v1.23.6
+FROM kindest/node:v1.24.2
+# until the next kindest (> v1.24.2) release available
+RUN sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+RUN apt-get -y update 
+RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
 RUN groupadd -g 10001 nginx; useradd -u 10001 -g 10001 nginx
 ENV CSI_DRIVER="quobyte"
 ENV QUOBYTE_API_URL="http://testing-api.corp.quobyte.com:7860"

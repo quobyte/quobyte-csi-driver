@@ -6,7 +6,7 @@ Scripts are developed to be executed against `testing` environment and as far as
 
 
 
-#### On your host machine install and setup Docker, k8s and kind
+#### On your host machine install and setup Docker and kind
 Make sure they are working ok - https://kind.sigs.k8s.io/docs/user/quick-start/
 
 ## Run scripts in the following order:
