@@ -97,7 +97,11 @@ spec:
       serviceAccount: snapshot-controller
       containers:
         - name: snapshot-controller
+<<<<<<< HEAD
           image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.3
+=======
+          image: gcr.io/k8s-staging-sig-storage/snapshot-controller:v6.0.1
+>>>>>>> 85bfeac (Run tests without logging into the kind control plane)
           args:
             - "--v=3"
             - "--leader-election=false"

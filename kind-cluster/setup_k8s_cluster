@@ -5,20 +5,20 @@
 # Docker, k8s, kind are installed and configured
 
 PATH="$(pwd):$PATH"
+CODE_BASE_DIR="$(pwd)"
+TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp' 
 
-rm -rf  kind-csi-experiment-testing-corp
+rm -rf "${TEST_CLUSTER_DIR}"
 
-mkdir kind-csi-experiment-testing-corp
-cp ca.pem client-cert.pem client-key.pem kind-csi-experiment-testing-corp
-cd kind-csi-experiment-testing-corp
+mkdir -p "${TEST_CLUSTER_DIR}"
+cp kind-cluster/ca.pem kind-cluster/client-cert.pem kind-cluster/client-key.pem "${TEST_CLUSTER_DIR}"
+cd "${TEST_CLUSTER_DIR}"
 
 echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *"
 echo ""
 echo ""
 tee -a Dockerfile << END
-FROM kindest/node:v1.24.2
-# until the next kindest (> v1.24.2) release available
-RUN sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+FROM kindest/node:v1.24.3
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
 RUN groupadd -g 10001 nginx; useradd -u 10001 -g 10001 nginx
@@ -43,6 +43,10 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
   image: quobyte/kind-node-testing:v0
+  extraMounts:
+    # mount codebase into container
+    - hostPath: ${CODE_BASE_DIR}
+      containerPath: /quobyte-csi
 - role: worker
   image: quobyte/kind-node-testing:v0
 - role: worker
@@ -67,15 +71,13 @@ kubectl get namespaces --context kind-quobyte-csi-experiment-testing
 kubectl config use-context kind-quobyte-csi-experiment-testing
 kubectl config set-context --current --namespace=quobyte
 
-echo 'creating configmaps adding required access files'
+echo 'creating configmaps with required pem files'
 kubectl -n quobyte create configmap quobyte-ca.pem --from-file=ca.pem
 kubectl -n quobyte create configmap quobyte-cert.pem --from-file=client-cert.pem
 kubectl -n quobyte create configmap quobyte-key.pem --from-file=client-key.pem
 
-chmod +x ../install_csi_3x ../pre-flight_checks
-docker cp ../install_csi_3x $(docker ps -aqf "name=control-plane"):/
-docker cp ../pre-flight_checks $(docker ps -aqf "name=control-plane"):/
+# chmod +x ../install_csi_3x ../pre-flight_checks
+# docker cp ../install_csi_3x $(docker ps -aqf "name=control-plane"):/
+# docker cp ../pre-flight_checks $(docker ps -aqf "name=control-plane"):/
 
-
-echo "logging in to the control plane by container ID * * * * * * * * * * * * * *"
-docker exec -it $(docker ps -aqf "name=control-plane") bash
+#docker exec -it $(docker ps -aqf "name=control-plane") bash

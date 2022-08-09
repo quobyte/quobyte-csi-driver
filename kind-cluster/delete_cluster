@@ -1,37 +1,19 @@
 #!/bin/bash
 
-echo 'reseting kubeadm'
-sudo kubeadm reset -f
+CLUSTER_NAME='quobyte-csi-experiment-testing'
+TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp'
 
 echo ''
-echo 'stop kubelet and deleting related directories'
-sudo systemctl stop kubelet
-# sudo systemctl stop docker
-sudo rm -rfv /etc/cni /var/lib/cni/ /etc/kubernetes /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/*
-
-echo ''
-echo 'deleting docker entities'
-sudo docker rm $(docker ps -a -q)
-sudo docker volume rm $(docker volume ls -q)
+echo 'deleting kind images from docker'
 docker rmi $(docker images -q | grep quobyte/kind-node-testing:v0)
 
-echo ''
-echo 'reseting iptables'
-sudo iptables -F && sudo iptables -X
-sudo iptables -t nat -F && sudo iptables -t nat -X
-sudo iptables -t raw -F && sudo iptables -t raw -X
-sudo iptables -t mangle -F && sudo iptables -t mangle -X
-
-echo ''
-echo 'restarting docker'
-sudo systemctl restart docker
+if [[ -z "$(kind get clusters | grep ${CLUSTER_NAME})" ]]; then
+  echo "Could not find cluster ${CLUSTER_NAME}"
+  exit 1
+fi
 
 echo ''
 echo 'deleting kind cluster'
-kind delete cluster --name $(kind get clusters | grep quobyte-csi-experiment-testing) 
-
-echo ''
-echo 'deleting cluster directory'
-rm -rf ./kind-csi-experiment-testing-corp
-
+kind delete cluster --name "$(kind get clusters | grep ${CLUSTER_NAME})"
+rm -rf "${TEST_CLUSTER_DIR}"
 exit 0
