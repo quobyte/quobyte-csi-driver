@@ -16,6 +16,7 @@ container_build_and_push(){
     VERSION=$1
     if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
       echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
+      exit 1
     fi
     IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
     echo "Building docker image and pushing it to ${IMAGE}"
@@ -27,7 +28,7 @@ container_build_and_push(){
     sudo docker push "$IMAGE"
     push_succeeded="$?"
     if [[ ${push_succeeded} -ne 0 ]]; then
-      echo 'FAILURE: container image ${IMAGE} cannot be pushed'
+      echo "FAILURE: container image ${IMAGE} cannot be pushed"
       echo 'Please fix the reported issues and retry'
       exit 1
     fi
