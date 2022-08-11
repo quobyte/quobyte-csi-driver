@@ -578,7 +578,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             resources:
@@ -1102,7 +1102,7 @@ should render when tolerations are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             securityContext:
@@ -1622,7 +1622,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             securityContext:
