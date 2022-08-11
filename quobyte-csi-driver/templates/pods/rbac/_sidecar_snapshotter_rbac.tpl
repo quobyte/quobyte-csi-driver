@@ -9,6 +9,11 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
+  {{- if gt (.Values.quobyte.csiControllerReplicas | toString | atoi) 1 }}
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  {{- end }}
   # Secret permission is optional.
   # Enable it if your driver needs secret.
   # For example, `csi.storage.k8s.io/snapshotter-secret-name` is set in VolumeSnapshotClass.
