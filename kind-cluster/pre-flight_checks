@@ -39,15 +39,14 @@ echo "# # # Setting up Quobyte volumes in Kubernetes"
 
 cd /quobyte-csi/
 
-sed -i 's/user: YWRtaW4=/user: a21fc3VzZXI=/' ./example/csi-secret.yaml
-sed -i 's/password: cXVvYnl0ZQ==/password: cXVvYnl0ZQ==/' ./example/csi-secret.yaml
+sed -i 's/user: YWRtaW4=/user: Y3NpLWRyaXZlcg==/' ./example/quobyte-admin-credentials.yaml
+sed -i 's/password: cXVvYnl0ZQ==/password: cXVvYnl0ZQ==/' ./example/quobyte-admin-credentials.yaml
 
 echo '# # # creating secret'
-kubectl apply -f example/csi-secret.yaml
+kubectl apply -f example/quobyte-admin-credentials.yaml
 
 echo '# # # creating StorageClass quobyte-csi'
 kubectl apply -f example/StorageClass.yaml
-
 
 echo "# # # creating PersistentVolumeClaim quobyte-csi-test"
 kubectl apply -f example/pvc-dynamic-provision.yaml

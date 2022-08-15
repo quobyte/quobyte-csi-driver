@@ -4,6 +4,8 @@ KUBECONFIG="/etc/kubernetes/admin.conf"
 NODES=1
 # TODO(venkat): remove --short once it becomes the default with kubectl
 K8S_VERSION="$(kubectl version --short | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
+STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
+SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-$(pwd)/quobyte-csi/example/volume-snapshot-class.yaml}
 
 # Requirements (manual)
 # ----------------------
@@ -40,9 +42,9 @@ fi
 cat> /tmp/quobyte-csi-driver.yaml<<EOF
 ShortName: quobyte-csi
 StorageClass:
-  FromFile: $(pwd)/quobyte-csi/example/StorageClass.yaml
+  FromFile: $STORAGE_CLASS
 SnapshotClass:
-  FromFile: $(pwd)/quobyte-csi/example/volume-snapshot-class.yaml
+  FromFile: $SNAPSHOT_CLASS
 DriverInfo:
   Name: csi.quobyte.com
   # Add  new capabilites from here (sample for v1.18.5)

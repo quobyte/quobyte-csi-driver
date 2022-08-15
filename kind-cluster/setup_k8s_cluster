@@ -4,6 +4,7 @@
 # valid ca.pem, client-cert.pem and client-key.pem files were added to working directory
 # Docker, k8s, kind are installed and configured
 
+MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
 TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp' 
@@ -27,6 +28,7 @@ ENV QUOBYTE_API_URL="http://testing-api.corp.quobyte.com:7860"
 ENV QUOBYTE_REGISTRY="testing.corp.quobyte.com"
 ENV CSI_PROVISIONER="csi.quobyte.com"
 ENV QUOBYTE_MOUNT_POINT=/mnt/quobyte/mounts
+ENV MOUNT_WITH_ACCESS_KEYS=$MOUNT_WITH_ACCESS_KEYS
 END
 
 echo "Building new image using the above Dockerfile. On the local machine: * * *"
@@ -72,9 +74,9 @@ kubectl config use-context kind-quobyte-csi-experiment-testing
 kubectl config set-context --current --namespace=quobyte
 
 echo 'creating configmaps with required pem files'
-kubectl -n quobyte create configmap quobyte-ca.pem --from-file=ca.pem
-kubectl -n quobyte create configmap quobyte-cert.pem --from-file=client-cert.pem
-kubectl -n quobyte create configmap quobyte-key.pem --from-file=client-key.pem
+kubectl -n kube-system create configmap quobyte-ca.pem --from-file=ca.pem
+kubectl -n kube-system create configmap quobyte-cert.pem --from-file=client-cert.pem
+kubectl -n kube-system create configmap quobyte-key.pem --from-file=client-key.pem
 
 # chmod +x ../install_csi_3x ../pre-flight_checks
 # docker cp ../install_csi_3x $(docker ps -aqf "name=control-plane"):/
