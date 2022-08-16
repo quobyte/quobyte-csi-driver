@@ -1,8 +1,14 @@
 # Secure Storage Access with Quobyte Access Keys
 
+Quobyte CSI requires Quobyte Management API access. The API access can be granted with user
+credentials (username/password) or `API and Webconsole` access key. Further, (optionally) you can
+protect volume mount from unexpected/malicious access with `File System` access key.
+
 ## Requirements
 
 Requires Quobyte version 3.1 or later
+
+To enable volume mount protection:
 
 1. Quobyte clients must be deployed with `enable-access-contexts` option
 2. Quobyte CSI driver must be deployed with `enableAccessKeyMounts: true`
@@ -23,7 +29,7 @@ API_URL="<your-quobyte-cluster-api-url>"
 
 ### Separate Management and File System Access Keys
 
-* Import [Quobyte API access](../example/access_keys/api_access_keys.csv) into your Quobyte Cluster
+* Import [Quobyte API access key](../example/access_keys/api_access_keys.csv) into your Quobyte Cluster
 
     ```bash
     qmgmt -u $API_URL accesskey import example/access_keys/api_access_keys.csv
@@ -83,14 +89,14 @@ API_URL="<your-quobyte-cluster-api-url>"
 
 ### Single Access Key for both API and File System Access
 
-* Import [Quobyte API access](../example/access_keys/all_uses_access_key.csv) into your Quobyte
+* Import [Quobyte All uses access key](../example/access_keys/all_uses_access_key.csv) into your Quobyte
  Cluster
 
     ```bash
     qmgmt -u $API_URL accesskey import example/access_keys/all_uses_access_keys.csv
     ```
 
-* Create [API secret](../example/access_keys/quobyte-generic-secret.yaml) with the imported
+* Create a [secret](../example/access_keys/quobyte-generic-secret.yaml) with the imported
   API access key information
 
     ```bash
@@ -134,5 +140,5 @@ API_URL="<your-quobyte-cluster-api-url>"
  Quobyte management API.
 
 * If tenant-name/volume-name is provided for pre-provisioned volume PV, you must provide "all uses"
-  as mount secret. Alternatively, you could use volume-uuid and more restrictive "file system/mount"
-  access key in the secret.
+  access key as mount secret. Alternatively, you could use volume-uuid and more restrictive
+  "file system/mount" access key in the secret.

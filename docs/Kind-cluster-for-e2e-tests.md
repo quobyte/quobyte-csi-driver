@@ -1,8 +1,7 @@
-# Quobyte CSI Deploy Scripts
+# Quobyte CSI E2e tests
 
-Aim of this set of scripts is setting up [Requirements](https://github.com/quobyte/quobyte-csi#requirements), [Deploy Quobyte clients 3.x](https://github.com/quobyte/quobyte-csi/blob/master/docs/install_client/deploy_clients_3_x.md), [Deploy Quobyte CSI](https://github.com/quobyte/quobyte-csi#deploy-quobyte-csi-driver) and [Use Quobyte volumes in Kubernetes](https://github.com/quobyte/quobyte-csi#use-quobyte-volumes-in-kubernetes)
-
-Scripts are developed to be executed against `testing` environment and as far as it requires encription-in-transit, you will need to add valid `ca.pem`, `client-cert.pem` and `client-key.pem` files to the working directory, so they will be used on Quobyte Clients mount stage.
+The aim of these set of scripts is to enable CSI e2e test runs against internal Quobyte cluster
+(testing cluster)
 
 ## Requirements
 
@@ -19,7 +18,7 @@ Scripts are developed to be executed against `testing` environment and as far as
       for file in example/access_keys/*.csv ; do qmgmt -u <QUOBYTE_API_URL> accesskey import "$file"; done
     ```
 
-## Run scripts in the following order
+## Run tests
 
 1. Clone `quobyte-csi` repo & checkout a feature branch
 

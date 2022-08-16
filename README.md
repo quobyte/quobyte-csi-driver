@@ -41,7 +41,8 @@ Quobyte CSI is the implementation of
   * [Update Quobyte CSI Driver](docs/update_quobyte_csi_or_clients.md#update-quobyte-csi-driver)
   * [Update Quobyte Client](docs/update_quobyte_csi_or_clients.md#update-quobyte-client)
     * [Application pod recovery](docs/update_quobyte_csi_or_clients.md#application-pod-recovery)
-* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md)
+* [Harden Access with Quobyte Access Keys](docs/quobyte_access_keys.md) (**requires Quobyte 3.1 or later**)
+* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md) **deprecated**
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
 * [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)
@@ -144,6 +145,12 @@ Quobyte CSI is the implementation of
 
 `Note:` This section uses `example/` deployment files for demonstration. These should be modified
   with your deployment configurations such as `namespace`, `quobyte registry`, `Quobyte API user credentials` etc.
+
+We use `quobyte` namespace for the examples. Create the namespace
+
+  ```bash
+  kubectl create ns quobyte
+  ```
 
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte API login credentials (Kubernetes requires base64 encoding for secret data which can be obtained

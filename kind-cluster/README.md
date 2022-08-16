@@ -1,0 +1,1 @@
+../docs/Kind-cluster-for-e2e-tests.md
