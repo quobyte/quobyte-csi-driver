@@ -116,6 +116,7 @@ else
     git tag "${VERSION}"
     # update chart index fiel for Artifacthub to get new update
     rebase_charts_on_master
+    git push origin master --tags
     print_post_release_instructions
   fi
 fi
