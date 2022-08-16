@@ -3,7 +3,7 @@
 Log collector gathers logs from all the Quobyte CSI containers in single place for analysis.
  It also generates tar that can be uploaded with support ticket.  
 
-1. Get the log_collector utlity script on any node with working kubectl
+1. Get the log_collector utility script on any node with working kubectl
 
     ```bash
     wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/log_collector \

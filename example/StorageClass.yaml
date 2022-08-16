@@ -23,13 +23,13 @@ parameters:
   # secret is used for dynamic volume provisioning.
   # The user credentials provided in this secret must have
   # volume create/delete permissions for `quobyteTenant` above.
-  csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-secret"
+  csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/provisioner-secret-namespace: "quobyte"
   # Resize volume requires secrets to communicate with Quobyte API
-  csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-secret"
+  csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
   # Mount secrets
-  csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-secret"
+  csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
   # Quobyte volume configuration
   quobyteConfig: "BASE"

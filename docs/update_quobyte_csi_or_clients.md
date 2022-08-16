@@ -16,12 +16,12 @@
 
 `Impact:` Removing and reinstalling Quobyte CSI driver should not
 disrupt application pods with already mounted volumes. Only, new dynamic volume provisioning,
-volume mount, delete requests will fail temporarily untill the new CSI Driver is
+volume mount, delete requests will fail temporarily until the new CSI Driver is
 available.
 
 ## Update Quobyte Client
 
-1. Upgrade Quobyte client on single k8s node and wait untill all application
+1. Upgrade Quobyte client on single k8s node and wait until all application
    pods are recreated and running on that k8s node.
 
 2. Once the application pods are running on the node with upgraded Quobyte client,

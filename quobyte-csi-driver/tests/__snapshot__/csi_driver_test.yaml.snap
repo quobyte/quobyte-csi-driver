@@ -303,7 +303,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-provisioner:v2.1.2
+            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             resources:
@@ -319,7 +319,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-resizer:v1.1.0
+            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             resources:
@@ -335,7 +335,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-attacher:v3.1.0
+            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             resources:
@@ -347,12 +347,11 @@ should render when resource limits are provided:
               name: socket-dir
           - args:
             - --v=3
-            - --leader-election=false
             - --csi-address=$(ADDRESS)
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-snapshotter:v3.0.3
+            image: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
             imagePullPolicy: IfNotPresent
             name: csi-snapshotter
             resources:
@@ -369,7 +368,7 @@ should render when resource limits are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -495,7 +494,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
+            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:
@@ -521,7 +520,7 @@ should render when resource limits are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -579,7 +578,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             resources:
@@ -864,7 +863,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-provisioner:v2.1.2
+            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             volumeMounts:
@@ -876,7 +875,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-resizer:v1.1.0
+            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             volumeMounts:
@@ -888,7 +887,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-attacher:v3.1.0
+            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             volumeMounts:
@@ -901,7 +900,7 @@ should render when tolerations are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1027,7 +1026,7 @@ should render when tolerations are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
+            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:
@@ -1049,7 +1048,7 @@ should render when tolerations are provided:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1103,7 +1102,7 @@ should render when tolerations are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             securityContext:
@@ -1388,7 +1387,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-provisioner:v2.1.2
+            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             volumeMounts:
@@ -1400,7 +1399,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-resizer:v1.1.0
+            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             volumeMounts:
@@ -1412,7 +1411,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/csi-attacher:v3.1.0
+            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             volumeMounts:
@@ -1425,7 +1424,7 @@ should render with default values:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1547,7 +1546,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
+            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:
@@ -1569,7 +1568,7 @@ should render with default values:
             - --api_url=$(QUOBYTE_API_URL)
             - --driver_name=csi.quobyte.com
             - --driver_version=1.8.2
-            - --enable_access_keys=false
+            - --enable_access_key_mounts=false
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
@@ -1623,7 +1622,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.1.2
+            image: quay.io/quobyte/pod-killer:v0.1.3
             imagePullPolicy: IfNotPresent
             name: quobyte-pod-killer
             securityContext:

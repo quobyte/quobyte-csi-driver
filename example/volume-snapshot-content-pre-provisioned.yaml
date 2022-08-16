@@ -12,8 +12,8 @@ metadata:
   annotations:
     # secrets are used during snapshot deletion and
     # should contain quobyte user credentials
-    snapshot.storage.kubernetes.io/deletion-secret-name: quobyte-admin-secret
-    snapshot.storage.kubernetes.io/deletion-secret-namespace: quobyte
+    snapshot.storage.kubernetes.io/deletion-secret-name: quobyte-admin-credentials
+    snapshot.storage.kubernetes.io/deletion-secret-namespace: default
 spec:
   deletionPolicy: Delete
   driver: csi.quobyte.com # your Quobyte CSI driver

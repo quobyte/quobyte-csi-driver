@@ -11,7 +11,7 @@
 
    * On Kubernetes versions lower than v1.14 `runAsGroup` [does not work](https://github.com/kubernetes/enhancements/issues/213)
 
-2. Quobyte CSI driver deployement with [PSP policies](../deploy/csi-driver-k8sv1.14-PSP.yaml).
+2. Quobyte CSI driver deployment with [PSP policies](../deploy/csi-driver-k8sv1.14-PSP.yaml).
 
 3. `PodSecurityPolicy` admission plugin must be enabled.
  Edit `/etc/kubernetes/manifests/kube-apiserver.yaml` on master nodes and append `--enable-admission-plugins`
@@ -50,10 +50,10 @@ Let us dive in and create an example PSP with restricted access. Using the examp
     kubectl create ns quobyte
     ```
 
-2. Create Quobyte [admin secret](../example/csi-secret.yaml) (credentials are required for dynamic volume provision)
+2. Create Quobyte [admin secret](../example/quobyte-admin-credentials.yaml) (credentials are required for dynamic volume provision)
 
     ```bash
-    kubectl create -f example/csi-secret.yaml
+    kubectl create -f example/quobyte-admin-credentials.yaml
     ```
 
 3. Review and create [storage class](../example/psp/StorageClass-PSP.yaml)

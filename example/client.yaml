@@ -32,7 +32,7 @@ spec:
             # Example volumeMount is : /mnt/quobyte and clientMountPoint is /mnt/quobyte/mounts
             value: /mnt/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
-          - name: ENABLE_ACCESS_KEYS
+          - name: ENABLE_ACCESS_KEY_MOUNTS
             value: "false"  # to enable, set it to true
           - name: NODENAME
             valueFrom:
@@ -59,7 +59,7 @@ spec:
           - -xec
           - |
             ENABLE_ACCESS_CONTEXTS=""
-            if [[ ${ENABLE_ACCESS_KEYS} = true ]]; then
+            if [[ ${ENABLE_ACCESS_KEY_MOUNTS} = true ]]; then
               ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then

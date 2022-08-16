@@ -10,6 +10,9 @@
   imagePullPolicy: "IfNotPresent"
   args:
     - "--csi-address=$(ADDRESS)"
+    {{- if gt (.Values.quobyte.csiControllerReplicas | toString | atoi) 1 }}
+    - "--leader-election=true"
+    {{- end }}
     - "--v=3"
     - "--extra-create-metadata=true"
     - "--timeout=5m"

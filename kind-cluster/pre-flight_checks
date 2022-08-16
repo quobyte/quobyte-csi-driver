@@ -11,6 +11,27 @@ if [ ! "$BASH_VERSION" ] ; then
     exit 1
 fi
 
+pod_running_state_check() {
+  if [[ -z "$1" ]]; then
+    echo 'Requires pod name'
+    exit 1
+  fi
+  found_running_pod=1
+  count=1
+  while [[ $found_running_pod -ne 0 && count -le 5 ]]; do
+    kubectl get po $1 | grep -i 'running'
+    found_running_pod="$?"
+    let count++
+    sleep 1m
+    echo "Waiting for the pod $1 to be in Running state. Time elapsed $count minutes"
+  done
+  if [[ found_running_pod -ne 0 ]]; then
+    echo "Pod $pod_name is not in Running state after $count minutes."
+    echo "This indicates a problem with the driver setup, therefore exiting with error code 1"
+    exit 1
+  fi
+}
+
 
 if [[ $1 = "" ]]; then
 
@@ -18,23 +39,23 @@ echo "# # # Setting up Quobyte volumes in Kubernetes"
 
 cd /quobyte-csi/
 
-sed -i 's/user: YWRtaW4=/user: a21fc3VzZXI=/' ./example/csi-secret.yaml
-sed -i 's/password: cXVvYnl0ZQ==/password: cXVvYnl0ZQ==/' ./example/csi-secret.yaml
+sed -i 's/user: YWRtaW4=/user: Y3NpLWRyaXZlcg==/' ./example/quobyte-admin-credentials.yaml
+sed -i 's/password: cXVvYnl0ZQ==/password: cXVvYnl0ZQ==/' ./example/quobyte-admin-credentials.yaml
 
 echo '# # # creating secret'
-kubectl apply -f example/csi-secret.yaml
+kubectl apply -f example/quobyte-admin-credentials.yaml
 
 echo '# # # creating StorageClass quobyte-csi'
 kubectl apply -f example/StorageClass.yaml
-
 
 echo "# # # creating PersistentVolumeClaim quobyte-csi-test"
 kubectl apply -f example/pvc-dynamic-provision.yaml
 
 echo '# # # creating pod nginx-dynamic-vol and waiting until pod will become available'
 kubectl apply -f example/nginx-demo-pod-with-dynamic-vol.yaml
-kubectl get po | grep 'nginx-dynamic-vol'
-read -p "Waiting 15s before pod will become available" -t 15
+pod_name='nginx-dynamic-vol'
+kubectl get po | grep $pod_name
+pod_running_state_check $pod_name
 
 echo ''
 kubectl get po | grep 'nginx-dynamic-vol'

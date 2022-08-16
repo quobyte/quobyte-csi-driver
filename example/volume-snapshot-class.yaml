@@ -8,9 +8,9 @@ metadata:
   name: quobyte-csi-snapshotclass
 driver: csi.quobyte.com # Your quobyte CSI driver name
 parameters:
-  csi.storage.k8s.io/snapshotter-secret-name: "quobyte-admin-secret"
-  csi.storage.k8s.io/snapshotter-secret-namespace: "quobyte"
-  csi.storage.k8s.io/snapshotter-list-secret-name: "quobyte-admin-secret"
-  csi.storage.k8s.io/snapshotter-list-secret-namespace: "quobyte"
+  csi.storage.k8s.io/snapshotter-secret-name: "quobyte-admin-credentials"
+  csi.storage.k8s.io/snapshotter-secret-namespace: "default"
+  csi.storage.k8s.io/snapshotter-list-secret-name: "quobyte-admin-credentials"
+  csi.storage.k8s.io/snapshotter-list-secret-namespace: "default"
   pinned: "true" # if true, snapshot is not deleted by Quobyte automatic cleanup
 deletionPolicy: Delete

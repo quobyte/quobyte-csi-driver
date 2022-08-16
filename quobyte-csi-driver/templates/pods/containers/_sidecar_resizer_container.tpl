@@ -11,6 +11,9 @@
   args:
     - "--v=3"
     - "--csi-address=$(ADDRESS)"
+    {{- if gt (.Values.quobyte.csiControllerReplicas | toString | atoi) 1 }}
+    - "--leader-election=true"
+    {{- end }}
   env:
     - name: ADDRESS
       value: /var/lib/csi/sockets/pluginproxy/csi.sock

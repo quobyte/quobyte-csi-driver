@@ -9,7 +9,7 @@ parameters:
   # secret is used for dynamic volume provisioning.
   # The user credentials provided in this secret must have
   # volume create/delete permissions for `quobyteTenant` above.
-  csiProvisionerSecretName: "quobyte-admin-secret"
+  csiProvisionerSecretName: "quobyte-admin-credentials"
   csiProvisionerSecretNamespace: "quobyte"
   # Quobyte volume configuration
   quobyteConfig: "BASE"

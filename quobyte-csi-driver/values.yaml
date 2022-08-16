@@ -6,6 +6,10 @@ quobyte:
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   apiURL: "http://10.125.2.77:10330"
+
+  # Replication for csi controller pod, must be at least one
+  # Note that node plugin which is responsible for mounting volume cannot be replicated
+  csiControllerReplicas: 1
   
   # Maps /etc/ssl/certs/ from host into Quobyte CSI containers.
   # Must set to true, if you have https:// API URL. Otherwise,
@@ -29,16 +33,16 @@ quobyte:
   # have tenants that match the namespace.
   useK8SNamespaceAsTenant: false 
 
-  # Set this to true to enable Quobyte access keys. Then, add access key
-  # information to your K8S secret and use this secret in StorageClass as
+  # Set this to true to mount Quobyte volumes using Quobyte file system access keys.
+  # Then, add access key information to your K8S secret and use this secret in StorageClass as
   # mount secret. Quobyte-CSI and Client uses access key information
-  # from the mount secret to securely mount volumes.
-  # When access keys are enabled in CSI driver, Quobyte client must also be 
-  # enabled with access keys. To enable access keys on native client,
+  # from the mount secret to securely mount volumes into k8s.
+  # When mount access keys are enabled in CSI driver, Quobyte client must also be 
+  # enabled with access key contexts. To enable access key contexts on native client,
   # add "enable-access-contexts" in /etc/quobyte/client-service.cfg.
   # For container based client configuration, see client.yaml definition.
-  # Requires Quobyte 3.x to enable access keys
-  enableAccessKeys: false
+  # Requires Quobyte 3.x to enable mount access keys
+  enableAccessKeyMounts: false
   
   # Enabling this feature requires additional driver setup (see README.md)
   # Quobyte 3.x is recommended for snapshots
@@ -67,17 +71,17 @@ quobyte:
     # github.com/quobyte/quobyte-csi
     csiImage: "quay.io/quobyte/csi:1.8.2"
     # github.com/quobyte/pod-killer
-    podKillerImage: quay.io/quobyte/pod-killer:v0.1.2
+    podKillerImage: quay.io/quobyte/pod-killer:v0.1.3
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
-    k8sProvisionerImage: quay.io/k8scsi/csi-provisioner:v2.1.2
-    k8sResizerImage: quay.io/k8scsi/csi-resizer:v1.1.0
-    k8sNodeRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
-    k8sAttacherImage: quay.io/k8scsi/csi-attacher:v3.1.0
+    k8sProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+    k8sResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+    k8sNodeRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+    k8sAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
     # when updating image for snapshotter, update snaptshotter setup CRD with
     # instructions in README (CRD should be pulled from matched release).
     # Additionally, ./quobyte-csi-driver/k8s-snapshot-controller.yaml 
     # (see this file for source link) should be updated with appropriate version
     # files (Do NOT forget updating namespace to kube-system)
-    k8sSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v3.0.3
+    k8sSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1

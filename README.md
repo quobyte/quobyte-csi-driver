@@ -145,20 +145,14 @@ Quobyte CSI is the implementation of
 `Note:` This section uses `example/` deployment files for demonstration. These should be modified
   with your deployment configurations such as `namespace`, `quobyte registry`, `Quobyte API user credentials` etc.
 
-We use `quobyte` namespace for the examples. Create the namespace
-
-  ```bash
-  kubectl create ns quobyte
-  ```
-
 Quobyte requires a secret to authenticate volume create and delete requests. Create this secret with
  your Quobyte API login credentials (Kubernetes requires base64 encoding for secret data which can be obtained
  with the command `echo -n "value" | base64`). Please encode your user name, password (and optionally access key
- information) in base64 and update [example/csi-secret.yaml](example/csi-secret.yaml). If provided, access key
+ information) in base64 and update [example/quobyte-admin-credentials.yaml](example/quobyte-admin-credentials.yaml). If provided, access key
  ensures only authorized user can access the tenant and volumes (users must be restricted to their own namespace in k8s cluster).
 
   ```bash
-  kubectl create -f example/csi-secret.yaml
+  kubectl create -f example/quobyte-admin-credentials.yaml
   ```
 
 Create a [storage class](example/StorageClass.yaml) with the `provisioner` set to `csi.quobyte.com` along with other configuration
@@ -290,13 +284,13 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
       wget https://raw.githubusercontent.com/quobyte/quobyte-csi/master/example/index.html -P <values.clientMountPoint>/mounts/$VOLUME
       ```
 
-  3. Create [volume snapshot secrets](example/csi-secret.yaml)
+  3. Create [volume snapshot secrets](example/quobyte-admin-credentials.yaml)
 
      Our examples use same secret in all the places wherever secret is required. Please create and
      configure secrets as per your requirements.
 
         ```bash
-        kubectl create -f example/csi-secret.yaml
+        kubectl create -f example/quobyte-admin-credentials.yaml
         ```
 
   4. Create volume [snapshot class](example/volume-snapshot-class.yaml)
@@ -348,7 +342,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
       Please create and configure secrets as per your requirements.
 
       ```bash
-      kubectl create -f example/csi-secret.yaml
+      kubectl create -f example/quobyte-admin-credentials.yaml
       ```
 
   3. Create `VolumeSnapshotContent` object for pre-provisioned volume with
@@ -409,9 +403,9 @@ The below setup is required once per k8s cluster
 
   ```bash
     # https://github.com/kubernetes-csi/external-snapshotter/
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
     kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
 
   ```
@@ -419,9 +413,9 @@ The below setup is required once per k8s cluster
 ### Remove Snapshotter
 
   ```bash
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v3.0.3/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
-    kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
-
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml
+    
   ```
