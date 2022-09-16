@@ -17,8 +17,6 @@ import (
 
 const (
 	SEPARATOR = "|"
-	//DefaultTenant Default Tenant to use if none provided by user
-	DefaultTenant = "My Tenant"
 	//DefaultConfig Default configuration to use if none provided by user
 	DefaultConfig = "BASE"
 	//DefaultCreateQuota Quobyte CSI by default does NOT create volumes with Quotas.
@@ -54,7 +52,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
 	volRequest.Name = volName
-	volRequest.TenantId = DefaultTenant
 	volRequest.ConfigurationName = DefaultConfig
 	volRequest.RootUserId = DefaultUser
 	volRequest.RootGroupId = DefaultGroup
@@ -96,9 +93,16 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
 			volRequest.TenantId = pvcNamespace
 		} else {
-			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping, quay.io/k8scsi/csi-provisioner" +
-				"should be deployed with --extra-create-metadata=true. Please redeploy driver with the above flag and retry.")
+			return nil, fmt.Errorf("To use K8S namespace to Quobyte tenant mapping, " +
+				"quay.io/k8scsi/csi-provisioner should be deployed with " +
+				"--extra-create-metadata=true. Please redeploy driver with the above flag" +
+				" and retry.")
 		}
+	}
+
+	if len(volRequest.TenantId) == 0 {
+		return nil, fmt.Errorf("Configure quobyteTenant in StorageClass parameters or deploy" +
+			" driver with useK8SNamespaceAsTenant feature enabled")
 	}
 
 	volRequest.TenantId, err = quobyteClient.GetTenantUUID(volRequest.TenantId)
