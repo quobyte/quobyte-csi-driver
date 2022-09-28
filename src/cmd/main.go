@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/quobyte/quobyte-csi/driver"
+	"github.com/quobyte/quobyte-csi-driver/driver"
 )
 
 var (

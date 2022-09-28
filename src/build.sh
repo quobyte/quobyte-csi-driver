@@ -77,7 +77,7 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   exit 0
 else
   echo 'Building executable'
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi main.go
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go 
   build_success="$?"
   if [[ ${build_success} -eq 0 ]]; then
     echo "Build is successful"

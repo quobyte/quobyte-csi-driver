@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"net/url"
 	"os/exec"
 	"strings"
 
@@ -39,41 +38,6 @@ func initClientCache() {
 	}
 }
 
-func getAPIClient(secrets map[string]string, apiURL *url.URL) (*quobyte.QuobyteClient, error) {
-	if clientCache == nil {
-		initClientCache()
-	}
-	var apiUser, apiPass string
-
-	// TODO (venkat): priority to access key after 2.x support EOL
-	if hasApiUserAndPassword(secrets) { // Quobyte API access using user and password
-		apiUser = secrets[secretUserKey]
-		apiPass = secrets[secretPasswordKey]
-	} else if hasApiAcessKeyIdAndSecrect(secrets) { // Quobyte API access using access key & secret
-		apiUser = secrets[accessKeyID]
-		apiPass = secrets[accessKeySecret]
-	} else {
-		return nil, fmt.Errorf("Requires Quobyte management API user/password or accessKeyId/accessKeySecret combination")
-	}
-
-	// API url is unique for deployment and cannot be changed once driver is installed.
-	// Therefore, it is not need as part of key.
-	// Add password to key to create a new client if the password for the user is changed.
-	cacheKey := apiUser + apiPass
-
-	if apiClientIf, ok := clientCache.Get(cacheKey); ok {
-		if apiClient, ok := apiClientIf.(*quobyte.QuobyteClient); ok {
-			return apiClient, nil
-		}
-		return nil, fmt.Errorf("Cached API client is not QuobyteClient type")
-	}
-
-	apiClient := quobyte.NewQuobyteClient(apiURL.String(), apiUser, apiPass)
-	clientCache.Add(cacheKey, apiClient)
-
-	return apiClient, nil
-}
-
 func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
 	return fmt.Sprintf(KEY_VAL, key_id, key_secret, accesskeyHandle)
 }
@@ -102,7 +66,7 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if len(secrets) == 0 {
 		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
 	}
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	capacity := req.capacity
 	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
 	if err != nil {
@@ -164,15 +128,15 @@ func parseLabels(labels string) ([]*quobyte.Label, error) {
 	return parsedLabels, nil
 }
 
-func getInvlaidSnapshotIdError(snapshotId string) error {
+func getInvalidSnapshotIdError(snapshotId string) error {
 	return fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshotId, SEPARATOR, SEPARATOR)
 }
 
 func hasApiCredentials(secrets map[string]string) bool {
-	return hasApiUserAndPassword(secrets) || hasApiAcessKeyIdAndSecrect(secrets)
+	return hasApiUserAndPassword(secrets) || hasApiAccessKeyIdAndSecret(secrets)
 }
 
-func hasApiAcessKeyIdAndSecrect(secrets map[string]string) bool {
+func hasApiAccessKeyIdAndSecret(secrets map[string]string) bool {
 	_, hasQuobyteApiKeyId := secrets[accessKeyID]
 	_, hasQuobyteApiSecret := secrets[accessKeySecret]
 	return hasQuobyteApiKeyId && hasQuobyteApiSecret

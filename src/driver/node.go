@@ -41,7 +41,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		if snapshotId, ok := volContext[SnapshotIDKey]; ok {
 			snapshotParts := strings.Split(snapshotId, SEPARATOR)
 			if len(snapshotParts) < 3 {
-				return nil, getInvlaidSnapshotIdError(snapshotId)
+				return nil, getInvalidSnapshotIdError(snapshotId)
 			}
 			if len(snapshotParts) == 4 {
 				volumeId = snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + snapshotParts[3]
@@ -67,7 +67,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		klog.Infof("csiNodePublishSecret is  not received with sufficient Quobyte API credential. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
-		quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+		quobyteClient, err := d.getQuobyteApiClient(secrets)
 		if err != nil {
 			return nil, err
 		}

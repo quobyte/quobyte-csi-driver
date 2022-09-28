@@ -84,7 +84,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			volRequest.AccessMode = int32(u64)
 		}
 	}
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		if snapshot != nil {
 			snapshotIdParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
 			if len(snapshotIdParts) < 3 {
-				return nil, getInvlaidSnapshotIdError(snapshot.SnapshotId)
+				return nil, getInvalidSnapshotIdError(snapshot.SnapshotId)
 			}
 			volumeContext[SnapshotIDKey] = snapshot.SnapshotId
 			resp := &csi.CreateVolumeResponse{
@@ -212,7 +212,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	if len(params) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
 	}
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnaps
 			snapshotID, SEPARATOR, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 			snapshotID, SEPARATOR, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := getAPIClient(secrets, d.ApiURL)
+	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
 	}

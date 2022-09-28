@@ -5,11 +5,11 @@ To build Quobyte CSI, golang and docker must be installed on host machine.
 1. Clone the Quobyte CSI codebase
 
     ```bash
-    git clone git@github.com:quobyte/quobyte-csi.git
-    cd quobyte-csi
+    git clone git@github.com:quobyte/quobyte-csi-driver.git
+    cd quobyte-csi-driver/src
     ```
 
-2. Use `./build` utility to build the binary and push the container (during development) 
+2. Use `./build` utility to build the binary and push the container (during development)
 
     To build binary
 
