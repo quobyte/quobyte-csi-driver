@@ -19,7 +19,7 @@ echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *
 echo ""
 echo ""
 tee -a Dockerfile << END
-FROM kindest/node:v1.24.3
+FROM kindest/node:v1.25.0
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
 RUN groupadd -g 10001 nginx; useradd -u 10001 -g 10001 nginx
