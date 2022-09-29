@@ -6,6 +6,11 @@
 {{ toYaml .Values.resources.controllerContainer | indent 4 }}
 {{- end }}
 {{- end }}
+  securityContext:
+    privileged: true
+    capabilities:
+      add: ["SYS_ADMIN"]
+    allowPrivilegeEscalation: true
   image: {{ .Values.quobyte.dev.csiImage }}
   imagePullPolicy: "IfNotPresent"
   args :
@@ -15,10 +20,12 @@
     - "--api_url=$(QUOBYTE_API_URL)" 
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
     - "--driver_version={{ .Values.quobyte.dev.csiProvisionerVersion }}"
-    - "--enable_access_keys={{ .Values.quobyte.enableAccessKeys }}"
+    - "--enable_access_key_mounts={{ .Values.quobyte.enableAccessKeyMounts }}"
     - "--quobyte_version={{ .Values.quobyte.version }}"
     - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
-    - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
+    - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}"
+    - "--shared_volumes_list={{ .Values.quobyte.sharedVolumesList }}"
+    - "--role=controller"
   env:
     - name: NODE_ID
       valueFrom:
@@ -39,6 +46,9 @@
       mountPath: /var/lib/csi/sockets/pluginproxy/
     - name: log-dir
       mountPath: /tmp
+    - name: quobyte-mounts
+      mountPath: {{ .Values.quobyte.clientMountPoint }}
+      mountPropagation: "Bidirectional"
     {{- if .Values.quobyte.mapHostCertsIntoContainer }}
     - name: certs
       mountPath: /etc/ssl/certs/

@@ -1,5 +1,5 @@
 # Used to generate CSI deployment files specific to given k8s version
-k8sVersion: "1.20.2"
+k8sVersion: "1.23.6"
 quobyte:
   # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
   version: 2
@@ -54,6 +54,13 @@ quobyte:
 
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
+
+  # Required only for Quobyte 2.x
+  # Specify list of shared volumes. Quobyte CSI driver allows volumes not listed here
+  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName), however,
+  # driver does not cleanup volumes not mentioned here.
+  # Example, sharedVolumesList: "sharedVolume1,sharedVolume2,...,sharedVolumeN"
+  sharedVolumesList: "sharedVolume"
 
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)

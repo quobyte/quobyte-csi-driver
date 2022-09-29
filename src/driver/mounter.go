@@ -10,7 +10,7 @@ import (
 )
 
 // Mount bind mounts the Quobyte volume to the target
-func Mount(source, target, fsType string, opts []string) error {
+func Mount(source, target string, opts []string) error {
 	// Readonly is left to kubelet running on host machines.
 	// Remounting from the pods is not allowed from the running container
 	// https://github.com/moby/moby/issues/31591

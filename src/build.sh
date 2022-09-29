@@ -8,6 +8,14 @@ CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
 # location to grab the deployable charts from docs/index.yaml
 CHART_PACKAGE_DIR="docs" 
 CHART_DIR="quobyte-csi-driver"
+CODE_BASE_ROOT=${CODE_BASE_ROOT:-$(pwd)}
+
+if [[ -z ${CODE_BASE_ROOT} ]]; then
+  echo "Provide codebase path via CODE_BASE_ROOT"
+  exit 1
+fi
+
+cd ${CODE_BASE_ROOT}/src
 
 container_build_and_push(){
     if [[ -z "${CONTAINER_URL_BASE}" ]]; then
@@ -77,7 +85,7 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   exit 0
 else
   echo 'Building executable'
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go 
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go
   build_success="$?"
   if [[ ${build_success} -eq 0 ]]; then
     echo "Build is successful"

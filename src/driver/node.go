@@ -137,7 +137,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-	err := Mount(mountPath, targetPath, "quobyte", options)
+	err := Mount(mountPath, targetPath, options)
 	if err != nil {
 		return nil, err
 	}

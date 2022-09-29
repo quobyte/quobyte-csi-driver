@@ -3,8 +3,13 @@ package driver
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -24,7 +29,7 @@ const (
 	DefaultCreateQuota = false
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
-	DefaultAccessModes = 777
+	DefaultAccessModes = 700
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 	pinnedKey       = "pinned"
@@ -48,10 +53,12 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, fmt.Errorf("secrets are required to dynamically provision volume." +
 			"Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
 	}
+
 	capacity := req.GetCapacityRange().RequiredBytes
-	volName := req.Name
+	dynamicVolumeName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
-	volRequest.Name = volName
+	// will be override if shared_volume_name is specified in storage class
+	volRequest.Name = dynamicVolumeName
 	volRequest.ConfigurationName = DefaultConfig
 	volRequest.RootUserId = DefaultUser
 	volRequest.RootGroupId = DefaultGroup
@@ -61,6 +68,8 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		switch strings.ToLower(k) {
 		case "quobytetenant":
 			volRequest.TenantId = v
+		case "sharedvolumename":
+			volRequest.Name = v
 		case "user":
 			volRequest.RootUserId = v
 		case "group":
@@ -84,6 +93,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			volRequest.AccessMode = int32(u64)
 		}
 	}
+
 	quobyteClient, err := d.getQuobyteApiClient(secrets)
 	if err != nil {
 		return nil, err
@@ -148,49 +158,111 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	}
 
-	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
+	sharedVolumeName, isSharedVolume := params["sharedVolumeName"]
+
 	var volUUID string
-	if err != nil {
-		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
-		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
-			return nil, err
-		}
-		volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
-	} else {
-		volUUID = volCreateResp.VolumeUuid
-	}
-	if createQuota {
-		err := quobyteClient.SetVolumeQuota(volUUID, capacity)
+	if isSharedVolume {
+		volUUID, err = quobyteClient.GetVolumeUUID(sharedVolumeName, volRequest.TenantId)
 		if err != nil {
-			if d.QuobyteVersion == 2 {
-				quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
-			} else {
-				quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
-			}
-			return nil, err
+			return nil, fmt.Errorf("Could not find shared volume '%s' under tenant '%s'", sharedVolumeName, volRequest.TenantId)
 		}
+	} else {
+		volCreateResp, err := quobyteClient.CreateVolume(volRequest)
+		if err != nil {
+			// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
+			if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+				return nil, err
+			}
+			volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
+		} else {
+			volUUID = volCreateResp.VolumeUuid
+			if createQuota {
+				err := quobyteClient.SetVolumeQuota(volUUID, capacity)
+				if err != nil {
+					if d.QuobyteVersion == 2 {
+						quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
+					} else {
+						quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
+					}
+					return nil, err
+				}
+			}
+		}
+	}
+
+	var volumeId string
+	if isSharedVolume {
+		// requested dynamic volume is subdir under the given shared volume
+		subdirPath := filepath.Join(d.clientMountPoint, volUUID, dynamicVolumeName)
+		if statInfo, err := os.Stat(subdirPath); err != nil {
+			if e, ok := err.(*os.PathError); ok && e.Err == syscall.ENOENT {
+				if err = d.createDynamicVolumeAsADirectory(subdirPath, volRequest); err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
+		} else if !statInfo.IsDir() {
+			return nil, fmt.Errorf("A file with sub-directory name exists at %s", subdirPath)
+		}
+		volumeId = volRequest.TenantId + SEPARATOR + volUUID + SEPARATOR + dynamicVolumeName
+	} else {
+		volumeId = volRequest.TenantId + SEPARATOR + volUUID
 	}
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			// CSI does not pass on vendor specific parameters to DeleteVolume and we require API url during volume delete
-			// this hacky append serves the purpose as of now. The format of the hack <TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID>
-			// Implications of this are
-			// 	 1. All the subsequent calls should not use value of req.GetVolumeId() or req.VolumeId directly as volume name
-			//   but parse and resolve UUID to name wherever required.
-			//   2. Must be aware of the  <TenantName/TenantUUID>|<VOL_NAME/VOLUME_UUID> while using req.GetVolumeId() or req.VolumeId
-
-			// Currently volume handle is the combination of  <TenantName/TenantUUID>, and <VOL_NAME/VOLUME_UUID>
-			// due to the limitation of CSI not passing storage vendor specific parameters. Dynamic provision used UUID returned by
-			// Quobyte's CreateVolume call as it does not require name to UUID resolution calls. But user can configure either name or UUID
-			// for pre-provisioned volumes
-			VolumeId:      volRequest.TenantId + SEPARATOR + volUUID,
+			VolumeId:      volumeId,
 			CapacityBytes: capacity,
 		},
 	}
 	return resp, nil
 }
 
-// DeleteVolume deletes the given volume.
+func (d *QuobyteDriver) createDynamicVolumeAsADirectory(subdirPath string, volRequest *quobyte.CreateVolumeRequest) error {
+	modeVal, err := strconv.ParseUint(strconv.Itoa(int(volRequest.AccessMode)), 8, 32)
+	if err != nil {
+		return fmt.Errorf("Cannot parse access mode due to %s", err)
+	}
+	if err = os.Mkdir(subdirPath, fs.FileMode(modeVal)); err != nil {
+		// ignore directory exists error; might have been created by replicated pods
+		if e, ok := err.(*os.PathError); ok && e.Err == syscall.EEXIST {
+			// assume user, group and permissions are already set on the existing directory
+			return nil
+		} else {
+			return fmt.Errorf("Unable to create sub-directory %s due to %s", subdirPath, err)
+		}
+	}
+	if err = os.Chmod(subdirPath, fs.FileMode(modeVal)); err != nil {
+		return fmt.Errorf("Cannot apply requested permissions %d for %s due to %s", modeVal, subdirPath, err)
+	}
+	return d.chownDirectory(subdirPath, volRequest)
+}
+
+func (d *QuobyteDriver) chownDirectory(subdirPath string, volRequest *quobyte.CreateVolumeRequest) error {
+	var userInfo *user.User
+	var groupInfo *user.Group
+	var err error
+	if userInfo, err = user.Lookup(volRequest.RootUserId); err != nil {
+		return fmt.Errorf("Cannot look up user '%s' on node '%s' due to error %s", volRequest.RootUserId, d.NodeName, err)
+	}
+	if groupInfo, err = user.LookupGroup(volRequest.RootGroupId); err != nil {
+		return fmt.Errorf("Cannot look up group '%s' on node '%s' due to error %s", volRequest.RootGroupId, d.NodeName, err)
+	}
+	var userId, groupId int
+	if userId, err = strconv.Atoi(userInfo.Uid); err != nil {
+		return err
+	}
+	if groupId, err = strconv.Atoi(groupInfo.Gid); err != nil {
+		return err
+	}
+	if err := os.Chown(subdirPath, userId, groupId); err != nil {
+		return fmt.Errorf("Cannot change ownership of '%s' to '%s:%s' on node '%s' due to %s", subdirPath, volRequest.RootUserId, volRequest.RootGroupId, d.NodeName, err)
+	}
+	return nil
+}
+
+// DeleteVolume deletes the given volume or
+// the directory inside a shared volume
 func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
@@ -208,8 +280,8 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 		return nil, fmt.Errorf("secrets are required to delete a volume." +
 			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
 	}
-	params := strings.Split(volID, SEPARATOR)
-	if len(params) < 2 {
+	volumeIdParts := strings.Split(volID, SEPARATOR)
+	if len(volumeIdParts) < 2 {
 		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
 	}
 	quobyteClient, err := d.getQuobyteApiClient(secrets)
@@ -217,10 +289,34 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 		return nil, err
 	}
 
-	if d.QuobyteVersion == 2 {
-		err = quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(params[1], params[0])
+	if len(volumeIdParts) == 2 { // tenant|volume
+		if d.QuobyteVersion == 2 {
+			err = quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volumeIdParts[1], volumeIdParts[0])
+		} else {
+			err = quobyteClient.EraseVolumeByResolvingNamesToUUID(volumeIdParts[1], volumeIdParts[0], d.ImmediateErase)
+		}
+	} else if len(volumeIdParts) == 3 { // tenant|volume|subdir
+		if d.QuobyteVersion == 2 {
+			subdirPath := filepath.Join(d.clientMountPoint, volumeIdParts[1], volumeIdParts[2])
+			renameTo := filepath.Join(d.clientMountPoint, volumeIdParts[1], fmt.Sprintf(DELETE_MARKER_FORMAT, d.NodeName, volumeIdParts[2]))
+			if err := os.Rename(subdirPath, renameTo); err != nil {
+				if e, ok := err.(*os.LinkError); ok && e.Err != syscall.ENOENT {
+					return nil, fmt.Errorf("Cannot mark directory '%s' for deletion due to %s", subdirPath, err)
+				}
+			}
+		} else {
+			req := &quobyte.CreateTaskRequest{}
+			req.RestrictToVolumes = []string{volumeIdParts[1]}
+			req.TaskType = quobyte.TaskType_DELETE_FILES_IN_VOLUMES
+			req.DeleteFilesSettings = quobyte.DeleteFilesSettings{}
+			req.DeleteFilesSettings.DirectoryPath = "/" + volumeIdParts[2]
+			_, err = quobyteClient.CreateTask(req)
+			if err != nil {
+				return nil, fmt.Errorf("could not delete subdirectory of the shared volume due to %s", err)
+			}
+		}
 	} else {
-		err = quobyteClient.EraseVolumeByResolvingNamesToUUID(params[1], params[0], d.ImmediateErase)
+		return nil, fmt.Errorf("Unknown volume id format")
 	}
 
 	if err != nil {

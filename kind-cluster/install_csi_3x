@@ -78,8 +78,8 @@ elif [[ $1 = "install" ]]; then
   sed -i 's/version: \"2\"/version: \"3\"/' ./example/client.yaml # set client version to an actual one
   sed -i 's/image: quay.io\/quobyte\/quobyte-client:2/image: quay.io\/quobyte\/quobyte-client:3/' ./example/client.yaml # set client version to an actual one
   #sed -i 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' ./example/client.yaml # change imagePullPollsicy if needed
-  sed -i 's/value: <YOUR_QUOBYTE_REGISTRY>/value: testing.corp.quobyte.com/' ./example/client.yaml  # set quobyte registry address
-  sed -i 's/value: <QUOBYTE_MOUNT_POINT>/value: $QUOBYTE_MOUNT_POINT/' ./example/client.yaml
+  sed -i "s/value: <YOUR_QUOBYTE_REGISTRY>/value: $QUOBYTE_REGISTRY/" ./example/client.yaml  # set quobyte registry address
+  sed -i "s/value: <QUOBYTE_MOUNT_POINT>/value: $QUOBYTE_MOUNT_POINT/" ./example/client.yaml
   enable_access_keys=False
   if [[ "$MOUNT_WITH_ACCESS_KEYS" = 'y' ]]; then
     enable_access_keys=True
@@ -108,8 +108,11 @@ elif [[ $1 = "install" ]]; then
   #kubectl create -f  quobyte-csi-driver/k8s-snapshot-controller.yaml 
 
   # install csi helm package and verify if it's successfully installed
-  helm install $CSI_DRIVER ./quobyte-csi-driver --set quobyte.apiURL=$QUOBYTE_API_URL \
-    --set quobyte.enableSnapshots=False --set quobyte.enableAccessKeyMounts=$enable_access_keys
+  helm install $CSI_DRIVER ./quobyte-csi-driver --set quobyte.apiURL=${QUOBYTE_API_URL} \
+    --set quobyte.enableSnapshots=False --set quobyte.enableAccessKeyMounts=${enable_access_keys} \
+    --set quobyte.dev.csiProvisionerVersion=${CSI_DRIVER_VERSION} \
+    --set quobyte.dev.csiImage=${CSI_DRIVER_IMAGE} \
+    --set quobyte.sharedVolumesList="sharedVolume"
   
   helm list | grep "$CSI_DRIVER"
 
@@ -141,7 +144,8 @@ elif [[ $1 = "e2e" ]]; then
     STORAGE_CLASS="$CODE_BASE_DIR/example/access_keys/storage-class-api-and-mount-secret.yaml" ../e2e || die 'Failing e2e tests with api and mount secrets'
     STORAGE_CLASS="$CODE_BASE_DIR/example/access_keys/storage-class-generic-secret.yaml" ../e2e || die 'Failing e2e tests with generic secrets'
   else
-    ../e2e
+    STORAGE_CLASS="$CODE_BASE_DIR/example/StorageClass.yaml" ../e2e || die 'Failing e2e tests with exclusive volumes'
+    STORAGE_CLASS="$CODE_BASE_DIR/example/Storage-class-shared-volume.yaml" ../e2e || die 'Failing e2e tests with shared volumes'
   fi
   exit 0
 elif [[ $1 = "uninstall" ]]; then

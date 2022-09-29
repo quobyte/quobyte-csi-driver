@@ -7,7 +7,20 @@
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
-TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp' 
+TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp'
+
+if [ ! -z "$(git status --porcelain)" ]; then
+  echo 'Requires clean directory (no stage/unstaged/untracked files) in repo'
+  exit 1
+fi
+
+KIND_CLUSTER_NAME="quobyte-csi-experiment-testing"
+# do not tag version as latest - that would trigger pull always from registry
+CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
+# dummy.quobyte.com is not a docker registry. We buid docker image locally
+# and make it available to kind nodes via 'kind load docker-image'
+CSI_DRIVER_IMAGE="dummy.quobyte.com/quobyte-csi-driver:${CSI_DRIVER_VERSION}"
+KUBECONFIG='/tmp/'
 
 rm -rf "${TEST_CLUSTER_DIR}"
 
@@ -18,7 +31,7 @@ cd "${TEST_CLUSTER_DIR}"
 echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *"
 echo ""
 echo ""
-tee -a Dockerfile << END
+tee -a Dockerfile <<END
 FROM kindest/node:v1.25.0
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
@@ -28,6 +41,8 @@ ENV QUOBYTE_API_URL="http://testing-api.corp.quobyte.com:7860"
 ENV QUOBYTE_REGISTRY="testing.corp.quobyte.com"
 ENV CSI_PROVISIONER="csi.quobyte.com"
 ENV QUOBYTE_MOUNT_POINT=/mnt/quobyte/mounts
+ENV CSI_DRIVER_VERSION=$CSI_DRIVER_VERSION
+ENV CSI_DRIVER_IMAGE=$CSI_DRIVER_IMAGE
 ENV MOUNT_WITH_ACCESS_KEYS=$MOUNT_WITH_ACCESS_KEYS
 END
 
@@ -40,7 +55,7 @@ docker image ls | grep 'quobyte/kind-node-testing:v0'
 echo "Use the newly created image in the `kind` configuration: * * * * * * * * *"
 tee -a kind-config-testing.yaml << END
 kind: Cluster
-name: quobyte-csi-experiment-testing
+name: ${KIND_CLUSTER_NAME}
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
@@ -64,6 +79,15 @@ echo  "Labeling Kubernetes nodes * * * * * * * * * * * * * * * * * * * * * * * *
 for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
   kubectl label nodes $node quobyte_client="true"
 done
+
+echo "Building local csi driver image"
+CODE_BASE_ROOT=${CODE_BASE_DIR} ${CODE_BASE_DIR}/src/build.sh
+docker build -t ${CSI_DRIVER_IMAGE} -f ${CODE_BASE_DIR}/src/Dockerfile ${CODE_BASE_DIR}/src
+if [[ "$?" -ne 0 ]]; then
+  echo "Failed to create local image (compile or image build failed!)"
+  exit 1
+fi
+kind load docker-image ${CSI_DRIVER_IMAGE} --name ${KIND_CLUSTER_NAME}
 
 echo "creating and setting default namespace to quobyte * * * * * * * * * * * *" 
 #to retrieve instances from all namespaces use '-A' argument

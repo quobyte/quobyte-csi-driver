@@ -23,7 +23,8 @@
     - "--enable_access_key_mounts={{ .Values.quobyte.enableAccessKeyMounts }}"
     - "--quobyte_version={{ .Values.quobyte.version }}"
     - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
-    - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}" 
+    - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}"
+    - "--role=node_driver"
   env:
     - name: NODE_ID
       valueFrom:

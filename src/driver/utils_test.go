@@ -54,7 +54,7 @@ func TestQuobyteApiClientSecretsCheck(t *testing.T) {
 	secrets[accessKeyID] = "dummyAccessKeyId"
 	secrets[accessKeySecret] = "dummyAccessKeySecert"
 
-	check = hasApiAcessKeyIdAndSecrect(secrets)
+	check = hasApiAccessKeyIdAndSecret(secrets)
 	if !check {
 		t.Errorf("expected: true got: %t", check)
 	}
