@@ -1,0 +1,67 @@
+#!/bin/bash
+
+KUBECONFIG=${KUBECONFIG:-"/etc/kubernetes/admin.conf"}
+NODES=1
+# TODO(venkat): remove --short once it becomes the default with kubectl
+K8S_VERSION="$(kubectl version --short | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
+STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
+SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-$(pwd)/quobyte-csi/example/volume-snapshot-class.yaml}
+E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
+CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
+TESTS_LOGS_PATH='/tmp/test.txt'
+
+cd /tmp
+
+if [[ -f "$E2E_TEST_CONFIG_PATH" ]]; then
+  rm "$E2E_TEST_CONFIG_PATH"
+fi
+  
+cat> "$E2E_TEST_CONFIG_PATH"<<EOF
+ShortName: quobyte-csi
+StorageClass:
+  FromFile: $STORAGE_CLASS
+SnapshotClass:
+  FromFile: $SNAPSHOT_CLASS
+DriverInfo:
+  Name: $CSI_PROVISIONER_NAME
+  # Add  new capabilites from here (sample for v1.18.5)
+  # https://github.com/kubernetes/kubernetes/blob/e6503f8d8f769ace2f338794c914a96fc335df0f/test/e2e/storage/testsuites/testdriver.go#L137
+  Capabilities:
+    persistence: true
+    fsGroup: false
+    exec: true
+    multipods: true
+    controllerExpansion: true
+    nodeExpansion: false
+    singleNodeVolume: true
+    snapshotDataSource: false
+    RWX: true
+EOF
+
+if [[ -d kubernetes ]]; then
+ rm -rf kubernetes
+fi
+
+K8S_TARBALL="kubernetes-test-linux-amd64.tar"
+K8S_ZIP="${K8S_TARBALL}.gz"
+
+if [[ -f ${K8S_ZIP} ]]; then
+  rm ${K8S_ZIP}
+fi
+
+if [[ -f "${K8S_TARBALL}" ]]; then 
+  rm "${K8S_TARBALL}"
+fi
+
+if [[ -f "$TESTS_LOGS_PATH" ]]; then
+  rm "$TESTS_LOGS_PATH"
+fi
+
+echo "Running E2E with test configuration $E2E_TEST_CONFIG_PATH"
+echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host" 
+
+wget -q https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8S_ZIP} \
+&& gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar --overwrite \
+&& kubernetes/test/bin/ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
+-skip='\[Disruptive\]' \
+kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
