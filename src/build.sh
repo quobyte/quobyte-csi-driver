@@ -6,16 +6,13 @@ CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
 # https://helm.sh/docs/topics/chart_repository/#github-pages-example
 # Quobyte CSI charts are hosted as github pages. Artifacthub.io uses this
 # location to grab the deployable charts from docs/index.yaml
-CHART_PACKAGE_DIR="docs" 
-CHART_DIR="quobyte-csi-driver"
-CODE_BASE_ROOT=${CODE_BASE_ROOT:-$(pwd)}
+CHART_PACKAGE_DIR="helm" 
+CHART_DIR="csi-driver-templates"
 
-if [[ -z ${CODE_BASE_ROOT} ]]; then
-  echo "Provide codebase path via CODE_BASE_ROOT"
-  exit 1
+if [[ "$(dirname $0)" != '.' ]]; then
+  echo "Executing build command in $(dirname $0)"
+  cd "$(dirname $0)"
 fi
-
-cd ${CODE_BASE_ROOT}/src
 
 container_build_and_push(){
     if [[ -z "${CONTAINER_URL_BASE}" ]]; then
@@ -26,6 +23,13 @@ container_build_and_push(){
       echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
       exit 1
     fi
+    # make sure version starts with v and has exactly 6 chars (vX.Y.Z)
+    if [[ "$VERSION" != v.* && "${#VERSION}" -ne 6 ]]; then
+      echo "version must start be of the form vX.Y.Z (ex, v1.8.3)"
+      exit 1
+    fi
+    # truncate leading 'v'
+    CHART_VERSION="${VERSION:1}"
     IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
     echo "Building docker image and pushing it to ${IMAGE}"
     sudo docker build -t quobyte-csi -f Dockerfile .
@@ -67,8 +71,8 @@ build_helm_package(){
 }
 
 update_files_with_version(){
-  sed -i "s|appVersion:.*|appVersion: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
-  sed -i "s|version:.*|version: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
+  sed -i "s|appVersion:.*|appVersion: \"${CHART_VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
+  sed -i "s|version:.*|version: \"${CHART_VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
   sed -i "s|.*csiProvisionerVersion:.*|    csiProvisionerVersion: \"${VERSION}\"|g" "${CHART_DIR}/values.yaml"
   sed -i "s|.*csiImage:.*|    csiImage: \"${CONTAINER_URL_BASE}:${VERSION}\"|g" "${CHART_DIR}/values.yaml"
   sed -i "s|- --driver_version=.*|- --driver_version=${VERSION}|g" "${CHART_DIR}/tests/__snapshot__/csi_driver_test.yaml.snap"
@@ -85,6 +89,9 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   exit 0
 else
   echo 'Building executable'
+  if [[ -f quobyte-csi ]]; then
+    rm quobyte-csi
+  fi
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go
   build_success="$?"
   if [[ ${build_success} -eq 0 ]]; then
@@ -112,7 +119,7 @@ else
           && chmod 700 get_helm.sh && ./get_helm.sh)
     fi
     echo "Updating chart, and CSI driver files with release version ${VERSION}"
-    update_files_with_version   
+    update_files_with_version
     build_helm_package
     echo "Adding packaged chart to docs"
     git add docs/index.yaml

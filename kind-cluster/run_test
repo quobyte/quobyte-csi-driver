@@ -12,7 +12,7 @@ CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
 # dummy.quobyte.com is not a docker registry. We buid docker image locally
 # and make it available to kind nodes via 'kind load docker-image'
 CSI_DRIVER_IMAGE="dummy.quobyte.com/quobyte-csi-driver:${CSI_DRIVER_VERSION}"
-KUBECONFIG='/tmp/config'
+KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
@@ -82,7 +82,7 @@ for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
 done
 
 echo "Building local csi driver image"
-CODE_BASE_ROOT=${CODE_BASE_DIR} ${CODE_BASE_DIR}/src/build.sh
+${CODE_BASE_DIR}/src/build.sh
 docker build -t ${CSI_DRIVER_IMAGE} -f ${CODE_BASE_DIR}/src/Dockerfile ${CODE_BASE_DIR}/src
 if [[ "$?" -ne 0 ]]; then
   echo "Failed to create local image (compile or image build failed!)"
@@ -141,7 +141,7 @@ verify_namespace_has_no_crashing_pods
 echo ""
 echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml and quobyte.dev.csiImage set to $CSI_DRIVER_IMAGE"
 # install CSI driver with the custom image
-helm install quobyte-csi-driver ./quobyte-csi-driver -f ${TEST_CASE_DIR}/values.yaml \
+helm install quobyte-csi-driver ./csi-driver-templates -f ${TEST_CASE_DIR}/values.yaml \
  --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
  --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
  --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME"
