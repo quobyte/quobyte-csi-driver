@@ -37,6 +37,7 @@ Quobyte CSI is the implementation of
   * [Volume Snapshots](#volume-snapshots)
     * [Dynamic Snapshots](#dynamic-snapshots)
     * [Pre-provisioned Snapshots](#pre\-provisioned-snapshots)
+  * [Shared Volumes](usage-example/shared-volume/README.md)
 * [Update Quobyte CSI or Client](docs/update_quobyte_csi_or_clients.md#index)
   * [Update Quobyte CSI Driver](docs/update_quobyte_csi_or_clients.md#update-quobyte-csi-driver)
   * [Update Quobyte Client](docs/update_quobyte_csi_or_clients.md#update-quobyte-client)

@@ -60,6 +60,7 @@ quobyte:
   # to be used as shared volumes (StorageClass.parameters.sharedVolumeName), however,
   # driver does not cleanup volumes not mentioned here.
   # Example, sharedVolumesList: "sharedVolume1,mySharedVolume,...,sharedVolumeN"
+  # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
   sharedVolumesList: ""
 
   podKiller:
