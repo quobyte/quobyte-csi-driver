@@ -37,7 +37,6 @@ END
 rm -rf "${TEST_CLUSTER_DIR}"
 
 mkdir -p "${TEST_CLUSTER_DIR}"
-cp kind-cluster/ca.pem kind-cluster/client-cert.pem kind-cluster/client-key.pem "${TEST_CLUSTER_DIR}"
 
 echo "Running script from $(pwd)"
 
@@ -137,7 +136,7 @@ echo "Deploying k8s resources (k8s_<...>.yaml) files in test dir $TEST_CASE_DIR"
 for file in ${TEST_CASE_DIR}/k8s_*.yaml ; do kubectl apply -f "$file"; done
 
 sleep 30s
-verify_namespace_has_no_crashing_pods
+
 echo ""
 echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml and quobyte.dev.csiImage set to $CSI_DRIVER_IMAGE"
 # install CSI driver with the custom image
@@ -146,10 +145,11 @@ helm install quobyte-csi-driver ./csi-driver-templates -f ${TEST_CASE_DIR}/value
  --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
  --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME"
 
-# give change for pods to come up
 sleep 1m
-
 verify_namespace_has_no_crashing_pods
+
+echo "List all pods"
+kubectl get po --all-namespaces
 
 echo ""
 echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"

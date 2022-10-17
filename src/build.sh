@@ -17,35 +17,33 @@ CHART_DIR="../csi-driver-templates"
 
 
 container_build_and_push(){
-    if [[ -z "${CONTAINER_URL_BASE}" ]]; then
-      echo "FAILURE: container base url should not be empty"
-    fi
-    VERSION=$1
-    if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
-      echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
-      exit 1
-    fi
-    # make sure version starts with v and has exactly 6 chars (vX.Y.Z)
-    if [[ "$VERSION" != v.* && "${#VERSION}" -ne 6 ]]; then
-      echo "version must start be of the form vX.Y.Z (ex, v1.8.3)"
-      exit 1
-    fi
-    # truncate leading 'v'
-    CHART_VERSION="${VERSION:1}"
-    IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
-    echo "Building docker image and pushing it to ${IMAGE}"
-    sudo docker build -t quobyte-csi -f Dockerfile .
-    sudo docker run -it quobyte-csi
-    CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
-    echo "Pushing $CSI_RUN_ID to ${IMAGE}"
-    sudo docker commit "$CSI_RUN_ID" "$IMAGE"
-    sudo docker push "$IMAGE"
-    push_succeeded="$?"
-    if [[ ${push_succeeded} -ne 0 ]]; then
-      echo "FAILURE: container image ${IMAGE} cannot be pushed"
-      echo 'Please fix the reported issues and retry'
-      exit 1
-    fi
+  if [[ -z "${CONTAINER_URL_BASE}" ]]; then
+    echo "FAILURE: container base url should not be empty"
+  fi
+  VERSION=$1
+  if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
+    echo "FAILURE: ${VERSION} is not a valid version string. Version must not be empty or should not contain any spaces"
+    exit 1
+  fi
+  # make sure version starts with v and has exactly 6 chars (vX.Y.Z)
+  if [[ "$VERSION" != v.* && "${#VERSION}" -ne 6 ]]; then
+    echo "version must start be of the form vX.Y.Z (ex, v1.8.3)"
+    exit 1
+  fi
+  IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
+  echo "Building docker image and pushing it to ${IMAGE}"
+  sudo docker build -t quobyte-csi -f Dockerfile .
+  sudo docker run -it quobyte-csi
+  CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
+  echo "Pushing $CSI_RUN_ID to ${IMAGE}"
+  sudo docker commit "$CSI_RUN_ID" "$IMAGE"
+  sudo docker push "$IMAGE"
+  push_succeeded="$?"
+  if [[ ${push_succeeded} -ne 0 ]]; then
+    echo "FAILURE: container image ${IMAGE} cannot be pushed"
+    echo 'Please fix the reported issues and retry'
+    exit 1
+  fi
 }
 
 rebase_charts_on_master(){
@@ -73,7 +71,7 @@ build_helm_package(){
 }
 
 update_files_with_version(){
-  sed -i "s|appVersion:.*|appVersion: \"${CHART_VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
+  sed -i "s|appVersion:.*|appVersion: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
   sed -i "s|version:.*|version: \"${CHART_VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
   sed -i "s|.*csiProvisionerVersion:.*|    csiProvisionerVersion: \"${VERSION}\"|g" "${CHART_DIR}/values.yaml"
   sed -i "s|.*csiImage:.*|    csiImage: \"${CONTAINER_URL_BASE}:${VERSION}\"|g" "${CHART_DIR}/values.yaml"
@@ -82,9 +80,9 @@ update_files_with_version(){
 }
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
-  echo './build                                Builds the executable'
-  echo './build container <release-tag>"       Builds pre and pushes container'
-  echo './build release "<release-tag>"        Builds the executable, docker image and'
+  echo './build                                                 Builds the executable'
+  echo './build container <release-tag>"                        Builds pre and pushes container'
+  echo './build release "<release-tag>" "<chart-version>"       Builds the executable, docker image and'
   echo '                                         pushes the container and creates a helm chart'
   echo '                                         for the release'
   echo "Example: ./build [container/release] v0.2.0"
@@ -109,9 +107,8 @@ else
       echo 'FAILURE: release can only be made on master branch'
       exit 1
     fi
-    if [[ $(git status | grep -q "modified"; echo $?)  -eq 0 ]]; then
-      echo "FAILURE: Branch $(git rev-parse --abbrev-ref HEAD) has modified files, cannot make a release"
-      echo "Please commit your changes and retry"
+    if [[ ! -z "$(git status --porcelain)" ]]; then
+      echo 'Requires clean directory (no stage/unstaged/untracked files) in repo'
       exit 1
     fi
     git pull
@@ -121,6 +118,11 @@ else
           && chmod 700 get_helm.sh && ./get_helm.sh)
     fi
     echo "Updating chart, and CSI driver files with release version ${VERSION}"
+    if [[ -z "$3" ]];
+      echo "Requires helm chart version"
+      exit 1
+    fi
+    CHART_VERSION="$3"
     update_files_with_version
     build_helm_package
     echo "Adding packaged chart to docs"
