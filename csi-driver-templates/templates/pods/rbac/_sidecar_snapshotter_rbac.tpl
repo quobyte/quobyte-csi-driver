@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controller.sidecarSnapshotterRbac" }}
+{{- define "quobyte-csi-driver.controller.sidecarSnapshotterRbac" }}
   {{- if .Values.quobyte.enableSnapshots }}
 ---
 kind: ClusterRole

@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.nodePlugin.serviceAccount"}}
+{{- define "quobyte-csi-driver.nodeDriver.serviceAccount"}}
 ---
 apiVersion: v1
 kind: ServiceAccount

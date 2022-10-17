@@ -14,7 +14,7 @@ tests:
           limits:
             cpu: 50m
             memory: 50Mi
-        nodePluginContainer:
+        nodeDriverContainer:
           limits:
             cpu: 50m
             memory: 50Mi

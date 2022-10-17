@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controller.sidecarResizerRbac" }}
+{{- define "quobyte-csi-driver.controller.sidecarResizerRbac" }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

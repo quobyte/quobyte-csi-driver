@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.nodePlugin.sidecarDriverRegistrarRbac" }}
+{{- define "quobyte-csi-driver.nodeDriver.sidecarDriverRegistrarRbac" }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

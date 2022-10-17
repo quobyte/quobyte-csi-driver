@@ -1,14 +1,14 @@
-{{- define "quobyte-csi.controllerPod" }}
+{{- define "quobyte-csi-driver.controllerPod" }}
 ---
-{{- include "quobyte-csi.controller.serviceAccount" . }}
+{{- include "quobyte-csi-driver.controller.serviceAccount" . }}
 ---
-{{- include "quobyte-csi.controller.sidecarProvisionerRbac" . }}
+{{- include "quobyte-csi-driver.controller.sidecarProvisionerRbac" . }}
 ---
-{{- include "quobyte-csi.controller.sidecarAttacherRbac" . }}
+{{- include "quobyte-csi-driver.controller.sidecarAttacherRbac" . }}
 ---
-{{- include "quobyte-csi.controller.sidecarSnapshotterRbac" . }}
+{{- include "quobyte-csi-driver.controller.sidecarSnapshotterRbac" . }}
 ---
-{{- include "quobyte-csi.controller.sidecarResizerRbac" . }}
+{{- include "quobyte-csi-driver.controller.sidecarResizerRbac" . }}
 ---
 kind: StatefulSet
 apiVersion: apps/v1
@@ -40,7 +40,7 @@ spec:
       {{- if .Values.quobyte.enableSnapshots }}        
         {{- include "csi.sidecar.snapshotterContainer" . | indent 8 }}
       {{- end }}
-        {{- include "quobyte-csi.controllerContainer" . | indent 8 }}
-      {{- include "quobyte-csi.controllerPodVolumeAttachments" . | indent 6 }}
+        {{- include "quobyte-csi-driver.controllerContainer" . | indent 8 }}
+      {{- include "quobyte-csi-driver.controllerPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}

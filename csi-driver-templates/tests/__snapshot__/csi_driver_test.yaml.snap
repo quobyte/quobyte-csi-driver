@@ -391,7 +391,7 @@ should render when resource limits are provided:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             resources:
               limits:
                 cpu: 50m
@@ -557,7 +557,7 @@ should render when resource limits are provided:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             resources:
               limits:
                 cpu: 50m
@@ -939,7 +939,7 @@ should render when tolerations are provided:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             securityContext:
               allowPrivilegeEscalation: true
               capabilities:
@@ -1101,7 +1101,7 @@ should render when tolerations are provided:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             securityContext:
               allowPrivilegeEscalation: true
               capabilities:
@@ -1479,7 +1479,7 @@ should render with default values:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             securityContext:
               allowPrivilegeEscalation: true
               capabilities:
@@ -1637,7 +1637,7 @@ should render with default values:
               value: http://10.125.2.77:10330
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
-            name: quobyte-csi-plugin
+            name: quobyte-csi-driver
             securityContext:
               allowPrivilegeEscalation: true
               capabilities:

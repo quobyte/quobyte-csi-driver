@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.podKillerContainer" }}
+{{- define "quobyte-csi-driver.podKillerContainer" }}
 {{- if .Values.quobyte.podKiller.enable }}
 - name: quobyte-pod-killer
 {{- if .Values.resources }}

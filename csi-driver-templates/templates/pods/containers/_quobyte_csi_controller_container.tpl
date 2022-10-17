@@ -1,5 +1,5 @@
-{{- define "quobyte-csi.controllerContainer" }}
-- name: quobyte-csi-plugin
+{{- define "quobyte-csi-driver.controllerContainer" }}
+- name: quobyte-csi-driver
 {{- if .Values.resources }}
 {{- if .Values.resources.controllerContainer }}
   resources: 

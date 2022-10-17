@@ -33,11 +33,11 @@ do
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-provisioner >> ./csi_logs/$el/csi-provisioner.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-attacher >> ./csi_logs/$el/csi-attacher.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-resizer >> ./csi_logs/$el/csi-resizer.log
-    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-plugin >> ./csi_logs/$el/quobyte-csi-plugin.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-driver >> ./csi_logs/$el/quobyte-csi-driver.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-snapshotter >> ./csi_logs/$el/csi-snapshotter.log
   elif [[ $el =~ quobyte-csi-node.* ]];then
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-node-driver-registrar >> ./csi_logs/$el/csi-node-driver-registrar.log
-    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-plugin  >> ./csi_logs/$el/quobyte-csi-node-plugin.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-driver  >> ./csi_logs/$el/quobyte-csi-node-driver.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-pod-killer  >> ./csi_logs/$el/quobyte-pod-killer.log
  fi
 done

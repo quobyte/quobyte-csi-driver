@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controllerPodVolumeAttachments" }}
+{{- define "quobyte-csi-driver.controllerPodVolumeAttachments" }}
 volumes:
   - name: socket-dir
     emptyDir: {}

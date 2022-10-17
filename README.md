@@ -2,7 +2,7 @@
 
 Quobyte CSI is the implementation of
  [Container Storage Interface (CSI)](https://github.com/container-storage-interface/spec/tree/release-1.0).
- Quobyte CSI enables easy integration of Quobyte Storage into Kubernetes. Current Quobyte CSI plugin
+ Quobyte CSI enables easy integration of Quobyte Storage into Kubernetes. Current Quobyte CSI driver
  supports the following functionality
 
 * Dynamic Volume Create
@@ -121,7 +121,7 @@ Quobyte CSI is the implementation of
     kubectl get CSIDriver | grep ^${CSI_PROVISIONER}
     ```
 
-    The Quobyte CSI plugin is ready for use, if you see `quobyte-csi-controller-x`
+    The Quobyte CSI driver is ready for use, if you see `quobyte-csi-controller-x`
     pod running on any one node and `quobyte-csi-node-xxxxx`
     running on every node of the Kubernetes cluster.
 
@@ -135,7 +135,7 @@ Quobyte CSI is the implementation of
     ```bash
     kubectl -n kube-system exec -it \
     "$(kubectl get po -n kube-system | grep -m 1 ^quobyte-csi-node-$CSI_PROVISIONER \
-    |  cut -f 1 -d' ')" -c quobyte-csi-plugin -- env | grep QUOBYTE_API_URL
+    |  cut -f 1 -d' ')" -c quobyte-csi-driver -- env | grep QUOBYTE_API_URL
     ```
 
     The above command should print your Quobyte API endpoint.

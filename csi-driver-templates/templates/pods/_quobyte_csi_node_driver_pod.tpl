@@ -1,8 +1,8 @@
-{{- define "quobyte-csi.nodePluginPod" }}
+{{- define "quobyte-csi-driver.nodeDriverPod" }}
 ---
-{{- include "quobyte-csi.nodePlugin.serviceAccount" . }}
+{{- include "quobyte-csi-driver.nodeDriver.serviceAccount" . }}
 ---
-{{- include "quobyte-csi.nodePlugin.sidecarDriverRegistrarRbac" . }}
+{{- include "quobyte-csi-driver.nodeDriver.sidecarDriverRegistrarRbac" . }}
 ---
 kind: DaemonSet
 apiVersion: apps/v1
@@ -28,8 +28,8 @@ spec:
 {{- end }}
       containers:
         {{- include "csi.sidecar.nodeRegistrarContainer" . | indent 8 }}
-        {{- include "quobyte-csi.nodePluginContainer" . | indent 8 }}
-        {{- include "quobyte-csi.podKillerContainer" . | indent 8 }}
-      {{- include "quobyte-csi.nodePluginPodVolumeAttachments" . | indent 6 }}
+        {{- include "quobyte-csi-driver.nodeDriverContainer" . | indent 8 }}
+        {{- include "quobyte-csi-driver.podKillerContainer" . | indent 8 }}
+      {{- include "quobyte-csi-driver.nodeDriverPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}

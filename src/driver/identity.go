@@ -6,7 +6,7 @@ import (
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
 )
 
-// GetPluginInfo returns information about plugin
+// GetPluginInfo returns information about driver
 func (d *QuobyteDriver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
 		Name:          d.Name,
@@ -15,7 +15,7 @@ func (d *QuobyteDriver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInf
 	return resp, nil
 }
 
-// GetPluginCapabilities returns plugin capabilities
+// GetPluginCapabilities returns driver capabilities
 func (d *QuobyteDriver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
 	resp := &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
@@ -38,7 +38,7 @@ func (d *QuobyteDriver) GetPluginCapabilities(ctx context.Context, req *csi.GetP
 	return resp, nil
 }
 
-// Probe returns the health and status of the plugin
+// Probe returns the health and status of the driver
 func (d *QuobyteDriver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
 	// TODO: Check if health and status can be determined
 	return &csi.ProbeResponse{}, nil

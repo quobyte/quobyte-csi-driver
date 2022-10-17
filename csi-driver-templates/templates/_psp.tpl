@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.psp" }}
+{{- define "quobyte-csi-driver.psp" }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy

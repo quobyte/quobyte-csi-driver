@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controller.serviceAccount" }}
+{{- define "quobyte-csi-driver.controller.serviceAccount" }}
 ---
 kind: ServiceAccount
 apiVersion: v1

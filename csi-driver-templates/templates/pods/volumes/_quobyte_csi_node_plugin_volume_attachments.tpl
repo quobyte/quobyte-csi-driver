@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.nodePluginPodVolumeAttachments" }}
+{{- define "quobyte-csi-driver.nodeDriverPodVolumeAttachments" }}
 volumes:
   - name: kubelet-dir
     hostPath:

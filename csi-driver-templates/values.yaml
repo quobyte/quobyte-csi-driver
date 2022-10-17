@@ -8,7 +8,7 @@ quobyte:
   apiURL: "http://10.125.2.77:10330"
 
   # Replication for csi controller pod, must be at least one
-  # Note that node plugin which is responsible for mounting volume cannot be replicated
+  # Note that node driver which is responsible for mounting volume cannot be replicated
   csiControllerReplicas: 1
 
   # Maps /etc/ssl/certs/ from host into Quobyte CSI containers.

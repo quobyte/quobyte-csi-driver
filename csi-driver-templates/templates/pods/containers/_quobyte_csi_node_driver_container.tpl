@@ -1,9 +1,9 @@
-{{- define "quobyte-csi.nodePluginContainer" }}
-- name: quobyte-csi-plugin
+{{- define "quobyte-csi-driver.nodeDriverContainer" }}
+- name: quobyte-csi-driver
 {{- if .Values.resources }}
-{{- if .Values.resources.nodePluginContainer }}
+{{- if .Values.resources.nodeDriverContainer }}
   resources: 
-{{ toYaml .Values.resources.nodePluginContainer | indent 4 }}
+{{ toYaml .Values.resources.nodeDriverContainer | indent 4 }}
 {{- end }}
 {{- end }}
   securityContext:

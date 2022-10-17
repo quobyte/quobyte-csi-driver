@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controller.sidecarProvisionerRbac" }}
+{{- define "quobyte-csi-driver.controller.sidecarProvisionerRbac" }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

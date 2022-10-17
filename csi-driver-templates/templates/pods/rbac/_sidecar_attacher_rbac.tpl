@@ -1,4 +1,4 @@
-{{- define "quobyte-csi.controller.sidecarAttacherRbac" }}
+{{- define "quobyte-csi-driver.controller.sidecarAttacherRbac" }}
 ---
 # Attacher must be able to work with PVs, nodes and VolumeAttachments
 kind: ClusterRole

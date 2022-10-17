@@ -55,7 +55,8 @@ func main() {
 	flag.Set("alsologtostderr", "true")
 	klog.InitFlags(nil)
 	flag.Parse()
-	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver plugin pods.
+	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver container of the
+	// Quobyte CSI Driver pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
 	if *quobyteVersion != 2 && *quobyteVersion != 3 {

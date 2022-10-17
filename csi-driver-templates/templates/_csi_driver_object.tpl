@@ -1,5 +1,5 @@
 {{- /* Define CSIDriver object with sub-feature flags */}}
-{{- define "quobyte-csi.CSIDriverObject" }}
+{{- define "quobyte-csi-driver.CSIDriverObject" }}
 ---
 {{- if semverCompare ">=1.19.0" .Values.k8sVersion }}
 apiVersion: storage.k8s.io/v1
