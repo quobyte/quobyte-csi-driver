@@ -372,6 +372,8 @@ should render when resource limits are provided:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --shared_volumes_list=
+            - --role=controller
             env:
             - name: NODE_ID
               valueFrom:
@@ -394,11 +396,20 @@ should render when resource limits are provided:
               limits:
                 cpu: 50m
                 memory: 50Mi
+            securityContext:
+              allowPrivilegeEscalation: true
+              capabilities:
+                add:
+                - SYS_ADMIN
+              privileged: true
             volumeMounts:
             - mountPath: /var/lib/csi/sockets/pluginproxy/
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
+            - mountPath: /mnt/quobyte
+              mountPropagation: Bidirectional
+              name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
               name: certs
           priorityClassName: system-cluster-critical
@@ -406,6 +417,10 @@ should render when resource limits are provided:
           volumes:
           - emptyDir: {}
             name: socket-dir
+          - hostPath:
+              path: /mnt/quobyte
+              type: DirectoryOrCreate
+            name: quobyte-mounts
           - hostPath:
               path: /tmp
               type: Directory
@@ -524,6 +539,7 @@ should render when resource limits are provided:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --role=node_driver
             env:
             - name: NODE_ID
               valueFrom:
@@ -904,6 +920,8 @@ should render when tolerations are provided:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --shared_volumes_list=
+            - --role=controller
             env:
             - name: NODE_ID
               valueFrom:
@@ -922,11 +940,20 @@ should render when tolerations are provided:
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
+            securityContext:
+              allowPrivilegeEscalation: true
+              capabilities:
+                add:
+                - SYS_ADMIN
+              privileged: true
             volumeMounts:
             - mountPath: /var/lib/csi/sockets/pluginproxy/
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
+            - mountPath: /mnt/quobyte
+              mountPropagation: Bidirectional
+              name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
               name: certs
           priorityClassName: system-cluster-critical
@@ -938,6 +965,10 @@ should render when tolerations are provided:
           volumes:
           - emptyDir: {}
             name: socket-dir
+          - hostPath:
+              path: /mnt/quobyte
+              type: DirectoryOrCreate
+            name: quobyte-mounts
           - hostPath:
               path: /tmp
               type: Directory
@@ -1052,6 +1083,7 @@ should render when tolerations are provided:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --role=node_driver
             env:
             - name: NODE_ID
               valueFrom:
@@ -1428,6 +1460,8 @@ should render with default values:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --shared_volumes_list=
+            - --role=controller
             env:
             - name: NODE_ID
               valueFrom:
@@ -1446,11 +1480,20 @@ should render with default values:
             image: quay.io/quobyte/csi:v1.8.3
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-plugin
+            securityContext:
+              allowPrivilegeEscalation: true
+              capabilities:
+                add:
+                - SYS_ADMIN
+              privileged: true
             volumeMounts:
             - mountPath: /var/lib/csi/sockets/pluginproxy/
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
+            - mountPath: /mnt/quobyte
+              mountPropagation: Bidirectional
+              name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
               name: certs
           priorityClassName: system-cluster-critical
@@ -1458,6 +1501,10 @@ should render with default values:
           volumes:
           - emptyDir: {}
             name: socket-dir
+          - hostPath:
+              path: /mnt/quobyte
+              type: DirectoryOrCreate
+            name: quobyte-mounts
           - hostPath:
               path: /tmp
               type: Directory
@@ -1572,6 +1619,7 @@ should render with default values:
             - --quobyte_version=2
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
+            - --role=node_driver
             env:
             - name: NODE_ID
               valueFrom:

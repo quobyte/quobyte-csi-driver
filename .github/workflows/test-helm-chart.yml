@@ -16,4 +16,4 @@ jobs:
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - run: ls
-      - run: docker run -i --rm -v $(pwd):/apps quintush/helm-unittest:2.16.10-0.2.2 -3 ./quobyte-csi-driver
+      - run: docker run -i --rm -v $(pwd):/apps quintush/helm-unittest:2.16.10-0.2.2 -3 ./csi-driver-templates
