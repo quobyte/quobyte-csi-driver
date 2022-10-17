@@ -6,13 +6,15 @@ CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
 # https://helm.sh/docs/topics/chart_repository/#github-pages-example
 # Quobyte CSI charts are hosted as github pages. Artifacthub.io uses this
 # location to grab the deployable charts from docs/index.yaml
-CHART_PACKAGE_DIR="helm" 
-CHART_DIR="csi-driver-templates"
 
 if [[ "$(dirname $0)" != '.' ]]; then
   echo "Executing build command in $(dirname $0)"
   cd "$(dirname $0)"
 fi
+
+CHART_PACKAGE_DIR="../helm" 
+CHART_DIR="../csi-driver-templates"
+
 
 container_build_and_push(){
     if [[ -z "${CONTAINER_URL_BASE}" ]]; then
