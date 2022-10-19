@@ -126,11 +126,11 @@ else
     update_files_with_version
     build_helm_package
     echo "Adding packaged chart to docs"
-    git add docs/index.yaml
-    git add docs/*.tgz
+    git add ${CHART_PACKAGE_DIR}/index.yaml
+    git add ${CHART_PACKAGE_DIR}/*.tgz
     # Assumption is, at this point we do not have any modified files except
     # those modified by the script 
-    git add -u
+    git add -A
     git commit -m "Release version ${VERSION} by ./build release command"
     git tag "${VERSION}"
     # update chart index fiel for Artifacthub to get new update
