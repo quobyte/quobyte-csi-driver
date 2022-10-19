@@ -85,7 +85,8 @@ if [[ "$1" = '-h' || "$1" = '--help' ]]; then
   echo './build release "<release-tag>" "<chart-version>"       Builds the executable, docker image and'
   echo '                                         pushes the container and creates a helm chart'
   echo '                                         for the release'
-  echo "Example: ./build [container/release] v0.2.0"
+  echo "Example: ./build [container] v0.2.0"
+  echo "         ./build release v1.8.4 1.9.4"
   exit 0
 else
   echo 'Building executable'
@@ -123,6 +124,10 @@ else
       exit 1
     fi
     CHART_VERSION="$3"
+    if [[ "$CHART_VERION" = v* ]]; then
+    echo "chart version should be semversion (X.Y.Z) - v prefix is allowed"
+    exit 1
+    fi
     update_files_with_version
     build_helm_package
     echo "Adding packaged chart to docs"
