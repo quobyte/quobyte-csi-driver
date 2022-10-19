@@ -19,8 +19,6 @@ Quobyte CSI is the implementation of
 
 2. Follow the instructions specific to that release
 
-  ![release_instructions_image](./docs/release-instructions.jpg)
-
 ## Index
 
 * [Requirements](#requirements)
