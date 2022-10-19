@@ -136,8 +136,8 @@ API_URL="<your-quobyte-cluster-api-url>"
 
 **NOTE**:
 
-* If your k8s secret contains `user:` and `password:`, CSI plugin uses this information to access
- Quobyte management API.
+* If your k8s secret contains `user:` and `password:`, Quobyte CSI driver uses this information
+ to access Quobyte management API.
 
 * If tenant-name/volume-name is provided for pre-provisioned volume PV, you must provide "all uses"
   access key as mount secret. Alternatively, you could use volume-uuid and more restrictive

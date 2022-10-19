@@ -1,0 +1,95 @@
+# Used to generate CSI deployment files specific to given k8s version
+k8sVersion: "1.23.6"
+quobyte:
+  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
+  version: 2
+  # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
+  # Example Quobyte API: http://hydrogen.quobyte.com:26801
+  apiURL: "http://10.125.2.77:10330"
+
+  # Replication for csi controller pod, must be at least one
+  # Note that node driver which is responsible for mounting volume cannot be replicated
+  csiControllerReplicas: 1
+
+  # Maps /etc/ssl/certs/ from host into Quobyte CSI containers.
+  # Must set to true, if you have https:// API URL. Otherwise,
+  # can be set to false.
+  # If you are using private CA certificate, add the CA to
+  # all k8s hosts before deploying driver.
+  mapHostCertsIntoContainer: true
+
+  # Quobyte client should be deployed with <clientMountPoint>/mounts
+  # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
+  # client should be deployed with /mnt/quobyte/mounts as the mount point
+  clientMountPoint: /mnt/quobyte
+
+  # Should be a valid DNS name. Do not change this between upgrades, otherwise
+  # requires manual delete of Pods, PVCs, PVs and backing volumes.
+  # StorageClass.provisioner must match the value configured here.
+  csiProvisionerName: csi.quobyte.com
+
+  # When set to true, uses PVC.namespace as Quobyte tenant.
+  # This does not create tenants automatically, your storage system must
+  # have tenants that match the namespace.
+  useK8SNamespaceAsTenant: false
+
+  # Set this to true to mount Quobyte volumes using Quobyte file system access keys.
+  # Then, add access key information to your K8S secret and use this secret in StorageClass as
+  # mount secret. Quobyte-CSI and Client uses access key information
+  # from the mount secret to securely mount volumes into k8s.
+  # When mount access keys are enabled in CSI driver, Quobyte client must also be
+  # enabled with access key contexts. To enable access key contexts on native client,
+  # add "enable-access-contexts" in /etc/quobyte/client-service.cfg.
+  # For container based client configuration, see client.yaml definition.
+  # Requires Quobyte 3.x to enable mount access keys
+  enableAccessKeyMounts: false
+
+  # Enabling this feature requires additional driver setup (see README.md)
+  # Quobyte 3.x is recommended for snapshots
+  enableSnapshots: false
+
+  # Set to true to deploy csi driver with pod security policies.
+  # Change required ONLY if you have pod security policies enabled K8S environment.
+  podSecurityPolicies: false
+
+  # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
+  immediateErase: false
+
+  # Required only for Quobyte 2.x
+  # Specify list of shared volumes. Quobyte CSI driver allows volumes not listed here
+  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName), however,
+  # driver does not cleanup volumes not mentioned here.
+  # Example, sharedVolumesList: "sharedVolume1,mySharedVolume,...,sharedVolumeN"
+  # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
+  sharedVolumesList: ""
+
+  podKiller:
+    # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
+    # set enable: false and install CSI driver again
+    enable: true
+    # should be a valid golang time.Duration
+    monitoringInterval: 5s
+
+  # The dev configuration is intended for Quobyte Developers and internal use.
+  # Please do NOT change the dev: configuration unless otherwise advised to change.
+  dev:
+    # CSI Release version
+    csiProvisionerVersion: "v1.8.3"
+    # Release container
+    # github.com/quobyte/quobyte-csi
+    csiImage: "quay.io/quobyte/csi:v1.8.3"
+    # github.com/quobyte/pod-killer
+    podKillerImage: quay.io/quobyte/pod-killer:v0.1.3
+    # k8s sidecar containers (https://github.com/kubernetes-csi/)
+    # Updating k8s...Image might require RBAC files update
+    # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
+    k8sProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+    k8sResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+    k8sNodeRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+    k8sAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+    # when updating image for snapshotter, update snaptshotter setup CRD with
+    # instructions in README (CRD should be pulled from matched release).
+    # Additionally, ./quobyte-csi-driver/k8s-snapshot-controller.yaml
+    # (see this file for source link) should be updated with appropriate version
+    # files (Do NOT forget updating namespace to kube-system)
+    k8sSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1

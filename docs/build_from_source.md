@@ -5,56 +5,23 @@ To build Quobyte CSI, golang and docker must be installed on host machine.
 1. Clone the Quobyte CSI codebase
 
     ```bash
-    git clone git@github.com:quobyte/quobyte-csi.git
-    cd quobyte-csi
+    git clone git@github.com:quobyte/quobyte-csi-driver.git
+    cd quobyte-csi-driver/src
     ```
 
-2. Use `./build` utility to build the binary and push the container (during development) 
+2. Update Quobyte [golang API](#update-dependency)/
+ [refer to local version](https://github.com/quobyte/api/tree/master/docs)
 
-    To build binary
+3. Modify Quobyte CSI driver and [test it](../kind-cluster/README.md)
 
-    ```bash
-    ./build
-    ```
+4. Once tests pass, remove `replace` directives (if any)  in `go.mod`, make relevant dependency
+   releases and update it following [update dependency](#update-dependency) and run `go mod tidy`
+   in `<PROJECT-ROOT>/src`
 
-    To build and push docker container
-
-    ```bash
-    # Pushes container to quay.io/quobyte/csi with given release version
-    # Use -pre
-    ./build container RELEASE_VERSION # example, ./build container v1.0.1-pre
-    ```
-
-    or use alternate repository
+5. Build release, publish the version and follow the instructions to make a release on github
 
     ```bash
-    # Pushes container to custom docker registry my-registry.io/quobyte/csi with given release version
-    # example, CONTAINER_URL_BASE="my-registry.io/quobyte/csi:"./build container v1.0.1-pre
-    CONTAINER_URL_BASE="URL_BASE:" ./build container RELEASE_VERSION
-    ```
-
-3. (if not installed) Get helm
-
-    ```bash
-    (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-        && chmod 700 get_helm.sh && ./get_helm.sh)
-    ```
-
-4. Update [values.yaml](../quobyte-csi-driver/values.yaml) appropriate values, with built image in step 2 and deploy quobyte-csi driver
-
-    ```bash
-    helm install quobyte-csi ./quobyte-csi-driver
-    ```
-
-5. Deploy Quobyte clients and test with [e2e tests](e2e) **not completely automated, look inside the file for instructions**
-  
-    Running e2e tests require k8s cluster, please set it up with [kubespray](https://github.com/kubernetes-sigs/kubespray). Edit Vagrantfile pf the cloned repo and increase resources (cpus, memory). The default 3 node setup is sufficient to run e2e tests.
-
-6. Build release and publish the version (merge change onto master and make release on merged master) on
- github by following post build instructions
-
-    ```bash
-    ./build release RELEASE-VERSION
+    ./build release <RELEASE-VERSION> #v1.8.4
     ```
 
 ## Update dependency
