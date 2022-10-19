@@ -28,10 +28,15 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
 
 3. Run your test with command (from project root - quobyte-csi-driver)
 
-  ```bash
-  kind-cluster/cleanup; TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-cluster/run_test
-  ```
+    ```bash
+    kind-cluster/cleanup; TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-cluster/run_test
+    ```
+  
+    or
 
+    You can also run `kind-cluster/run_test` without `TEST_CASE_DIR` to provision a kubernetes cluster
+    . Thereafter, you could `export KUBECONFIG=...` as instructed by script output and install
+    csi driver, execute tests manually.
 
 ## Cleanup
 
