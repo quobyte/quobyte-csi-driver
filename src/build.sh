@@ -118,7 +118,7 @@ else
           && chmod 700 get_helm.sh && ./get_helm.sh)
     fi
     echo "Updating chart, and CSI driver files with release version ${VERSION}"
-    if [[ -z "$3" ]];
+    if [[ -z "$3" ]]; then
       echo "Requires helm chart version"
       exit 1
     fi
