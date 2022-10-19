@@ -52,8 +52,8 @@ Quobyte CSI is the implementation of
 
 ## Requirements
 
-* Requires `git` on k8s master node
-* Requires at least Kubernetes v1.17
+* Requires [Helm](https://helm.sh/docs/intro/install/#from-script) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+* Requires at least Kubernetes v1.22
 * Quobyte installation with reachable registry and api services from the Kubernetes nodes and pods
 * Quobyte client with mount path as
   <[values.clientMountPoint](https://github.com/quobyte/quobyte-csi/blob/4671450b0dec5fe162f78f9e35c6c6fe90e3f86b/quobyte-csi-driver/values.yaml#L18)>`/mounts`. Please see [Deploy Quobyte clients](docs/install_client) for Quobyte client installation instructions.
@@ -72,27 +72,22 @@ Quobyte CSI is the implementation of
  automatically by k8s, applications should be deployed with `Deployment/ReplicaSet/StatefulSets`
  but not as a plain `Pod`.
 
-1. Set your chosen release version
+1. Add `quobyte-csi-driver` helm repository to your `helm` repos
 
     ```bash
-    # For example, to install Quobyte CSI release v1.0.5,
-    # please set RELEASE_TAG="v1.0.5"
-    RELEASE_TAG="<YOUR_CHOSEN_RELEASE>"
+    helm repo add quobyte-csi-driver https://quobyte.github.io/quobyte-csi-driver/helm
     ```
 
-2. Clone the quobyte CSI repository from github on k8s master node
+2. List all available Quobyte CSI versions
 
     ```bash
-    git clone https://github.com/quobyte/quobyte-csi.git && cd quobyte-csi \
-     && git checkout tags/$RELEASE_TAG
+    helm search repo quobyte-csi-driver/quobyte-csi-driver -l
     ```
 
-3. Helm is required to deploy the Quobyte CSI driver. Please
- install [Helm](https://helm.sh/docs/intro/install/#from-script) on the k8s master node.
+3. List all customization options for Quobyte CSI driver
 
     ```bash
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-    && chmod 700 get_helm.sh && ./get_helm.sh
+    helm show values quobyte-csi/quobyte-csi [--version <chart-version>] # or use other "show <subcommands>"
     ```
 
 4. Edit [Quobyte CSI driver configuration](quobyte-csi-driver/values.yaml) (./quobyte-csi-driver/values.yaml) and configure CSI driver
@@ -104,12 +99,20 @@ Quobyte CSI is the implementation of
     helm template ./quobyte-csi-driver --debug > csi-driver.yaml
     ```
 
-6. Deploy the Quobyte CSI driver (deploys driver with configuration from step 3)
+6. Deploy the Quobyte CSI driver with customizations
 
     ```bash
     # Deploys helm chart with name "quobyte-csi".
     # Please change quobyte-csi as required
-    helm install quobyte-csi ./quobyte-csi-driver
+    helm install quobyte-csi quobyte-csi-driver/quobyte-csi-driver [--version <chart-version>]
+      \ --set quobyte.apiURL="<your-api-url>" ....
+    ```
+
+    or
+
+    ```bash
+    helm install quobyte-csi quobyte-csi-driver/quobyte-csi-driver [--version <chart-version>]
+      \ -f <your-customized-values.yaml> [--set quobyte.apiURL="<your-api-url>" .. other overrides]
     ```
 
 7. Verify the status of Quobyte CSI driver pods
