@@ -1,11 +1,11 @@
-# Used to generate CSI deployment files specific to given k8s version
-k8sVersion: "1.23.6"
 quobyte:
   # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
-  version: 2
+  version: 3
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
-  apiURL: "http://10.125.2.77:10330"
+  # The default below is ready to connect to a Quobyte api 
+  # service running on the same Kubernetes cluster
+  apiURL: http://quobyte-api.default.svc.cluster.local:7860
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated
@@ -16,12 +16,12 @@ quobyte:
   # can be set to false.
   # If you are using private CA certificate, add the CA to
   # all k8s hosts before deploying driver.
-  mapHostCertsIntoContainer: true
+  mapHostCertsIntoContainer: true 
 
   # Quobyte client should be deployed with <clientMountPoint>/mounts
   # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
   # client should be deployed with /mnt/quobyte/mounts as the mount point
-  clientMountPoint: /mnt/quobyte
+  clientMountPoint: /home/quobyte
 
   # Should be a valid DNS name. Do not change this between upgrades, otherwise
   # requires manual delete of Pods, PVCs, PVs and backing volumes.
@@ -79,17 +79,17 @@ quobyte:
     # github.com/quobyte/quobyte-csi
     csiImage: "quay.io/quobyte/csi:v1.8.4"
     # github.com/quobyte/pod-killer
-    podKillerImage: quay.io/quobyte/pod-killer:v0.1.3
+    podKillerImage: "quay.io/quobyte/pod-killer:v0.1.3"
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
-    k8sProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
-    k8sResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
-    k8sNodeRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
-    k8sAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+    k8sProvisionerImage: "k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0"
+    k8sResizerImage: "k8s.gcr.io/sig-storage/csi-resizer:v1.5.0"
+    k8sNodeRegistrarImage: "k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1"
+    k8sAttacherImage: "k8s.gcr.io/sig-storage/csi-attacher:v3.5.0"
     # when updating image for snapshotter, update snaptshotter setup CRD with
     # instructions in README (CRD should be pulled from matched release).
     # Additionally, ./quobyte-csi-driver/k8s-snapshot-controller.yaml
     # (see this file for source link) should be updated with appropriate version
     # files (Do NOT forget updating namespace to kube-system)
-    k8sSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
+    k8sSnapshotterImage: "k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1"
