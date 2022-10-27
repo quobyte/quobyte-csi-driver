@@ -369,7 +369,7 @@ should render when resource limits are provided:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --shared_volumes_list=
@@ -382,13 +382,13 @@ should render when resource limits are provided:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -407,7 +407,7 @@ should render when resource limits are provided:
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
@@ -418,7 +418,7 @@ should render when resource limits are provided:
           - emptyDir: {}
             name: socket-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
@@ -536,7 +536,7 @@ should render when resource limits are provided:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --role=node_driver
@@ -548,13 +548,13 @@ should render when resource limits are provided:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -572,7 +572,7 @@ should render when resource limits are provided:
             - mountPath: /var/lib/kubelet/pods
               mountPropagation: Bidirectional
               name: kubelet-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /csi
@@ -616,7 +616,7 @@ should render when resource limits are provided:
               type: Directory
             name: kubelet-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
@@ -917,7 +917,7 @@ should render when tolerations are provided:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --shared_volumes_list=
@@ -930,13 +930,13 @@ should render when tolerations are provided:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -951,7 +951,7 @@ should render when tolerations are provided:
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
@@ -966,7 +966,7 @@ should render when tolerations are provided:
           - emptyDir: {}
             name: socket-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
@@ -1080,7 +1080,7 @@ should render when tolerations are provided:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --role=node_driver
@@ -1092,13 +1092,13 @@ should render when tolerations are provided:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -1112,7 +1112,7 @@ should render when tolerations are provided:
             - mountPath: /var/lib/kubelet/pods
               mountPropagation: Bidirectional
               name: kubelet-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /csi
@@ -1156,7 +1156,7 @@ should render when tolerations are provided:
               type: Directory
             name: kubelet-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
@@ -1457,7 +1457,7 @@ should render with default values:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --shared_volumes_list=
@@ -1470,13 +1470,13 @@ should render with default values:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -1491,7 +1491,7 @@ should render with default values:
               name: socket-dir
             - mountPath: /tmp
               name: log-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /etc/ssl/certs/
@@ -1502,7 +1502,7 @@ should render with default values:
           - emptyDir: {}
             name: socket-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
@@ -1616,7 +1616,7 @@ should render with default values:
             - --driver_name=csi.quobyte.com
             - --driver_version=v1.8.4
             - --enable_access_key_mounts=false
-            - --quobyte_version=2
+            - --quobyte_version=3
             - --immediate_erase=false
             - --use_k8s_namespace_as_tenant=false
             - --role=node_driver
@@ -1628,13 +1628,13 @@ should render with default values:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
             - name: QUOBYTE_MOUNT_PATH
-              value: /mnt/quobyte/mounts
+              value: /home/quobyte/mounts
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: QUOBYTE_API_URL
-              value: http://10.125.2.77:10330
+              value: http://quobyte-api.default.svc.cluster.local:7860
             image: quay.io/quobyte/csi:v1.8.4
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-driver
@@ -1648,7 +1648,7 @@ should render with default values:
             - mountPath: /var/lib/kubelet/pods
               mountPropagation: Bidirectional
               name: kubelet-dir
-            - mountPath: /mnt/quobyte
+            - mountPath: /home/quobyte
               mountPropagation: Bidirectional
               name: quobyte-mounts
             - mountPath: /csi
@@ -1688,7 +1688,7 @@ should render with default values:
               type: Directory
             name: kubelet-dir
           - hostPath:
-              path: /mnt/quobyte
+              path: /home/quobyte
               type: DirectoryOrCreate
             name: quobyte-mounts
           - hostPath:
