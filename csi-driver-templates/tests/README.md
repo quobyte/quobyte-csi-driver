@@ -1,5 +1,12 @@
 # Fix failing helm tests
 
+To run Helm unit tests a helm plugin is needed:
+
+```
+helm plugin install https://github.com/quintush/helm-unittest 
+```
+
+
 * cd to root of the project `cd ../..`
 * Run `helm unittest -3 ./csi-driver-templates` to run tests
   * Verify that failure is due to new changes that were added to the template files.
