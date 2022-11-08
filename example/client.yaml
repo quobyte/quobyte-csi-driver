@@ -60,7 +60,7 @@ spec:
           - |
             ENABLE_ACCESS_CONTEXTS=""
             if [[ ${ENABLE_ACCESS_KEY_MOUNTS} = true ]]; then
-              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
+              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts --no-default-permissions"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then
               umount -l ${QUOBYTE_MOUNT_POINT}
