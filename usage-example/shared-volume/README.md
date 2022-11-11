@@ -5,6 +5,11 @@ exclusive Quobyte volume.
 
 ## Requirements
 
+* Requires Quobyte client on Quobyte CSI controller pod (quobyte-csi-controller-....) running host
+  with the [mount path](https://github.com/quobyte/quobyte-csi-driver/blob/v1.8.4/csi-driver-templates/values.yaml#L21)
+
+* Shared volume(s) must be accessible on the Quobyte CSI controller node.
+
 * For Quobyte 2.x cluster, your Quobyte CSI driver should be
   deployed with `quobyte.sharedVolumesList`. Quobyte CSI driver runs periodic cleanup of these
   volumes to release resources of deleted PVs. If you do not include/miss shared volumes, the
@@ -31,7 +36,8 @@ allowVolumeExpansion: true
 parameters:
   quobyteTenant: "csi-test"
   # provisions PV as subdirectory of the "shared_volume"
-  # Not having this parameter, triggers creation of a new Quobyte volume for the dynamic PV
+  # Not having "sharedVolumeName" parameter, triggers creation of a new Quobyte volume
+  # (with the name same as PV's name) for the dynamic provisioning
   sharedVolumeName: "shared_volume"
   csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/provisioner-secret-namespace: "quobyte"
