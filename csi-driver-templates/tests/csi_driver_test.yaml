@@ -3,10 +3,13 @@ templates:
 - csi-driver.yaml
 tests:
   - it: "should render with default values"
+    set:
+      k8sVersion: "1.25.0"
     asserts:
       - matchSnapshot: {}
   - it: "should render when resource limits are provided"
     set:
+      k8sVersion: "1.25.0"
       quobyte:
         enableSnapshots: true
       resources:
@@ -110,6 +113,7 @@ tests:
         documentIndex: 14
   - it: "should render when tolerations are provided"
     set:
+      k8sVersion: "1.25.0"
       quobyte:
         tolerations: 
         - key: ""
