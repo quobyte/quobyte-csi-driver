@@ -25,26 +25,28 @@ func walkAndQueueDirectories(nodeName, mountPath string, sharedVolumes []string,
 	for {
 		time.Sleep(5 * time.Minute)
 		for _, sharedVolume := range sharedVolumes {
-			sharedVolume := strings.TrimSpace(sharedVolume)
-			if len(sharedVolume) == 0 {
-				continue
-			}
-			if volumePath, err := os.Open(filepath.Join(mountPath, sharedVolume)); err == nil {
-				files, err := volumePath.Readdirnames(0)
-				// could be partial read
-				for _, file := range files {
-					if strings.HasPrefix(file, nodeName+"_delete_pvc-") { // node name part of DELETE_MARKER_FORMAT
-						directoryChannel <- filepath.Join(volumePath.Name(), file)
+			func() {
+				sharedVolume := strings.TrimSpace(sharedVolume)
+				if len(sharedVolume) == 0 {
+					return
+				}
+				if volumePath, err := os.Open(filepath.Join(mountPath, sharedVolume)); err == nil {
+					files, err := volumePath.Readdirnames(0)
+					// could be partial read
+					for _, file := range files {
+						if strings.HasPrefix(file, nodeName+"_delete_pvc-") { // node name part of DELETE_MARKER_FORMAT
+							directoryChannel <- filepath.Join(volumePath.Name(), file)
+						}
 					}
+					defer volumePath.Close()
+					if err != nil {
+						klog.Infof("Partially read directories from the shared volume %s due to %s", volumePath.Name(), err)
+					}
+				} else {
+					klog.Errorf("Could not read contents of the shared volume %s due to %s", volumePath.Name(), err)
+					return
 				}
-				defer volumePath.Close()
-				if err != nil {
-					klog.Infof("Partially read directories from the shared volume %s due to %s", volumePath.Name(), err)
-				}
-			} else {
-				klog.Errorf("Could not read contents of the shared volume %s due to %s", volumePath.Name(), err)
-				continue
-			}
+			}()
 		}
 	}
 }
