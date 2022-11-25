@@ -505,6 +505,8 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	capacity := req.CapacityRange.RequiredBytes
-	d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity})
+	if err := d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity}); err != nil {
+		return nil, err
+	}
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity}, nil
 }
