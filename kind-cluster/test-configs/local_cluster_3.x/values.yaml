@@ -5,7 +5,7 @@ quobyte:
   version: 3
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
-  apiURL: "http://venkat.corp.quobyte.com:2641"
+  apiURL: "http://venkat.corp.quobyte.com:2978"
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated
@@ -21,7 +21,7 @@ quobyte:
   # Quobyte client should be deployed with <clientMountPoint>/mounts
   # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
   # client should be deployed with /mnt/quobyte/mounts as the mount point
-  clientMountPoint: /mnt/quobyte
+  clientMountPoint: /home/quobyte
   
   # Should be a valid DNS name. Do not change this between upgrades, otherwise
   # requires manual delete of Pods, PVCs, PVs and backing volumes.

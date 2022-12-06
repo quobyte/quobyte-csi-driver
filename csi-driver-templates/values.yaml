@@ -19,8 +19,8 @@ quobyte:
   mapHostCertsIntoContainer: true 
 
   # Quobyte client should be deployed with <clientMountPoint>/mounts
-  # For example, if you set clientMountPoint: /mnt/quobyte then quobyte
-  # client should be deployed with /mnt/quobyte/mounts as the mount point
+  # For example, if you set clientMountPoint: /home/quobyte then quobyte
+  # client should be deployed with /home/quobyte/mounts as the mount point
   clientMountPoint: /home/quobyte
 
   # Should be a valid DNS name. Do not change this between upgrades, otherwise

@@ -26,11 +26,11 @@ spec:
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: venkat.corp.quobyte.com:2648 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2985 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
-            # Example volumeMount is : /mnt/quobyte and clientMountPoint is /mnt/quobyte/mounts
-            value: /mnt/quobyte/mounts
+            # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
+            value: /home/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEY_MOUNTS
             value: "false"  # to enable, set it to true
@@ -85,7 +85,7 @@ spec:
           privileged: true
         volumeMounts:
           - name: quobyte-mount
-            mountPath: /mnt/quobyte
+            mountPath: /home/quobyte
             mountPropagation: Bidirectional
           - name: minidumps-dir
             mountPath: /tmp/minidumps
@@ -98,7 +98,7 @@ spec:
       volumes:
       - name: quobyte-mount
         hostPath:
-          path: /mnt/quobyte
+          path: /home/quobyte
       - name: minidumps-dir
         hostPath:
           path: /var/lib/quobyte/.minidumps
