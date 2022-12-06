@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: client
-  namespace: <CHANGE-NAMESPACE> 
+  namespace: kube-system 
 spec:
   selector:
     matchLabels:
@@ -19,14 +19,14 @@ spec:
     spec:
       containers:
       - name: quobyte-client
-        image: quay.io/quobyte/quobyte-client:2
+        image: quay.io/quobyte/quobyte-client:3
         imagePullPolicy: Always
         env:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: <YOUR_QUOBYTE_REGISTRY> # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2985 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
             # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
@@ -60,7 +60,7 @@ spec:
           - |
             ENABLE_ACCESS_CONTEXTS=""
             if [[ ${ENABLE_ACCESS_KEY_MOUNTS} = true ]]; then
-              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts --no-default-permissions"
+              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then
               umount -l ${QUOBYTE_MOUNT_POINT}

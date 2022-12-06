@@ -143,7 +143,13 @@ Quobyte CSI is the implementation of
     The above command should print your Quobyte API endpoint.
     After that, uninstall Quobyte CSI driver and install again.
 
-## Use Quobyte volumes in Kubernetes
+## Examples
+
+`Note:` [k8s storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/) is
+  immutable. Do not delete existing definitions, such a deletion could cause issues for existing
+  PV/PVCs.
+
+### Use Quobyte volumes in Kubernetes
 
 `Note:` This section uses `example/` deployment files for demonstration. These should be modified
   with your deployment configurations such as `namespace`, `quobyte registry`, `Quobyte API user credentials` etc.
@@ -183,7 +189,7 @@ To run the **Nginx demo** pods,
 
 2. `nginx` user must have at least read and execute permissions on the volume
 
-### Dynamic volume provisioning
+#### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in the previous step would provision dynamic
  volume. The secret `csi.storage.k8s.io/provisioner-secret-name` from the namespace `csi.storage.k8s.io/provisioner-secret-namespace`
@@ -221,7 +227,7 @@ Creating a PVC referencing the storage class created in the previous step would 
 
   Above command should retrieve the Quobyte CSI welcome page (in raw html format).
 
-### Use existing volumes
+#### Use existing volumes
 
 Quobyte CSI requires the volume UUID to be passed on to the PV as `VolumeHandle`  
 
@@ -274,15 +280,15 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 
     The above command should retrieve the Quobyte CSI welcome page (in raw html format).
 
-## Volume snapshots
+### Volume snapshots
 
-### Snapshot Requirements
+#### Snapshot Requirements
 
 1. [Quobyte CSI Driver](./quobyte-csi-driver/values.yaml) is deployed with `enableSnapshots: true`
 
 2. [Snapshotter setup](#snapshotter-setup)
 
-### Dynamic Snapshots
+##### Dynamic Snapshots
 
   1. Provision a PVC for a Quobyte volume by following the [instructions](#use-quobyte-volumes-in-kubernetes)
 
@@ -337,7 +343,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
         kubectl create -f example/nginx-demo-pod-with-dynamic-snapshot-vol.yaml
         ```
 
-### Pre-provisioned Snapshots
+##### Pre-provisioned Snapshots
 
   1. Create volume [snapshot class](example/volume-snapshot-class.yaml)
 
