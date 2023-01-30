@@ -29,7 +29,7 @@ const (
 	DefaultCreateQuota = false
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
-	DefaultAccessModes = 0700
+	DefaultAccessModes = 700
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 	pinnedKey       = "pinned"
@@ -86,13 +86,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 				}
 			}
 		case "accessmode":
-			var u64 uint64
-			var err error
-			if d.QuobyteVersion >= 3 {
-				u64, err = strconv.ParseUint(v, 8, 32)
-			} else {
-				u64, err = strconv.ParseUint(v, 10, 32)
-			}
+			u64, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return nil, err
 			}
