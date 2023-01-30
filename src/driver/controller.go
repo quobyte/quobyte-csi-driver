@@ -57,7 +57,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	capacity := req.GetCapacityRange().RequiredBytes
 	dynamicVolumeName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
-	// will be override if shared_volume_name is specified in storage class
+	// will be overriden if shared volume name is specified in storage class
 	volRequest.Name = dynamicVolumeName
 	volRequest.ConfigurationName = DefaultConfig
 	volRequest.RootUserId = DefaultUser
@@ -99,7 +99,8 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, err
 	}
 
-	if d.UseK8SNamespaceAsQuobyteTenant {
+	// Use storage class tenant if provided, otherwise use namespace as tenant if feature is enabled
+	if len(volRequest.TenantId) == 0 && d.UseK8SNamespaceAsQuobyteTenant {
 		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
 			volRequest.TenantId = pvcNamespace
 		} else {
