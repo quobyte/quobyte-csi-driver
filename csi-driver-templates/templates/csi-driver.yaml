@@ -1,6 +1,3 @@
-{{- if .Values.quobyte.podSecurityPolicies }}
-  {{- include "quobyte-csi-driver.psp" . }}
-{{- end }}
 {{- include "quobyte-csi-driver.CSIDriverObject" . }}
 {{- include "quobyte-csi-driver.controllerPod" . }}
 {{- include "quobyte-csi-driver.nodeDriverPod" . }}
