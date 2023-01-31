@@ -29,7 +29,7 @@ const (
 	DefaultCreateQuota = false
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
-	DefaultAccessModes = 0700
+	DefaultAccessModes = 700
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 	pinnedKey       = "pinned"
@@ -57,7 +57,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	capacity := req.GetCapacityRange().RequiredBytes
 	dynamicVolumeName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
-	// will be override if shared_volume_name is specified in storage class
+	// will be overriden if shared volume name is specified in storage class
 	volRequest.Name = dynamicVolumeName
 	volRequest.ConfigurationName = DefaultConfig
 	volRequest.RootUserId = DefaultUser
@@ -86,13 +86,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 				}
 			}
 		case "accessmode":
-			var u64 uint64
-			var err error
-			if d.QuobyteVersion >= 3 {
-				u64, err = strconv.ParseUint(v, 8, 32)
-			} else {
-				u64, err = strconv.ParseUint(v, 10, 32)
-			}
+			u64, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return nil, err
 			}
@@ -105,7 +99,8 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		return nil, err
 	}
 
-	if d.UseK8SNamespaceAsQuobyteTenant {
+	// Use storage class tenant if provided, otherwise use namespace as tenant if feature is enabled
+	if len(volRequest.TenantId) == 0 && d.UseK8SNamespaceAsQuobyteTenant {
 		if pvcNamespace, ok := params[pvcNamespaceKey]; ok {
 			volRequest.TenantId = pvcNamespace
 		} else {
@@ -166,32 +161,34 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 
 	sharedVolumeName, isSharedVolume := params["sharedVolumeName"]
 
-	var volUUID string
 	if isSharedVolume {
-		volUUID, err = quobyteClient.GetVolumeUUID(sharedVolumeName, volRequest.TenantId)
+		// Use shared volume name
+		volRequest.Name = sharedVolumeName
+	}
+
+	var volUUID string
+
+	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
+	if err != nil {
+		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
+		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+			return nil, err
+		}
+		volUUID, err = quobyteClient.ResolveVolumeNameToUUID(volRequest.Name, volRequest.TenantId)
 		if err != nil {
-			return nil, fmt.Errorf("Could not find shared volume '%s' under tenant '%s'", sharedVolumeName, volRequest.TenantId)
+			return nil, err
 		}
 	} else {
-		volCreateResp, err := quobyteClient.CreateVolume(volRequest)
-		if err != nil {
-			// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
-			if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
-				return nil, err
-			}
-			volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
-		} else {
-			volUUID = volCreateResp.VolumeUuid
-			if createQuota {
-				err := quobyteClient.SetVolumeQuota(volUUID, capacity)
-				if err != nil {
-					if d.QuobyteVersion == 2 {
-						quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
-					} else {
-						quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
-					}
-					return nil, err
+		volUUID = volCreateResp.VolumeUuid
+		if createQuota {
+			err := quobyteClient.SetVolumeQuota(volUUID, capacity)
+			if err != nil {
+				if d.QuobyteVersion == 2 {
+					quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
+				} else {
+					quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
 				}
+				return nil, err
 			}
 		}
 	}
