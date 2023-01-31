@@ -174,7 +174,10 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
 			return nil, err
 		}
-		volUUID = getUUIDFromError(fmt.Sprintf("%v", err))
+		volUUID, err = quobyteClient.ResolveVolumeNameToUUID(volRequest.Name, volRequest.TenantId)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		volUUID = volCreateResp.VolumeUuid
 		if createQuota {
