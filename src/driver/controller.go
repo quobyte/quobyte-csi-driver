@@ -183,13 +183,12 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		if createQuota {
 			err := quobyteClient.SetVolumeQuota(volUUID, capacity)
 			if err != nil {
-				if d.QuobyteVersion == 2 {
-					quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volUUID, "")
-				} else {
-					quobyteClient.EraseVolumeByResolvingNamesToUUID(volUUID, "", d.ImmediateErase)
-				}
-				return nil, err
+				// Volume is just created and volume database is empty. Therefore, use DeleteVolume
+				// call to delete the volume database and volume immediately (no need to erase any
+				// file data - so avoid erase API call)
+				quobyteClient.DeleteVolumeByResolvingNamesToUUID(volUUID, "")
 			}
+			return nil, err
 		}
 	}
 
