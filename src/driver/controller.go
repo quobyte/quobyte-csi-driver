@@ -180,14 +180,22 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	} else {
 		volUUID = volCreateResp.VolumeUuid
-		if createQuota {
-			err := quobyteClient.SetVolumeQuota(volUUID, capacity)
-			if err != nil {
-				// Volume is just created and volume database is empty. Therefore, use DeleteVolume
-				// call to delete the volume database and volume immediately (no need to erase any
-				// file data - so avoid erase API call)
-				quobyteClient.DeleteVolumeByResolvingNamesToUUID(volUUID, "")
-			}
+	}
+
+	// Creating a new volume/existence of volume alone is not sufficient when Quobyte
+	// tenant is configured with "disable_oversubscription: true"
+	// Creation of a quota ensures that provisioning succeeds only if there is sufficient Quota
+	// available for the request (must enable StorageClass createQuota).
+	// For shared volume, do not set Quota, as the requested Quota would be for directory
+	// (subpath of shared volume) - quota should be set by admin at tenant level for shared
+	// volumes
+	if !isSharedVolume && createQuota {
+		err := quobyteClient.SetVolumeQuota(volUUID, capacity)
+		if err != nil {
+			// Volume is just created and volume database is empty. Therefore, use DeleteVolume
+			// call to delete the volume database and volume immediately (no need to erase any
+			// file data - so avoid erase API call)
+			quobyteClient.DeleteVolumeByResolvingNamesToUUID(volUUID, "")
 			return nil, err
 		}
 	}
