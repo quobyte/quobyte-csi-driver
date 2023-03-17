@@ -178,17 +178,6 @@ Create a [storage class](example/StorageClass.yaml) with the `provisioner` set t
   kubectl create -f example/StorageClass.yaml
   ```
 
-To run the **Nginx demo** pods,
-
-1. Host nodes must have nginx user (UID: 101) and group (GID: 101). Please
- create nginx user and group on every node.
-
-    ```bash
-    sudo groupadd -g 101 nginx; sudo useradd -u 101 -g 101 nginx
-    ```
-
-2. `nginx` user must have at least read and execute permissions on the volume
-
 #### Dynamic volume provisioning
 
 Creating a PVC referencing the storage class created in the previous step would provision dynamic
@@ -216,7 +205,9 @@ Creating a PVC referencing the storage class created in the previous step would 
 4. Once the pod is running, copy the [index file](example/index.html) to the deployed nginx pod
 
     ```bash
-    kubectl cp example/index.html nginx-dynamic-vol:/usr/share/nginx/html/
+    kubectl cp example/index.html nginx-dynamic-vol:/tmp
+    kubectl exec -it nginx-dynamic-vol -- mv /tmp/index.html /usr/share/nginx/html/
+    kubectl exec -it nginx-dynamic-vol -- chown -R nginx:nginx /usr/share/nginx/html/
     ```
 
 5. Access the home page served by nginx pod from the command line
@@ -225,7 +216,17 @@ Creating a PVC referencing the storage class created in the previous step would 
     curl http://$(kubectl get pods nginx-dynamic-vol -o yaml | grep ' podIP:' | awk '{print $2}'):80
     ```
 
-  Above command should retrieve the Quobyte CSI welcome page (in raw html format).
+    Above command should retrieve the Quobyte CSI welcome page (in raw html format). If encountered
+    error, see if you need to forward your local port to pod.
+
+    NOTE: Depending on your cluster setup (for example, kind clusters), you may need to forward your
+    local port to container to access the nginx pod port. In such case, you could use
+
+    ```bash
+    kubectl port-forward nginx-dynamic-vol 8086:80
+    ```
+
+  and then try `curl localhost:8086`
 
 #### Use existing volumes
 
@@ -269,7 +270,9 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 5. Once the pod is running, copy the [index file](example/index.html) to the deployed nginx pod
 
     ```bash
-    kubectl cp example/index.html nginx-existing-vol:/usr/share/nginx/html/
+    kubectl cp example/index.html nginx-existing-vol:/tmp
+    kubectl exec -it nginx-existing-vol -- mv /tmp/index.html /usr/share/nginx/html/
+    kubectl exec -it nginx-existing-vol -- chown -R nginx:nginx /usr/share/nginx/html/
     ```
 
 6. Access the home page served by nginx pod from the command line
@@ -278,7 +281,17 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
     curl http://$(kubectl get pods nginx-existing-vol -o yaml | grep ' podIP:' | awk '{print $2}'):80
     ```
 
-    The above command should retrieve the Quobyte CSI welcome page (in raw html format).
+    Above command should retrieve the Quobyte CSI welcome page (in raw html format). If encountered
+    error, see if you need to forward your local port to pod.
+
+    NOTE: Depending on your cluster setup (for example, kind clusters), you may need to forward your
+    local port to container to access the nginx pod port. In such case, you could use
+
+    ```bash
+    kubectl port-forward nginx-dynamic-vol 8086:80
+    ```
+
+  and then try `curl localhost:8086`
 
 ### Volume snapshots
 

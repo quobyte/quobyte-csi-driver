@@ -47,7 +47,6 @@ tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
 FROM kindest/node:v1.26.0
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
-RUN groupadd -g 10001 nginx; useradd -u 10001 -g 10001 nginx
 END
 
 echo "Building new image using the above Dockerfile. On the local machine: * * *"
