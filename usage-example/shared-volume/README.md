@@ -39,6 +39,10 @@ parameters:
   # Not having "sharedVolumeName" parameter, triggers creation of a new Quobyte volume
   # (with the name same as PV's name) for the dynamic provisioning
   sharedVolumeName: "shared_volume"
+  # createQuota is not required with shared volumes and ignored if provided.
+  # If Storage admin requires Quota for shared volumes, they must set Quota for volume via
+  # Quobyte's management API at tenant level/volume level
+  #createQuota: "true"
   csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/provisioner-secret-namespace: "quobyte"
   csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-credentials"
@@ -46,7 +50,6 @@ parameters:
   csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
   quobyteConfig: "BASE"
-  createQuota: "true"
   user: root
   group: root
   accessMode: "777"

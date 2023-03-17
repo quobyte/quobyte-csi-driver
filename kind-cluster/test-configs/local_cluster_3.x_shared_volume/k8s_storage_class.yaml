@@ -1,0 +1,46 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: quobyte-csi
+# provisioner must be csi.quobyte.com
+provisioner: csi.quobyte.com
+# Should be set to 'true' to expand volume size.
+# https://kubernetes.io/docs/concepts/storage/persistent-volumes/#csi-volume-expansion
+# Volume shrinking is not possible and expansion only possible for dynamically provisioned volumes.
+# By default, Quobyte volumes are not size restricted,
+# but can be size restricted by creating a Quobyte quota
+# for the volume  (by setting parameters.createQuota: true).
+# Volume expansion only makes sense if volume is created with a quota.
+allowVolumeExpansion: true
+parameters:
+  # quobyteTenant is used as tenant if CSI driver is deployed with
+  # --use_k8s_namespace_as_tenant=false.
+  # If CSI driver is deployed with --use_k8s_namespace_as_tenant=true,
+  # quobyteTenant is ignored and K8S namespace in which PVC is created
+  # becomes Quobyte tenant
+  # i.e; K8S namespace "tenant_x" maps to "tenant_x" in Quobyte storage
+  quobyteTenant: "My Tenant"
+  sharedVolumeName: "shared_volume"
+  # createQuota: false
+  # secret is used for dynamic volume provisioning.
+  # The user credentials provided in this secret must have
+  # volume create/delete permissions for `quobyteTenant` above.
+  csi.storage.k8s.io/provisioner-secret-name: "quobyte-admin-credentials"
+  csi.storage.k8s.io/provisioner-secret-namespace: "quobyte"
+  # Resize volume requires secrets to communicate with Quobyte API
+  csi.storage.k8s.io/controller-expand-secret-name: "quobyte-admin-credentials"
+  csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
+  # Mount secrets
+  csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
+  csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
+  # Quobyte volume configuration
+  quobyteConfig: "BASE"
+  # creates quota for the volume if set to true. The size of the Quota
+  # is the storage requested in PVC. If false, creates volume without size limit.
+  user: root
+  group: root
+  accessMode: "750"
+  # spaces are not allowed and requires Quobyte 3.x
+  #labels: "encrypted:yes,mediatype:hdd"
+# Set reclaimPolicy: Retain to keep the volume even after PV deletion
+reclaimPolicy: Delete

@@ -5,7 +5,7 @@ quobyte:
   version: 3
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
-  apiURL: "http://venkat.corp.quobyte.com:2010"
+  apiURL: "http://venkat.corp.quobyte.com:2379"
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated

@@ -97,11 +97,13 @@ kubectl get namespaces --context kind-quobyte-csi-experiment-testing
 kubectl config use-context kind-quobyte-csi-experiment-testing
 kubectl config set-context --current --namespace=quobyte
 
-echo "To access the test cluster you should append/set $KUBECONFIG to KUBECONFIG env varialbe"
+echo "To access the test cluster you should export KUBECONFIG=$KUBECONFIG env varialbe"
 
 if [[ -z "$TEST_CASE_DIR" ]]; then
   echo "No TEST_CASE_DIR is provided with test case configuration"
-  echo "Install your driver and run tests manually"
+  echo "Set values.yaml with your Quobyte API and quobyte.dev.csiImage: ${CSI_DRIVER_IMAGE}"
+  echo "Install a Quobyte client (example/client.yaml with adjusted namespace and Quobyte registr)"
+  echo "  then install Quobyte CSI driver manually using helm (helm install quobyte-csi-driver ../csi-driver-templates)"
   exit 1
 fi
 
