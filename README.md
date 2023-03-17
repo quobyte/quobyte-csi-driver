@@ -140,8 +140,8 @@ Quobyte CSI is the implementation of
     |  cut -f 1 -d' ')" -c quobyte-csi-driver -- env | grep QUOBYTE_API_URL
     ```
 
-    The above command should print your Quobyte API endpoint.
-    After that, uninstall Quobyte CSI driver and install again.
+    The above command should print your Quobyte API endpoint. Otherwise, uninstall
+    Quobyte CSI driver and install again with the correct Quobyte API URL.
 
 ## Examples
 
