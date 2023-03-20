@@ -32,7 +32,9 @@ metadata:
   name: quobyte-csi-shared-volume
 # must match Quobyte CSI provisioner name
 provisioner: csi.quobyte.com
-allowVolumeExpansion: true
+# For shared volumes, volume expansion if requested from k8s always succeeds.
+# admin need to either disable it via this flag or set Quota limits on shared volume.
+#allowVolumeExpansion: true
 parameters:
   quobyteTenant: "csi-test"
   # provisions PV as subdirectory of the "shared_volume"
@@ -52,6 +54,6 @@ parameters:
   quobyteConfig: "BASE"
   user: root
   group: root
-  accessMode: "777"
+  accessMode: "750"
 reclaimPolicy: Delete
 ```

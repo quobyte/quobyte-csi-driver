@@ -62,6 +62,14 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if len(volParts) < 2 {
 		return fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
 	}
+	// Shared volume is assumed to have unlimited capacity. If need user should set
+	// Quota limits on via Quobyte management API/webconsole
+	// We return success if expansion is requested. This gives customer flexibility with PVC
+	// rescaling on k8s. On the other hand, failed status requires destruction
+	// of pod, pvc, pv and recreation to rescale PVC.
+	if len(volParts) == 3 {
+		return nil
+	}
 	secrets := req.expandSecrets
 	if len(secrets) == 0 {
 		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")

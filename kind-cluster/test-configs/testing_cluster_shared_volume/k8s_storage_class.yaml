@@ -11,7 +11,9 @@ provisioner: csi.quobyte.com
 # but can be size restricted by creating a Quobyte quota
 # for the volume  (by setting parameters.createQuota: true).
 # Volume expansion only makes sense if volume is created with a quota.
-allowVolumeExpansion: true
+# For shared volumes, volume expansion if requested from k8s always succeeds.
+# admin need to either disable it via this flag or set Quota limits on shared volume.
+#allowVolumeExpansion: true
 parameters:
   # quobyteTenant is used as tenant if CSI driver is deployed with
   # --use_k8s_namespace_as_tenant=false.

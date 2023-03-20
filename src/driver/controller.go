@@ -159,13 +159,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	}
 
-	sharedVolumeName, isSharedVolume := params["sharedVolumeName"]
-
-	if isSharedVolume {
-		// Use shared volume name
-		volRequest.Name = sharedVolumeName
-	}
-
 	var volUUID string
 
 	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
@@ -182,6 +175,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		volUUID = volCreateResp.VolumeUuid
 	}
 
+	_, isSharedVolume := params["sharedVolumeName"]
 	// Creating a new volume/existence of volume alone is not sufficient when Quobyte
 	// tenant is configured with "disable_oversubscription: true"
 	// Creation of a quota ensures that provisioning succeeds only if there is sufficient Quota

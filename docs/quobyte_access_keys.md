@@ -13,6 +13,8 @@ To enable volume mount protection:
 1. Quobyte client(s) must be deployed with `--enable-access-contexts` and
   `--no-default-permissions` options (see [example client](../example/client.yaml))
 2. Quobyte CSI driver must be deployed with `enableAccessKeyMounts: true`
+3. Requires `csi-test` tenant and user `csi-driver` as member of tenant `csi-test`. Additionally,
+   `csi-driver` user must have a primary group.
 
 ## Storage Access with Access Keys
 
