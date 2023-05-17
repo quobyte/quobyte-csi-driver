@@ -44,7 +44,7 @@ echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *
 echo ""
 echo ""
 tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
-FROM kindest/node:v1.26.0
+FROM kindest/node:v1.27.1
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
 END
