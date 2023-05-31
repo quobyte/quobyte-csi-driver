@@ -26,14 +26,14 @@ spec:
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: venkat.corp.quobyte.com:2017 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2844 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
             # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
             value: /home/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEY_MOUNTS
-            value: "false"  # to enable, set it to true
+            value: "true"  # to enable, set it to true
           - name: NODENAME
             valueFrom:
               fieldRef:
