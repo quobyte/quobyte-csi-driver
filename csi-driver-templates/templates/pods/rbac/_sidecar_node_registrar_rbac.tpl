@@ -4,7 +4,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: quobyte-csi-driver-registrar-role-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  namespace: kube-system
 rules:
   - apiGroups: [""]
     resources: ["events"]
