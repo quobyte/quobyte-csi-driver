@@ -52,7 +52,7 @@ func main() {
 		}
 	})
 
-	flag.Set("alsologtostderr", "true")
+	// flag.Set("alsologtostderr", "true")
 	klog.InitFlags(nil)
 	flag.Parse()
 	// logs are available under /tmp/quobyte-csi.* inside quobyte-csi-driver container of the
