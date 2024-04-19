@@ -137,7 +137,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-	err := Mount(mountPath, targetPath, options)
+	err := Mount(mountPath, targetPath, options, &LinuxMounter{})
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUn
 		return nil, fmt.Errorf("target path for unmount is empty")
 	}
 	klog.Infof("Unmounting %s", target)
-	err := Unmount(target)
+	err := Unmount(target, &LinuxMounter{})
 	if err != nil {
 		return nil, err
 	}
