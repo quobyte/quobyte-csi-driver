@@ -40,11 +40,11 @@ mkdir -p "${TEST_CLUSTER_DIR}"
 
 echo "Running script from $(pwd)"
 
-echo "Creating a Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *"
+echo "Creating kind k8s cluster Dockerfile * * * * * * * * *  * * * * * * * * * * * * * * * * *"
 echo ""
 echo ""
 tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
-FROM kindest/node:v1.27.1
+FROM kindest/node:v1.27.11@sha256:681253009e68069b8e01aad36a1e0fa8cf18bb0ab3e5c4069b2e65cafdd70843
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
 END
@@ -120,18 +120,38 @@ verify_namespace_has_no_crashing_pods() {
     kubectl get po -n $namespace | awk 'NR>1{print $3}' | grep -iv 'running'
     has_crashing_pods="$?"
     let count++
-    if [[ has_crashing_pods -eq 0 ]]; then
+    if [[ $has_crashing_pods -eq 0 ]]; then
       sleep 1m
       echo "Waiting for all pods in namespace $namespace to be in Running state. Time elapsed $count minutes"
     fi
   done
-  if [[ has_crashing_pods -eq 0 ]]; then
+  if [[ $has_crashing_pods -eq 0 ]]; then
     echo "Some of the pods in namespace $namespace are not in Running state after $count minutes."
     echo "Get pods in namespace $namespace, describe crashing pod(s) to find the crash reason and retyin fixing it."
     echo "This indicates a problem with the driver setup, therefore exiting with error code 1"
     exit 1
   fi
 }
+
+function check_snapshots_resources_exists() {
+  if [[ ! -f "$CODE_BASE_DIR/csi-driver-templates/k8s-snapshot-crd.yaml" ]]; then
+    echo "ERROR: k8s snapshot CRD definitions not found in ${CODE_BASE_DIR}/csi-driver-templates/k8s-snapshot-crd.yaml"
+    exit 1
+  fi
+  if [[ ! -f "$CODE_BASE_DIR/csi-driver-templates/k8s-snapshot-controller.yaml" ]]; then
+    echo "ERROR: k8s snapshot controller definition not found in ${CODE_BASE_DIR}/csi-driver-templates/k8s-snapshot-controller.yaml"
+    exit 1
+  fi
+}
+
+grep -E "enableSnapshots:.*true" "${TEST_CASE_DIR}/values.yaml" &> /dev/null
+enabled_snapshots=$?
+if [[ "${enabled_snapshots}" -eq 0 ]]; then
+  check_snapshots_resources_exists
+  kubectl create -f "$CODE_BASE_DIR/csi-driver-templates/k8s-snapshot-crd.yaml"
+  sleep 10s
+  kubectl create -f "$CODE_BASE_DIR/csi-driver-templates/k8s-snapshot-controller.yaml"
+fi
 
 echo "Deploying k8s resources (k8s_<...>.yaml) files in test dir $TEST_CASE_DIR"
 for file in ${TEST_CASE_DIR}/k8s_*.yaml ; do kubectl apply -f "$file"; done
@@ -152,8 +172,14 @@ verify_namespace_has_no_crashing_pods
 echo "List all pods"
 kubectl get po --all-namespaces
 
+ENABLE_SNAPSHOTS='false'
+if [[ "$enabled_snapshots" -eq 0 ]]; then
+  ENABLE_SNAPSHOTS='true'
+fi
+
 echo ""
 echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
 STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
- CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" kind-cluster/e2e \
- || die 'Failing e2e tests with api and mount secrets'
+ SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
+ CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$ENABLE_SNAPSHOTS" kind-cluster/e2e \
+ || die 'Failed running e2e tests'

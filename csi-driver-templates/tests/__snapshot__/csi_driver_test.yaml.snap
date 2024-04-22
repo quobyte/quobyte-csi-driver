@@ -303,7 +303,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             resources:
@@ -319,7 +319,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             resources:
@@ -335,7 +335,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             resources:
@@ -351,7 +351,7 @@ should render when resource limits are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
+            image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
             imagePullPolicy: IfNotPresent
             name: csi-snapshotter
             resources:
@@ -440,7 +440,6 @@ should render when resource limits are provided:
     kind: ClusterRole
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
-      namespace: kube-system
     rules:
     - apiGroups:
       - ""
@@ -509,7 +508,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:
@@ -879,7 +878,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             volumeMounts:
@@ -891,7 +890,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             volumeMounts:
@@ -903,7 +902,7 @@ should render when tolerations are provided:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             volumeMounts:
@@ -988,7 +987,6 @@ should render when tolerations are provided:
     kind: ClusterRole
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
-      namespace: kube-system
     rules:
     - apiGroups:
       - ""
@@ -1057,7 +1055,7 @@ should render when tolerations are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:
@@ -1419,7 +1417,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
             imagePullPolicy: IfNotPresent
             name: csi-provisioner
             volumeMounts:
@@ -1431,7 +1429,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
             imagePullPolicy: IfNotPresent
             name: csi-resizer
             volumeMounts:
@@ -1443,7 +1441,7 @@ should render with default values:
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
             imagePullPolicy: IfNotPresent
             name: csi-attacher
             volumeMounts:
@@ -1524,7 +1522,6 @@ should render with default values:
     kind: ClusterRole
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
-      namespace: kube-system
     rules:
     - apiGroups:
       - ""
@@ -1593,7 +1590,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
             imagePullPolicy: IfNotPresent
             lifecycle:
               preStop:

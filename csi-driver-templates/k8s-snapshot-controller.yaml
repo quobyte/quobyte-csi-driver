@@ -1,4 +1,5 @@
-# https://github.com/kubernetes-csi/external-snapshotter/blob/v6.0.1/deploy/kubernetes/snapshot-controller/
+# https://github.com/kubernetes-csi/external-snapshotter/blob/v7.0.2/deploy/kubernetes/snapshot-controller
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -31,10 +32,27 @@ rules:
     verbs: ["patch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots"]
-    verbs: ["get", "list", "watch", "update", "patch"]
+    verbs: ["get", "list", "watch", "update", "patch", "delete"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots/status"]
     verbs: ["update", "patch"]
+
+  - apiGroups: ["groupsnapshot.storage.k8s.io"]
+    resources: ["volumegroupsnapshotclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["groupsnapshot.storage.k8s.io"]
+    resources: ["volumegroupsnapshotcontents"]
+    verbs: ["create", "get", "list", "watch", "update", "delete", "patch"]
+  - apiGroups: ["groupsnapshot.storage.k8s.io"]
+    resources: ["volumegroupsnapshotcontents/status"]
+    verbs: ["patch"]
+  - apiGroups: ["groupsnapshot.storage.k8s.io"]
+    resources: ["volumegroupsnapshots"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["groupsnapshot.storage.k8s.io"]
+    resources: ["volumegroupsnapshots/status"]
+    verbs: ["update", "patch"]
+
   # Enable this RBAC rule only when using distributed snapshotting, i.e. when the enable-distributed-snapshotting flag is set to true
   # - apiGroups: [""]
   #   resources: ["nodes"]
@@ -88,11 +106,12 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      app: snapshot-controller
-  # the snapshot controller won't be marked as ready if the v1 CRDs are unavailable
-  # in #504 the snapshot-controller will exit after around 7.5 seconds if it
-  # can't find the v1 CRDs so this value should be greater than that
-  minReadySeconds: 15
+      app.kubernetes.io/name: snapshot-controller
+  # The snapshot controller won't be marked as ready if the v1 CRDs are unavailable.
+  # The flag --retry-crd-interval-max is used to determine how long the controller
+  # will wait for the CRDs to become available before exiting. The default is 30 seconds
+  # so minReadySeconds should be set slightly higher than the flag value.
+  minReadySeconds: 35
   strategy:
     rollingUpdate:
       maxSurge: 0
@@ -101,12 +120,12 @@ spec:
   template:
     metadata:
       labels:
-        app: snapshot-controller
+        app.kubernetes.io/name: snapshot-controller
     spec:
       serviceAccountName: snapshot-controller
       containers:
         - name: snapshot-controller
-          image: gcr.io/k8s-staging-sig-storage/snapshot-controller:v5.0.1
+          image: registry.k8s.io/sig-storage/snapshot-controller:v6.3.1
           args:
             - "--v=5"
             - "--leader-election=true"
