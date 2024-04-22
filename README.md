@@ -430,10 +430,7 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 The below setup is required once per k8s cluster
 
   ```bash
-    # https://github.com/kubernetes-csi/external-snapshotter/
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
+    kubectl create -f quobyte-csi-driver/k8s-snapshot-crd.yaml
     kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
 
   ```
@@ -441,9 +438,7 @@ The below setup is required once per k8s cluster
 ### Remove Snapshotter
 
   ```bash
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml;
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml;
-    kubectl delete -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml;
     kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml
+    kubectl delete -f quobyte-csi-driver/k8s-snapshot-crd.yaml
 
   ```

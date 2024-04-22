@@ -5,12 +5,16 @@ NODES=1
 # TODO(venkat): remove --short once it becomes the default with kubectl
 K8S_VERSION="$(kubectl version --short | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
 STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
-SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-$(pwd)/quobyte-csi/example/volume-snapshot-class.yaml}
+SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-''}
 E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 TESTS_LOGS_PATH='/tmp/test.txt'
 
 cd /tmp
+
+if [[ "$ENABLE_SNAPSHOTS" -eq 'true' && -z "$SNAPSHOT_CLASS" ]]; then
+  echo "Missing volume snapshot class in test config"
+fi
 
 if [[ -f "$E2E_TEST_CONFIG_PATH" ]]; then
   rm "$E2E_TEST_CONFIG_PATH"
@@ -34,7 +38,7 @@ DriverInfo:
     controllerExpansion: true
     nodeExpansion: false
     singleNodeVolume: true
-    snapshotDataSource: false
+    snapshotDataSource: $ENABLE_SNAPSHOTS
     RWX: true
 EOF
 
