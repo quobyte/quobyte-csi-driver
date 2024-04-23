@@ -15,18 +15,18 @@ spec:
         prometheus.io/port: '55000'
       labels:
         role: client
-        version: "2"
+        version: "3"
     spec:
       containers:
       - name: quobyte-client
-        image: quay.io/quobyte/quobyte-client:3
+        image: quay.io/quobyte/quobyte-client:3.21.1
         imagePullPolicy: Always
         env:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: venkat.corp.quobyte.com:2190 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2205 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
             # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
