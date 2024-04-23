@@ -76,6 +76,13 @@ Quobyte CSI is the implementation of
     helm repo add quobyte-csi-driver https://quobyte.github.io/quobyte-csi-driver/helm
     ```
 
+    If the `quobyte-csi-driver` helm repo already added to your helm repositories, you should update
+    it to get the new Quobyte CSI Driver releases. Update the repo
+
+    ```bash
+    helm repo update quobyte-csi-driver
+    ``` 
+
 2. List all available Quobyte CSI versions
 
     ```bash
