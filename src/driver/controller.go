@@ -514,3 +514,7 @@ func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.Con
 	}
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity}, nil
 }
+
+func (d *QuobyteDriver) ControllerModifyVolume(ctx context.Context, req *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "ControllerModifyVolume: Not implented by Quobyte CSI")
+}
