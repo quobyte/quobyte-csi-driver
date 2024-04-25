@@ -27,6 +27,8 @@ type QuobyteDriver struct {
 	IsQuobyteAccessKeyMountsEnabled bool
 	ImmediateErase                  bool
 	QuobyteVersion                  int
+	quoybteClientFactory QuobyteApiClientProvider
+	mounter                        Mounter
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
@@ -53,6 +55,8 @@ func NewQuobyteDriver(
 		enableQuobyteAccessKeyMounts,
 		immediateErase,
 		quobyteVersion,
+		&QuobyteApiClientFactory{},
+		&LinuxMounter{},
 	}
 }
 

@@ -94,7 +94,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	}
 
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -278,17 +278,16 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 		// See CreateVolume for more information
 		return &csi.DeleteVolumeResponse{}, nil
 	}
-
+	volumeIdParts := strings.Split(volID, SEPARATOR)
+	if len(volumeIdParts) < 2 {
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
+	}
 	secrets := req.GetSecrets()
 	if len(secrets) == 0 {
 		return nil, fmt.Errorf("secrets are required to delete a volume." +
 			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
 	}
-	volumeIdParts := strings.Split(volID, SEPARATOR)
-	if len(volumeIdParts) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
-	}
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +381,6 @@ func (d *QuobyteDriver) ControllerGetCapabilities(ctx context.Context, req *csi.
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
 		csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
-		//	csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 	} {
 		caps = append(caps, newCap(cap))
 	}
@@ -411,7 +409,7 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +449,7 @@ func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnaps
 			snapshotID, SEPARATOR, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +477,7 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 			snapshotID, SEPARATOR, SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}

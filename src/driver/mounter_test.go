@@ -18,7 +18,7 @@ func TestMount(t *testing.T) {
 				t.Errorf("wanted: %v but got: %v", wanted, opts)
 			}
 			return nil
-		});
+		})
 	Mount("some-source", "some-target", []string{"opt1", "opt2"}, m)
 }
 
@@ -32,6 +32,6 @@ func TestUnmount(t *testing.T) {
 				t.Errorf("wanted: %s but got %s", wanted, got)
 			}
 			return nil
-		});
+		})
 	Unmount("/some/pod/mount/path", m)
 }

@@ -9,7 +9,6 @@ import (
 	"k8s.io/klog"
 )
 
-var quoybteClientFactory QuobyteApiClientFactory
 var clientCache *cache.Cache
 
 func init() {
@@ -18,17 +17,16 @@ func init() {
 	if err != nil {
 		klog.Fatalf("Could not initialize client cache")
 	}
-
-	quoybteClientFactory = QuobyteApiClientFactory{}
 }
 
+//go:generate mockgen -package=mocks -destination  ../mocks/mock_client_provider.go github.com/quobyte/quobyte-csi-driver/driver QuobyteApiClientProvider
 type QuobyteApiClientProvider interface {
-	NewQuobyteApiClient(secrets map[string]string) (*quobyte.QuobyteClient, error)
+	NewQuobyteApiClient(ApiURL *url.URL, secrets map[string]string) (quobyte.ExtendedQuobyteApi, error)
 }
 
 type QuobyteApiClientFactory struct{}
 
-func (c *QuobyteApiClientFactory) NewQuobyteApiClient(ApiURL *url.URL, secrets map[string]string) (*quobyte.QuobyteClient, error) {
+func (c *QuobyteApiClientFactory) NewQuobyteApiClient(ApiURL *url.URL, secrets map[string]string) (quobyte.ExtendedQuobyteApi, error) {
 	var apiUser, apiPass string
 
 	// TODO (venkat): priority to access key after 2.x support EOL

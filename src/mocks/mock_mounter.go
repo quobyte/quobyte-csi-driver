@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+	unix "golang.org/x/sys/unix"
 )
 
 // MockMounter is a mock of Mounter interface.
@@ -38,6 +39,20 @@ func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
 }
 
+// CreateMountPath mocks base method.
+func (m *MockMounter) CreateMountPath(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMountPath", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateMountPath indicates an expected call of CreateMountPath.
+func (mr *MockMounterMockRecorder) CreateMountPath(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMountPath", reflect.TypeOf((*MockMounter)(nil).CreateMountPath), arg0)
+}
+
 // Mount mocks base method.
 func (m *MockMounter) Mount(arg0 []string) error {
 	m.ctrl.T.Helper()
@@ -50,6 +65,21 @@ func (m *MockMounter) Mount(arg0 []string) error {
 func (mr *MockMounterMockRecorder) Mount(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockMounter)(nil).Mount), arg0)
+}
+
+// Statfs mocks base method.
+func (m *MockMounter) Statfs(arg0 string) (unix.Statfs_t, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Statfs", arg0)
+	ret0, _ := ret[0].(unix.Statfs_t)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Statfs indicates an expected call of Statfs.
+func (mr *MockMounterMockRecorder) Statfs(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Statfs", reflect.TypeOf((*MockMounter)(nil).Statfs), arg0)
 }
 
 // Unmount mocks base method.

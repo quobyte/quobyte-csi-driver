@@ -59,7 +59,7 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if len(secrets) == 0 {
 		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
 	}
-	quobyteClient, err := quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return err
 	}
