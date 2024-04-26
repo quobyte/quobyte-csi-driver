@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DRIVER_NAMESPACE="kube-system"
+DRIVER_NAMESPACE=${DRIVER_NAMESPACE:-"kube-system"}
 
 csi_pods=()
 while IFS= read -r line; do

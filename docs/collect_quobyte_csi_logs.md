@@ -14,7 +14,7 @@ Log collector gathers logs from all the Quobyte CSI containers in single place f
 2. Run the log_collector
 
     ```bash
-    ./log_collector.sh
+    ./log_collector
     ```
 
 3. Logs can be found under the directory `./csi_logs` for analysis.
