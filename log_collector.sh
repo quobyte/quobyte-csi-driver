@@ -2,6 +2,8 @@
 
 DRIVER_NAMESPACE=${DRIVER_NAMESPACE:-"kube-system"}
 
+echo "Collecting Quobyte CSI Driver from the $DRIVER_NAMESPACE namespace..."
+
 csi_pods=()
 while IFS= read -r line; do
     csi_pods+=( "$line" )
