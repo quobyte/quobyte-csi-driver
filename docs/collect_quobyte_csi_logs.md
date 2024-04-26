@@ -14,7 +14,13 @@ Log collector gathers logs from all the Quobyte CSI containers in single place f
 2. Run the log_collector
 
     ```bash
-    ./log_collector.sh
+    DRIVER_NAMESPACE="<quobyte-csi-driver-namespace>" ./log_collector.sh
+    ```
+
+    For example, if the Quobyte CSI driver is deployed in `quobyte-ns` then you need to run
+
+    ```bash
+    DRIVER_NAMESPACE="quobyte-ns" ./log_collector.sh
     ```
 
 3. Logs can be found under the directory `./csi_logs` for analysis.
