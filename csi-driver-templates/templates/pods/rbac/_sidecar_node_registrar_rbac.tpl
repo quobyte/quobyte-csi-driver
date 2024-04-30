@@ -14,7 +14,7 @@ rules:
     verbs: ["list", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumes"]
-    verbs: ["list"]
+    verbs: ["get"]
   {{- end }}
   {{- if .Values.quobyte.podSecurityPolicies }} 
   - apiGroups: ['policy']

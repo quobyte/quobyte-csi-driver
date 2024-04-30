@@ -11,7 +11,7 @@ metadata:
   name: {{ .Values.quobyte.csiProvisionerName }}
 spec:
   attachRequired: false
-  podInfoOnMount: false
+  podInfoOnMount: true
   fsGroupPolicy: None
   {{- if semverCompare ">=1.20.0-0" (default .Capabilities.KubeVersion.Version .Values.k8sVersion) }}
   requiresRepublish: false
