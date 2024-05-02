@@ -55,6 +55,17 @@ docker build -t 'quobyte/kind-node-testing:v0' -f "${TEST_CLUSTER_DIR}"/Dockerfi
 
 docker image ls | grep 'quobyte/kind-node-testing:v0'
 
+tee -a "${TEST_CLUSTER_DIR}"/audit-policy.yaml <<END
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  - level: RequestResponse
+    verbs: ["watch"]
+    resources:
+      - group: "" # core
+        resources: ["pods"]
+END
+
 echo "Use the newly created image in the kind cluster configuration: * * * * * * * * *"
 tee -a "${TEST_CLUSTER_DIR}"/kind-config-testing.yaml <<END
 kind: Cluster
@@ -62,7 +73,31 @@ name: ${KIND_CLUSTER_NAME}
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
-  image: quobyte/kind-node-testing:v0
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+        # enable auditing flags on the API server
+        extraArgs:
+          audit-log-path: /var/log/kubernetes/kube-apiserver-audit.log
+          audit-policy-file: /etc/kubernetes/policies/audit-policy.yaml
+        # mount new files / directories on the control plane
+        extraVolumes:
+          - name: audit-policies
+            hostPath: /etc/kubernetes/policies
+            mountPath: /etc/kubernetes/policies
+            readOnly: true
+            pathType: "DirectoryOrCreate"
+          - name: "audit-logs"
+            hostPath: "/var/log/kubernetes"
+            mountPath: "/var/log/kubernetes"
+            readOnly: false
+            pathType: DirectoryOrCreate
+  # mount the local file on the control plane
+  extraMounts:
+  - hostPath: "./${TEST_CLUSTER_DIR}/audit-policy.yaml"
+    containerPath: /etc/kubernetes/policies/audit-policy.yaml
+    readOnly: true
 - role: worker
   image: quobyte/kind-node-testing:v0
 - role: worker
