@@ -13,7 +13,7 @@
     allowPrivilegeEscalation: true
   image: {{ .Values.quobyte.dev.csiImage }}
   imagePullPolicy: "IfNotPresent"
-  args :
+  args:
     - "--csi_socket=$(CSI_ENDPOINT)"
     - "--quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)"
     - "--node_name=$(KUBE_NODE_NAME)"
