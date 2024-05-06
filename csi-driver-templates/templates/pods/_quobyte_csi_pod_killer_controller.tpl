@@ -23,7 +23,7 @@ spec:
         role: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
       priorityClassName: system-cluster-critical
-      serviceAccount: quobyte-csi-cache-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+      serviceAccount: quobyte-csi-pod-killer-cache-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 {{- if .Values.quobyte.tolerations }}
       tolerations: 
 {{ toYaml .Values.quobyte.tolerations | indent 8 }}
