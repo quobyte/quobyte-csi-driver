@@ -14,10 +14,14 @@
   args:
     - "--node_name=$(KUBE_NODE_NAME)"
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
-    - "--service_url=http://quobyte-pod-killer-cache:80/"
+    - "--service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/"
     - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
     - "--role=monitor"
   env:
+    - name: NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
     - name: NODE_ID
       valueFrom:
         fieldRef:
