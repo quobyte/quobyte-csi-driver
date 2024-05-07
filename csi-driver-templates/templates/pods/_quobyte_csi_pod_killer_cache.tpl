@@ -5,7 +5,7 @@
 ---
 {{- include "quobyte-csi-driver.podKiller.cacheRbac" . }}
 ---
-kind: StatefulSet
+kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
@@ -14,7 +14,6 @@ spec:
   selector:
     matchLabels:
       app: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  serviceName: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }} 
   replicas: 1
   template:
     metadata:

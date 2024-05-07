@@ -1,4 +1,4 @@
 .*
 src/quobyte-csi
 kind-cluster/*.pem
-kind-cluster/kind-csi-experiment-testing-corp/
+kind-cluster/kind-csi-testing/
