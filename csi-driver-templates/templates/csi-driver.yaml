@@ -1,3 +1,4 @@
 {{- include "quobyte-csi-driver.CSIDriverObject" . }}
 {{- include "quobyte-csi-driver.controllerPod" . }}
 {{- include "quobyte-csi-driver.nodeDriverPod" . }}
+{{- include "quobyte-csi-driver.podKiller.cachePod" . }}

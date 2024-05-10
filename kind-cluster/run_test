@@ -4,8 +4,8 @@ MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
 TEST_CASE_DIR="${TEST_CASE_DIR:-}"
-TEST_CLUSTER_DIR='kind-cluster/kind-csi-experiment-testing-corp'
-KIND_CLUSTER_NAME="quobyte-csi-experiment-testing"
+KIND_CLUSTER_NAME="quobyte-csi-testing"
+TEST_CLUSTER_DIR='kind-cluster/kind-csi-testing'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 # do not tag version as latest - that would trigger pull always from registry
 CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
@@ -46,7 +46,7 @@ echo ""
 tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
 FROM kindest/node:v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245
 RUN apt-get -y update 
-RUN apt-get -y install wget && apt-get install -y git && apt install -y nano
+RUN apt-get -y install wget && apt-get install -y git && apt install -y nano dnsutils
 END
 
 echo "Building new image using the above Dockerfile. On the local machine: * * *"
@@ -62,7 +62,6 @@ name: ${KIND_CLUSTER_NAME}
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
-  image: quobyte/kind-node-testing:v0
 - role: worker
   image: quobyte/kind-node-testing:v0
 - role: worker
@@ -74,7 +73,50 @@ END
 echo  "Creating cluster with kind: * * * * * * * * * * * * * * * * * * * * * * *"
 kind create cluster --config="${TEST_CLUSTER_DIR}"/kind-config-testing.yaml --kubeconfig ${KUBECONFIG}
 
-echo  "Labeling Kubernetes nodes * * * * * * * * * * * * * * * * * * * * * * * *"
+dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
+if [[ -z "$dns_ips" ]]; then
+  echo "Error: could not retrive kube-dns IP required"
+  exit 1
+fi
+if ! [[ "$dns_ips" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: Invalid kube-dns IP $dns_ips"
+  exit 1
+fi
+
+# Add host dns entries, so that we can resolve all the names (dependent container urls, Quobyte
+# api/registry etc)
+for host_dns_ip in $(grep nameserver /etc/resolv.conf | awk '{print $2}'); do
+   dns_ips="$dns_ips $host_dns_ip"
+done
+
+# Requires for Quobyte pod killer components - cache is run as a service and mount monitor
+# uses service url to communicate with the cache. Without kube-dns mapped, mount monitor cannot
+# resolve the service url
+echo "Mapping k8s kube-dns resolver into k8s nodes * * * * * * * * *"
+for node in $(kubectl get nodes --no-headers | grep 'worker' | awk '{print $1}'); do
+  echo "Mapping k8s kube-dns resolver into $node"
+  # Nullify current configuration -- ATM, kind configures dns is configured with the default
+  # gateway of the virtual network
+  sudo docker exec -it $node sh -c "cat /dev/null > /etc/resolv.conf"
+  # Next couple of lines are not intended on purpose - otherwise command does not work as
+  # -c interprets text verbatim
+  sudo docker exec -it $node sh -c "cat > /etc/resolv.conf <<END
+search default svc.cluster.local cluster.local
+END"
+for dns_ip in $dns_ips; do
+sudo docker exec -it $node sh -c "cat >> /etc/resolv.conf <<END
+nameserver $dns_ip
+END"
+done
+ sudo docker exec -it $node sh -c "cat >> /etc/resolv.conf <<END
+options timeout:1 ndots:0
+END"
+  echo "Configured worker node $node with DNS entries as following:"
+  sudo docker exec -it quobyte-csi-testing-worker sh -c "cat /etc/resolv.conf"
+  echo ""
+done
+
+echo  "Labeling Kubernetes nodes for Quobyte client installation * * * * * * * * * * * * * * *"
 for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
   kubectl label nodes $node quobyte_client="true"
 done

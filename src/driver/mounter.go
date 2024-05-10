@@ -1,6 +1,8 @@
 package driver
 
 import (
+	"os"
+	"golang.org/x/sys/unix"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -11,11 +13,20 @@ import (
 
 //go:generate mockgen -package=mocks -destination  ../mocks/mock_mounter.go github.com/quobyte/quobyte-csi-driver/driver Mounter
 type Mounter interface {
+	CreateMountPath(path string) error
 	Mount(mount_options []string) error
 	Unmount(path string) error
+	Statfs(path string) (unix.Statfs_t, error)
 }
 
 type LinuxMounter struct {
+}
+
+func (m *LinuxMounter) CreateMountPath(mountPath string) error {
+	if err := os.MkdirAll(mountPath, 0750); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *LinuxMounter) Mount(mount_options []string) error {
@@ -38,6 +49,15 @@ func (m *LinuxMounter) Unmount(path string) error {
 	return nil
 }
 
+func (m *LinuxMounter) Statfs(path string) (unix.Statfs_t, error) {
+	var statfs unix.Statfs_t
+	if err := unix.Statfs(path, &statfs); err != nil {
+		return unix.Statfs_t{}, err
+	}
+	return statfs, nil
+}
+
+
 // Mount bind mounts the Quobyte volume to the target
 func Mount(source, target string, opts []string, mounter Mounter) error {
 	// Readonly is left to kubelet running on host machines.
@@ -59,7 +79,7 @@ func Mount(source, target string, opts []string, mounter Mounter) error {
 	return nil
 }
 
-//Unmount unmounts the given path
+// Unmount unmounts the given path
 func Unmount(target string, mounter Mounter) error {
 	return mounter.Unmount(target)
 }

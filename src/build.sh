@@ -15,6 +15,13 @@ fi
 CHART_PACKAGE_DIR="../helm" 
 CHART_DIR="../csi-driver-templates"
 
+# arg1 - command exit status, arg2 - error message to be printed
+exit_if_failure() {
+  if [[ $1 -ne 0 ]]; then
+    echo "$2"
+    exit 1
+  fi
+}
 
 container_build_and_push(){
   if [[ -z "${CONTAINER_URL_BASE}" ]]; then
@@ -94,16 +101,17 @@ else
     rm quobyte-csi
   fi
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go
-  build_success="$?"
-  if [[ ${build_success} -eq 0 ]]; then
-    echo "Build is successful"
-  else
-    echo "Build FAILURE"
-    exit 1
-  fi
-  if [[ "${build_success}" -eq 0 && "$1" == "container" ]]; then
+  exit_if_failure "$?" "Building binary failed. Fix the reported errors and retry"
+  echo "Generating //go:generate marked statemets in source file"
+  go generate ./...
+  exit_if_failure "$?" "Failed generating required mocks for testing. Fix reported errors and retry"
+  echo "Running tests..."
+  go test -v ./...
+  exit_if_failure "$?" "Failed tests. Fix failing tests and retry command."
+
+  if [[ "$1" == "container" ]]; then
     container_build_and_push $2
-  elif [[ "${build_success}" -eq 0 && "$1" == "release" ]]; then
+  elif [[ "$1" == "release" ]]; then
     if [[ $(git rev-parse --abbrev-ref HEAD) != "master" ]]; then
       echo 'FAILURE: release can only be made on master branch'
       exit 1

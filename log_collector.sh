@@ -28,6 +28,11 @@ echo '' >> ./csi_logs/csi_pods.txt
 echo '###Quobyte CSI pods status###' >> ./csi_logs/csi_pods.txt
 kubectl -n $DRIVER_NAMESPACE get po -owide | grep ^quobyte-csi >> ./csi_logs/csi_pods.txt
 
+pod_killer_cache_pod=$(kubectl -n $DRIVER_NAMESPACE get po | grep "quobyte-csi-pod-killer-cache" | awk '{print $1}')
+if [[ ! -z $pod_killer_cache_pod ]]; then
+  kubectl -n $DRIVER_NAMESPACE logs $pod_killer_cache_pod >> ./csi_logs/$pod_killer_cache_pod.log
+fi
+
 for el in "${csi_pods[@]}"
 do
   mkdir -p "./csi_logs/$el"
@@ -40,7 +45,7 @@ do
   elif [[ $el =~ quobyte-csi-node.* ]];then
     kubectl -n $DRIVER_NAMESPACE logs $el -c csi-node-driver-registrar >> ./csi_logs/$el/csi-node-driver-registrar.log
     kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-driver  >> ./csi_logs/$el/quobyte-csi-node-driver.log
-    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-pod-killer  >> ./csi_logs/$el/quobyte-pod-killer.log
+    kubectl -n $DRIVER_NAMESPACE logs $el -c quobyte-csi-mount-monitor  >> ./csi_logs/$el/quobyte-csi-mount-monitor.log
  fi
 done
 

@@ -29,7 +29,7 @@ spec:
       containers:
         {{- include "csi.sidecar.nodeRegistrarContainer" . | indent 8 }}
         {{- include "quobyte-csi-driver.nodeDriverContainer" . | indent 8 }}
-        {{- include "quobyte-csi-driver.podKillerContainer" . | indent 8 }}
+        {{- include "quobyte-csi-driver.podKiller.mountMonitor" . | indent 8 }}
       {{- include "quobyte-csi-driver.nodeDriverPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}

@@ -11,10 +11,7 @@ rules:
   {{- if .Values.quobyte.podKiller.enable }}
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["list", "delete"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["list"]
+    verbs: ["delete"]
   {{- end }}
   {{- if .Values.quobyte.podSecurityPolicies }} 
   - apiGroups: ['policy']

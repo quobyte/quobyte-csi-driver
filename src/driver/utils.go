@@ -5,10 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"k8s.io/klog"
-
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	cache "github.com/hashicorp/golang-lru"
 	quobyte "github.com/quobyte/api/quobyte"
 )
 
@@ -25,18 +22,6 @@ const (
 	accessKeyID       string = "accessKeyId"
 	accessKeySecret   string = "accessKeySecret"
 )
-
-var clientCache *cache.Cache = nil
-
-func initClientCache() {
-	if clientCache == nil {
-		var err error
-		clientCache, err = cache.New(1000)
-		if err != nil {
-			klog.Fatalf("Could not initialize client cache")
-		}
-	}
-}
 
 func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
 	return fmt.Sprintf(KEY_VAL, key_id, key_secret, accesskeyHandle)
@@ -74,7 +59,7 @@ func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
 	if len(secrets) == 0 {
 		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
 	}
-	quobyteClient, err := d.getQuobyteApiClient(secrets)
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return err
 	}

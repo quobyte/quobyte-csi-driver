@@ -3,7 +3,6 @@ package driver
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
@@ -31,11 +30,9 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 	if len(targetPath) == 0 {
 		return nil, fmt.Errorf("given target mount path is empty")
 	}
-
-	if err := os.MkdirAll(targetPath, 0750); err != nil {
+	if err := d.mounter.CreateMountPath(targetPath); err != nil {
 		return nil, err
 	}
-
 	// see controller.go -- CreateVolume method. VolumeContext is only added for snapshot volumes
 	if volContext != nil && strings.HasPrefix(req.VolumeId, SnapshotVolumeHandlePrefix) {
 		if snapshotId, ok := volContext[SnapshotIDKey]; ok {
@@ -67,7 +64,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		klog.Infof("csiNodePublishSecret is  not received with sufficient Quobyte API credential. Assuming volume given with UUID")
 		volUUID = volParts[1]
 	} else {
-		quobyteClient, err := d.getQuobyteApiClient(secrets)
+		quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +134,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-	err := Mount(mountPath, targetPath, options, &LinuxMounter{})
+	err := Mount(mountPath, targetPath, options, d.mounter)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +148,7 @@ func (d *QuobyteDriver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUn
 		return nil, fmt.Errorf("target path for unmount is empty")
 	}
 	klog.Infof("Unmounting %s", target)
-	err := Unmount(target, &LinuxMounter{})
+	err := Unmount(target, d.mounter)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +196,8 @@ func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGet
 		return nil, fmt.Errorf("volume path must not be empty")
 	}
 	var statfs unix.Statfs_t
-	if err := unix.Statfs(volumePath, &statfs); err != nil {
+	var err error
+	if statfs, err = d.mounter.Statfs(volumePath); err != nil {
 		return nil, err
 	}
 

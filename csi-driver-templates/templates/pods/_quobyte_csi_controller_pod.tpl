@@ -19,7 +19,6 @@ spec:
   selector:
     matchLabels:
       app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  serviceName: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }} 
   replicas: {{ .Values.quobyte.csiControllerReplicas }}
   template:
     metadata:
