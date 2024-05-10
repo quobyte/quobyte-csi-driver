@@ -2,9 +2,9 @@
 {{- if .Values.quobyte.podKiller.enable }}
 - name: quobyte-csi-mount-monitor
 {{- if .Values.resources }}
-{{- if .Values.resources.podMountMonitor }}
+{{- if .Values.resources.podKillerContainer }}
   resources: 
-{{ toYaml .Values.resources.podMountMonitor | indent 4 }}
+{{ toYaml .Values.resources.podKillerContainer | indent 4 }}
 {{- end }}
 {{- end }}
   securityContext:
