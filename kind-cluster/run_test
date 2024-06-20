@@ -3,6 +3,7 @@
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
+POD_KILLER_DIR="$(pwd)/../quobyte-csi-pod-killer"
 TEST_CASE_DIR="${TEST_CASE_DIR:-}"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR='kind-cluster/kind-csi-testing'
@@ -21,6 +22,26 @@ if [ ! -z "$(git status --porcelain)" ]; then
   exit 1
 fi
 
+if [ ! -d "${POD_KILLER_DIR}" ]; then
+  die "Pod killer code base does not exists in the path ${POD_KILLER_DIR}"
+fi
+
+echo "*** Building pod killer ***"
+cd ${POD_KILLER_DIR}
+POD_KILLER_VERSION="$(git rev-parse --short HEAD)"
+POD_KILLER_CONTAINER_URL_BASE="dummy.quobyte.com/pod-killer"
+POD_KILLER_IMAGE="${POD_KILLER_CONTAINER_URL_BASE}:${POD_KILLER_VERSION}"
+${POD_KILLER_DIR}/build
+docker build -t ${POD_KILLER_IMAGE} -f Dockerfile .
+pod_killer_container_build_status=$?
+
+if [[ "${pod_killer_container_build_status}" -ne 0 ]]; then
+  die "Failed building pod killer container"
+else
+  echo "Successfully build pod killer image $POD_KILLER_IMAGE"
+fi
+
+cd $CODE_BASE_DIR
 if [[ -f "$KUBECONFIG" ]]; then
   rm "$KUBECONFIG"
 fi
@@ -129,6 +150,7 @@ if [[ "$?" -ne 0 ]]; then
   exit 1
 fi
 kind load docker-image ${CSI_DRIVER_IMAGE} --name ${KIND_CLUSTER_NAME}
+kind load docker-image ${POD_KILLER_IMAGE} --name ${KIND_CLUSTER_NAME}
 
 echo "creating and setting default namespace to quobyte * * * * * * * * * * * *" 
 #to retrieve instances from all namespaces use '-A' argument
@@ -200,12 +222,21 @@ for file in ${TEST_CASE_DIR}/k8s_*.yaml ; do kubectl apply -f "$file"; done
 
 sleep 30s
 
+if [[ ! -f "${TEST_CASE_DIR}/values.yaml" ]]; then
+  die "${TEST_CASE_DIR}/values.yaml not found. Cannot setup Quobyte CSI Driver."
+fi
+
 echo ""
-echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml and quobyte.dev.csiImage set to $CSI_DRIVER_IMAGE"
+echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml with overrides \
+      quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
+      quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
+      quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
+      quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME"
 # install CSI driver with the custom image
 helm install quobyte-csi-driver ./csi-driver-templates -f ${TEST_CASE_DIR}/values.yaml \
  --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
  --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
+ --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
  --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME"
 
 sleep 1m
@@ -220,6 +251,10 @@ if [[ "$enabled_snapshots" -eq 0 ]]; then
 fi
 
 echo ""
+if [[ ! -f "$TEST_CASE_DIR/k8s_storage_class.yaml" ]]; then
+  echo "No k8s_storage_class.yaml exists in the given test path $TEST_CASE_DIR. So not running e2e tests"
+  exit 0  # success as driver is setup with given values.yaml 
+fi
 echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
 STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
  SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
