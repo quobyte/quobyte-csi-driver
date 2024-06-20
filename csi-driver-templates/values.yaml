@@ -81,7 +81,7 @@ quobyte:
     # github.com/quobyte/quobyte-csi
     csiImage: "quay.io/quobyte/csi:v2.1.0"
     # github.com/quobyte/pod-killer
-    podKillerImage: "quay.io/quobyte/pod-killer:v0.2.0"
+    podKillerImage: "quay.io/quobyte/pod-killer:v0.2.1"
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
