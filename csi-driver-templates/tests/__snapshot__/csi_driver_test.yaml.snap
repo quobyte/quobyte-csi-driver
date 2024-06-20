@@ -591,7 +591,7 @@ should render when resource limits are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-mount-monitor
             resources:
@@ -692,7 +692,7 @@ should render when resource limits are provided:
           - args:
             - --driver_name=csi.quobyte.com
             - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-pod-killer-cache
             ports:
@@ -1212,7 +1212,7 @@ should render when tolerations are provided:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-mount-monitor
             securityContext:
@@ -1313,7 +1313,7 @@ should render when tolerations are provided:
           - args:
             - --driver_name=csi.quobyte.com
             - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-pod-killer-cache
             ports:
@@ -1829,7 +1829,7 @@ should render with default values:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-mount-monitor
             securityContext:
@@ -1926,7 +1926,7 @@ should render with default values:
           - args:
             - --driver_name=csi.quobyte.com
             - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.0
+            image: quay.io/quobyte/pod-killer:v0.2.1
             imagePullPolicy: IfNotPresent
             name: quobyte-csi-pod-killer-cache
             ports:

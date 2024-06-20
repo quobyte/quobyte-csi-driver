@@ -14,7 +14,7 @@ spec:
   selector:
     matchLabels:
       app: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  replicas: 1
+  replicas: {{ .Values.quobyte.podKiller.cacheReplicas }}
   template:
     metadata:
       labels:

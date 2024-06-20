@@ -16,6 +16,15 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
 
 5. Quobyte API endpoint and registry endpoint
 
+6. Checkout [Quobyte CSI Pod Killer](https://github.com/quobyte/quobyte-csi-pod-killer) at the same
+ level in directory as Quobyte CSI Driver and change to required branch of `quobyte-csi-pod-killer`
+
+    ```bash
+    $ls
+    quobyte-csi-driver/
+    quobyte-csi-pod-killer/
+    ```
+
 ## Run tests
 
 1. Clone `quobyte-csi` repo & checkout a feature branch
@@ -37,6 +46,11 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
     You can also run `kind-cluster/run_test` without `TEST_CASE_DIR` to provision a kubernetes cluster
     . Thereafter, you could `export KUBECONFIG=...` as instructed by script output and install
     csi driver, execute tests manually.
+
+    or
+
+    You can run with `TEST_CASE_DIR` that contains only CSI driver values.yaml to deploy the driver
+    (note that some defined values such as CSI image/pod killer images are overriden)
 
 ## Cleanup
 
