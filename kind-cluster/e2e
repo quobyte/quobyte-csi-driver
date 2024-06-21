@@ -2,8 +2,8 @@
 
 KUBECONFIG=${KUBECONFIG:-"/etc/kubernetes/admin.conf"}
 NODES=1
-# TODO(venkat): remove --short once it becomes the default with kubectl
-K8S_VERSION="$(kubectl version --short | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
+# Note that you need to point kubeconfig correctly, otherwise kubectl cannot list sever version
+K8S_VERSION="$(kubectl version | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
 STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
 SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-''}
 E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
