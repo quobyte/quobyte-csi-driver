@@ -2,8 +2,17 @@ apiVersion: v1
 entries:
   quobyte-csi-driver:
   - apiVersion: v1
+    appVersion: v2.1.1
+    created: "2024-06-21T15:29:24.55042628+02:00"
+    description: Quobyte CSI Helm chart
+    digest: b6a162ebb43ec18b100d82765bbfadd2c49bbc00a04a076e3c3ddeb9065b39a5
+    name: quobyte-csi-driver
+    urls:
+    - quobyte-csi-driver-2.1.1.tgz
+    version: 2.1.1
+  - apiVersion: v1
     appVersion: v2.1.0
-    created: "2024-05-10T21:13:25.589569377+02:00"
+    created: "2024-06-21T15:29:24.549681249+02:00"
     description: Quobyte CSI Helm chart
     digest: 299bea1d377dd5855d990436ea1d1579af570c47c624748a2a291356c2039abf
     name: quobyte-csi-driver
@@ -12,7 +21,7 @@ entries:
     version: 2.1.0
   - apiVersion: v1
     appVersion: v2.0.3
-    created: "2024-05-10T21:13:25.588771786+02:00"
+    created: "2024-06-21T15:29:24.548579255+02:00"
     description: Quobyte CSI Helm chart
     digest: 93945c7442341c078fbaebc192df979fc5790be182344f8f9cc146ef7a27c34e
     name: quobyte-csi-driver
@@ -21,7 +30,7 @@ entries:
     version: 2.0.3
   - apiVersion: v1
     appVersion: v2.0.2
-    created: "2024-05-10T21:13:25.587825569+02:00"
+    created: "2024-06-21T15:29:24.547053311+02:00"
     description: Quobyte CSI Helm chart
     digest: 9de99f2b13c9690700eba4e7105accf631e15e8b071b188adef19d5e7cf6e1bd
     name: quobyte-csi-driver
@@ -30,7 +39,7 @@ entries:
     version: 2.0.2
   - apiVersion: v1
     appVersion: v2.0.1
-    created: "2024-05-10T21:13:25.587078198+02:00"
+    created: "2024-06-21T15:29:24.546385969+02:00"
     description: Quobyte CSI Helm chart
     digest: 912ced1612c04a0da09e2209419ebb1c2b53264249e4a71519b6764b37226968
     name: quobyte-csi-driver
@@ -39,7 +48,7 @@ entries:
     version: 2.0.1
   - apiVersion: v1
     appVersion: v2.0.0
-    created: "2024-05-10T21:13:25.586262023+02:00"
+    created: "2024-06-21T15:29:24.545729733+02:00"
     description: Quobyte CSI Helm chart
     digest: 9f53ad5aeb550220a0131be45a888ceb7210c3f19c8b5aff9fecdd09c01613df
     name: quobyte-csi-driver
@@ -48,7 +57,7 @@ entries:
     version: 2.0.0
   - apiVersion: v1
     appVersion: v1.8.5
-    created: "2024-05-10T21:13:25.585539303+02:00"
+    created: "2024-06-21T15:29:24.545066397+02:00"
     description: Quobyte CSI Helm chart
     digest: 686a69fbb1e95eaec2bda60c3230f8ce2710eb1c3ce0bfce02bd3ebd47d88cc3
     name: quobyte-csi-driver
@@ -57,11 +66,11 @@ entries:
     version: 1.8.6
   - apiVersion: v1
     appVersion: v1.8.4
-    created: "2024-05-10T21:13:25.584812869+02:00"
+    created: "2024-06-21T15:29:24.544396778+02:00"
     description: Quobyte CSI Helm chart
     digest: 0b343db95576a44bf6e42592b0a2d664104fc77a4d75553706ca7d7eb8f78654
     name: quobyte-csi-driver
     urls:
     - quobyte-csi-driver-1.8.5.tgz
     version: 1.8.5
-generated: "2024-05-10T21:13:25.58409527+02:00"
+generated: "2024-06-21T15:29:24.543721797+02:00"
