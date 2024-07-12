@@ -108,16 +108,25 @@ func TestNodeUnpublishVolume(t *testing.T) {
 	d.mounter = mounter
 	req = &csi.NodeUnpublishVolumeRequest{}
 	req.TargetPath = unmountPath
-	got, err = d.NodeUnpublishVolume(context.TODO(), req)
+	got, _ = d.NodeUnpublishVolume(context.TODO(), req)
 	wanted := &csi.NodeUnpublishVolumeResponse {}
 	assert.Equal(wanted, got);
 }
 
 func TestNodeGetVolumeStats(t *testing.T) {
+	driverName := "my.quobyte.csi.provisioner"
 	d := &QuobyteDriver{}
-	req := &csi.NodeGetVolumeStatsRequest{}
-	got, err := d.NodeGetVolumeStats(context.TODO(), req)
+	d.Name = driverName
+	d.enabledVolumeMetrics = false
+	got, err := d.NodeGetVolumeStats(context.TODO(), &csi.NodeGetVolumeStatsRequest{})
 	assert := assert.New(t)
+	assert.Nil(got);
+	assert.NotNil(err);
+	assert.Contains(err.Error(), "disabled for the Quobyte CSI Driver " + driverName)
+	d = &QuobyteDriver{}
+	req := &csi.NodeGetVolumeStatsRequest{}
+	d.enabledVolumeMetrics = true
+	got, err = d.NodeGetVolumeStats(context.TODO(), req)
 	assert.Nil(got)
 	assert.NotNil(err)
 	assert.True(strings.Contains(err.Error(), "volume path must not be empty"))
@@ -139,7 +148,7 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	d.mounter = mounter
 	req = &csi.NodeGetVolumeStatsRequest{}
 	req.VolumePath = mountedPath
-	got, err = d.NodeGetVolumeStats(context.TODO(), req)
+	got, _ = d.NodeGetVolumeStats(context.TODO(), req)
 	wanted := &csi.NodeGetVolumeStatsResponse {
 		Usage: []*csi.VolumeUsage {
 			{

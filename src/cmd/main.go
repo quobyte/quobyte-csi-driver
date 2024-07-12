@@ -29,6 +29,7 @@ var (
 	driverVersion                = flag.String("driver_version", "", "Quobyte CSI driver version")
 	useNameSpaceAsTenant         = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
 	enableQuobyteAccessKeyMounts = flag.Bool("enable_access_key_mounts", false, "Enables use of Quobyte Access keys for mounting volumes")
+	enableVolumeMetrics         = flag.Bool("enable_volume_metrics", true, "Enables volume metrics (space and inodes) export")
 	immediateErase               = flag.Bool("immediate_erase", false, "Schedules erase volume task immediately (supported from Quobyte 3.x)")
 	quobyteVersion               = flag.Int("quobyte_version", 2, "Specify Quobyte major version (2 for Quobyte 2.x and 3 for Quobyte 3.x)")
 	sharedVolumes                = flag.String("shared_volumes_list", "", "Comma separated list of shared volumes (applicable only for Quobyte 2.x)")
@@ -93,7 +94,8 @@ func main() {
 		*useNameSpaceAsTenant,
 		*enableQuobyteAccessKeyMounts,
 		*immediateErase,
-		*quobyteVersion)
+		*quobyteVersion,
+		*enableVolumeMetrics)
 	err = qd.Run()
 	if err != nil {
 		klog.Errorf("Failed to start Quobyte CSI grpc server due to error: %v.", err)
