@@ -191,6 +191,9 @@ func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpan
 }
 
 func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	if !d.enabledVolumeMetrics {
+		return nil, fmt.Errorf("volume/PVC metrics export is disabled for the Quobyte CSI Driver %s", d.Name);
+	}
 	volumePath := req.GetVolumePath()
 	if len(volumePath) <= 0 {
 		return nil, fmt.Errorf("volume path must not be empty")

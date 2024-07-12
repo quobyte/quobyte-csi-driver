@@ -63,6 +63,10 @@ quobyte:
   # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
   sharedVolumesList: ""
 
+  # Set to 'false' if PVC/volume metrics (used/available/total bytes and inodes)
+  # are not required to be exported as Prometheus metrics.
+  enableVolumeMetrics: true
+
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again

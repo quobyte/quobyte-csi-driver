@@ -27,6 +27,7 @@ type QuobyteDriver struct {
 	IsQuobyteAccessKeyMountsEnabled bool
 	ImmediateErase                  bool
 	QuobyteVersion                  int
+	enabledVolumeMetrics           bool
 	quoybteClientFactory QuobyteApiClientProvider
 	mounter                        Mounter
 }
@@ -42,7 +43,8 @@ func NewQuobyteDriver(
 	useNamespaceAsQuobyteTenant,
 	enableQuobyteAccessKeyMounts bool,
 	immediateErase bool,
-	quobyteVersion int) *QuobyteDriver {
+	quobyteVersion int,
+	enableVolumeMetrics bool) *QuobyteDriver {
 	return &QuobyteDriver{
 		driverName,
 		driverVersion,
@@ -55,6 +57,7 @@ func NewQuobyteDriver(
 		enableQuobyteAccessKeyMounts,
 		immediateErase,
 		quobyteVersion,
+		enableVolumeMetrics,
 		&QuobyteApiClientFactory{},
 		&LinuxMounter{},
 	}
@@ -103,11 +106,13 @@ func (d *QuobyteDriver) Run() error {
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s'"+
-		"GRPC socket: '%s' mount point: '%s' API URL: '%s' "+
-		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t",
+	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s'" +
+		"GRPC socket: '%s' mount point: '%s' API URL: '%s' " +
+		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t" +
+		" VolumeMetricsEnabled: %t",
 		d.Name, d.Version, d.endpoint, d.clientMountPoint, d.ApiURL,
-		d.UseK8SNamespaceAsQuobyteTenant, d.IsQuobyteAccessKeyMountsEnabled)
+		d.UseK8SNamespaceAsQuobyteTenant, d.IsQuobyteAccessKeyMountsEnabled,
+		d.enabledVolumeMetrics)
 	d.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(d.server, d)
 	csi.RegisterControllerServer(d.server, d)
