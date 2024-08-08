@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"fmt"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	mock_quobyte_api "github.com/quobyte/api/mocks"
@@ -78,6 +79,26 @@ func TestDeleteVolume(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(got)
 	assert.Equal(&csi.DeleteVolumeResponse{}, got)
+
+	// Erase volume failure should send back error to upper layer
+	ctrl = gomock.NewController(t)
+	quoybteClient = mock_quobyte_api.NewMockExtendedQuobyteApi(ctrl)
+	quoybteClient.EXPECT().EraseVolumeByResolvingNamesToUUID(
+		gomock.Eq(volume), gomock.Eq(tenant), gomock.Any()).Return(fmt.Errorf("Erase volume error"))
+	quobyteClientProvider = mocks.NewMockQuobyteApiClientProvider(ctrl)
+	quobyteClientProvider.EXPECT().NewQuobyteApiClient(gomock.Any(), gomock.Any()).DoAndReturn(
+		func (_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
+			return quoybteClient, nil
+		}).AnyTimes()
+	d.quoybteClientFactory = quobyteClientProvider
+	req = &csi.DeleteVolumeRequest{
+		VolumeId: tenant + SEPARATOR + volume,
+		Secrets: secrets,
+	}
+	got, err = d.DeleteVolume(context.TODO(), req)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "Erase volume error")
+	assert.Nil(got)
 	// TODO(venkat): add snapshots and subdir (shared volume) tests
 }
 

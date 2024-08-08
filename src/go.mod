@@ -24,4 +24,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/quobyte/api => /home/venkat/go/src/github.com/quobyte/api
+// Uncomment only during testing with local version of Quobyte API
+//replace github.com/quobyte/api => /home/venkat/go/src/github.com/quobyte/api
