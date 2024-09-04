@@ -75,6 +75,12 @@ quobyte:
     monitoringInterval: 5s
     # At least one of the pod killer cache replica should be running for pod killer to work
     cacheReplicas: 1
+    # Pod killer requires cache service to be resolved in the Quobyte CSI driver namespace
+    # (example pod killer cache url http://quobyte-pod-killer-cache.kube-system.svc.cluster.local:80)
+    # If you have configured custom DNS, you may need to add DNS policy to the
+    # pod killer pod so that the cache endpoint is resolved.
+    # See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+    dnsPolicy: ""
 
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise advised to change.
