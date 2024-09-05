@@ -48,10 +48,6 @@ quobyte:
   # Quobyte 3.x is recommended for snapshots
   enableSnapshots: true
 
-  # Set to true to deploy csi driver with pod security policies.
-  # Change required ONLY if you have pod security policies enabled K8S environment.
-  podSecurityPolicies: false
-
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
 

@@ -23,13 +23,6 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["volumeattachments"]
     verbs: ["get", "list", "watch", "update"]
-  {{- if .Values.quobyte.podSecurityPolicies }} 
-  - apiGroups: ['policy']
-    resources: ['podsecuritypolicies']
-    verbs:     ['use']
-    resourceNames:
-    - quobyte-psp-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
-  {{- end }}
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
