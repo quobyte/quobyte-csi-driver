@@ -72,4 +72,4 @@ wget https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8
 && gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar --overwrite \
 && kubernetes/test/bin/ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
 -skip='\[Disruptive\]' \
-kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PASTH"
+kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
