@@ -62,10 +62,14 @@ if [[ -f "$TESTS_LOGS_PATH" ]]; then
 fi
 
 echo "Running E2E with test configuration $E2E_TEST_CONFIG_PATH"
-echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host" 
+echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host"
 
-wget -q https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8S_ZIP} \
+echo -e "\e[33mNote:\e[0m If tests stuck, you need to check kind version and kind-cluster\n \
+         base image compatibility. See ./run_test kindest/node:v1.... hash and kindest version\n \
+         hash (kind requires exact hash specified in kind release). https://github.com/kubernetes-sigs/kind/releases"
+
+wget https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8S_ZIP} \
 && gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar --overwrite \
 && kubernetes/test/bin/ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
 -skip='\[Disruptive\]' \
-kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
+kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PASTH"

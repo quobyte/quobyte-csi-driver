@@ -5,7 +5,7 @@ quobyte:
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   # The default below is ready to connect to a Quobyte api 
   # service running on the same Kubernetes cluster
-  apiURL: http://venkat.corp.quobyte.com:2080
+  apiURL: http://venkat.corp.quobyte.com:2849
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated
@@ -48,10 +48,6 @@ quobyte:
   # Quobyte 3.x is recommended for snapshots
   enableSnapshots: false
 
-  # Set to true to deploy csi driver with pod security policies.
-  # Change required ONLY if you have pod security policies enabled K8S environment.
-  podSecurityPolicies: false
-
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
 
@@ -74,12 +70,12 @@ quobyte:
   # Please do NOT change the dev: configuration unless otherwise advised to change.
   dev:
     # CSI Release version
-    csiProvisionerVersion: "v2.0.2"
+    csiProvisionerVersion: "v2.1.1"
     # Release container
     # github.com/quobyte/quobyte-csi
-    csiImage: "quay.io/quobyte/csi:v2.0.2"
+    csiImage: "quay.io/quobyte/csi:v2.1.1"
     # github.com/quobyte/pod-killer
-    podKillerImage: "quay.io/quobyte/pod-killer:v0.2.0"
+    podKillerImage: "quay.io/quobyte/pod-killer:v0.2.1"
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac

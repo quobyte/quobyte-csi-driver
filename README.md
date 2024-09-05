@@ -41,7 +41,6 @@ Quobyte CSI is the implementation of
   * [Update Quobyte Client](docs/update_quobyte_csi_or_clients.md#update-quobyte-client)
     * [Application pod recovery](docs/update_quobyte_csi_or_clients.md#application-pod-recovery)
 * [Harden Access with Quobyte Access Keys](docs/quobyte_access_keys.md) (**requires Quobyte 3.1 or later**)
-* [Secure Storage Access with PSPs](docs/secure-storage-with-psp.md) **deprecated**
 * [Uninstall Quobyte CSI](#uninstall-quobyte-csi)
 * [Quobyte Client Upgrade Example](docs/client_update_example.md)
 * [Multi-cluster setup](docs/multi-cluster-setup.md)

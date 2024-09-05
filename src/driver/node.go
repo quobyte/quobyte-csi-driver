@@ -101,6 +101,10 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		}
 		accesskeyHandle := fmt.Sprintf("%s-%s", podUUID, accesskeyID)
 		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
+		// In case of setfattr failure:
+		// - Make sure Quobyte CSI driver is deployed with "enableAccessKeyMounts: true"
+		// - Quobyte clients are deployed with access key flags enabled - see "Requirements" section of
+		// https://github.com/quobyte/quobyte-csi-driver/blob/master/docs/quobyte_access_keys.md
 		err := setfattr(xattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
 		if err != nil {
 			return nil, err
