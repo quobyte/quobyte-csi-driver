@@ -10,11 +10,16 @@ Requires Quobyte version 3.1 or later
 
 To enable volume mount protection:
 
-1. Quobyte client(s) must be deployed with `--enable-access-contexts` and
-  `--no-default-permissions` options (see [example client](../example/client.yaml))
+1. Quobyte client(s) must be deployed access key options
+    * For containerized Quobyte client, see [example client](../example/client.yaml#L36)
+    * For systemd Quobyte client, add the following lines to the client config file
+        ```bash
+        enable-access-contexts
+        no-default-permissions
+        ```
+    * If mount.quobyte command used, add `--enable-access-contexts` and
+        `--no-default-permissions` options to the command line.
 2. Quobyte CSI driver must be deployed with `enableAccessKeyMounts: true`
-3. Requires `csi-test` tenant and user `csi-driver` as member of tenant `csi-test`. Additionally,
-   `csi-driver` user must have a primary group.
 
 ## Storage Access with Access Keys
 
@@ -22,6 +27,11 @@ The following examples use imported Quobyte access keys and should only be used 
 For production usage, you should create relevant access keys through
  Quobyte web console -> My Quobyte -> My Access Keys or other means such as qmgmt, management API
  and then update your secrets with the access key information.
+
+The following examples requires:
+* Quobyte tenant `csi-test`
+* Quobyte user `csi-driver` as member of tenant `csi-test`
+* Quobyte user `csi-driver` must have a primary group.
 
 To import access keys, you need `qmgmt` available on the node. Additionally, you need to set
 `API_URL` environment variable with Quobyte API Url.
