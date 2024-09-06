@@ -88,8 +88,6 @@ nodes:
   image: quobyte/kind-node-testing:v0
 - role: worker
   image: quobyte/kind-node-testing:v0
-- role: worker
-  image: quobyte/kind-node-testing:v0
 END
 
 echo  "Creating cluster with kind: * * * * * * * * * * * * * * * * * * * * * * *"
