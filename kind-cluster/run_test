@@ -122,7 +122,8 @@ if [[ "$has_not_ready_nodes" -eq 0 ]]; then
   echo "K8S nodes are not ready after 10 minutes (Restarting also not fixed the nodes ready issue). \
        Cannot continue testing cluster setup. Please fix the node not ready issue."
 fi
-
+# Wait until nodes are ready for DNS entries to be added - adding DNS entries before nodes are ready
+# makes nodes hang in NotReady
 dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
 if [[ -z "$dns_ips" ]]; then
   echo "Error: could not retrive kube-dns IP required"
