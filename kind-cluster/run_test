@@ -93,6 +93,34 @@ END
 echo  "Creating cluster with kind: * * * * * * * * * * * * * * * * * * * * * * *"
 kind create cluster --config="${TEST_CLUSTER_DIR}"/kind-config-testing.yaml --kubeconfig ${KUBECONFIG}
 
+verify_all_nodes_ready() {
+  local -n result=$1
+  has_not_ready_nodes="0"
+  let current_time=0
+  while [[ $has_not_ready_nodes -eq 0 && $current_time -le 300 ]]; do
+    kubectl get nodes  | awk 'NR>1{print $2}' | grep -q 'NotReady'
+    has_not_ready_nodes="$?"
+    if [[ "$has_not_ready_nodes" -eq 0 ]]; then
+      echo -e "\e[33mK8S node(s) is not ready yet, will check again in 10s\e[0m"
+      sleep 10s
+      current_time=$(($current_time + 10))
+    fi
+  done
+  result=$has_not_ready_nodes
+}
+
+verify_all_nodes_ready has_not_ready_nodes
+if [[ "$has_not_ready_nodes" -eq 0 ]]; then
+  echo ""
+  kubectl get nodes | grep -q "NotReady" | awk 'NR>1{print $1}' \
+  | xargs -I {} sh -c "echo "Restarting the node container {}"; sudo docker restart {}"
+fi
+verify_all_nodes_ready has_not_ready_nodes
+if [[ "$has_not_ready_nodes" -eq 0 ]]; then
+  echo "K8S nodes are not ready after 10 minutes (Restarting also not fixed the nodes ready issue). \
+       Cannot continue testing cluster setup. Please fix the node not ready issue."
+fi
+
 dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
 if [[ -z "$dns_ips" ]]; then
   echo "Error: could not retrive kube-dns IP required"
