@@ -68,8 +68,8 @@ rebase_charts_on_master(){
 print_post_release_instructions(){
   echo ''
   echo ''
-  echo 'Please go to https://github.com/quobyte/quobyte-csi/releases'
-  echo "and make a release for the tag version ${VERSION} with release notes"
+  echo -e '\e[33mPlease go to https://github.com/quobyte/quobyte-csi/releases'
+  echo -e "and make a release for the tag version ${VERSION} with release notes\e[0m"
 }
 
 build_helm_package(){
