@@ -181,6 +181,7 @@ verify_namespace_has_no_crashing_pods() {
   count=1
   while [[ $has_crashing_pods -eq 0 && count -le 10 ]]; do
     kubectl get po -n $namespace | awk 'NR>1{print $3}' | grep -iv 'running'
+    # inverted match - result is 0 if at least one pod is !running, 1 - if all are running
     has_crashing_pods="$?"
     let count++
     if [[ $has_crashing_pods -eq 0 ]]; then
@@ -206,6 +207,7 @@ function check_snapshots_resources_exists() {
     exit 1
   fi
 }
+
 
 grep -E "enableSnapshots:.*true" "${TEST_CASE_DIR}/values.yaml" &> /dev/null
 enabled_snapshots=$?
