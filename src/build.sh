@@ -109,6 +109,9 @@ else
   go test -v ./...
   exit_if_failure "$?" "Failed tests. Fix failing tests and retry command."
 
+  helm plugin install https://github.com/helm-unittest/helm-unittest.git
+  helm unittest -u "${CHART_DIR}"
+  
   if [[ "$1" == "container" ]]; then
     container_build_and_push $2
   elif [[ "$1" == "release" ]]; then
