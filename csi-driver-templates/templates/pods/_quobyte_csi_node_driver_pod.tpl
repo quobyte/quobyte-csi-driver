@@ -34,6 +34,5 @@ spec:
       {{- if trim .Values.quobyte.podKiller.dnsPolicy }}
       dnsPolicy: {{ trim .Values.quobyte.podKiller.dnsPolicy  }}
       {{- end }}
-      {{- include "quobyte-csi-driver.nodeDriverPodVolumeAttachments" . | indent 6 }}
 ---
 {{- end }}
