@@ -51,7 +51,6 @@ parameters:
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
   csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
-  quobyteConfig: "BASE"
   user: root
   group: root
   accessMode: "750"
