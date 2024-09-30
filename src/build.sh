@@ -109,6 +109,12 @@ else
   go test -v ./...
   exit_if_failure "$?" "Failed tests. Fix failing tests and retry command."
 
+  helm plugin install https://github.com/helm-unittest/helm-unittest.git
+  # If this step fails, run "helm unittest -u ../csi-driver-templates" and git diff the generated
+  # snapshot. If the changes are intenteded, commit the the generated snapshot and re-run build
+  # command. Not updating using -u as part of the following command to avoid accidental updates.
+  helm unittest "${CHART_DIR}"
+  
   if [[ "$1" == "container" ]]; then
     container_build_and_push $2
   elif [[ "$1" == "release" ]]; then

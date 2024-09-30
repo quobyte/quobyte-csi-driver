@@ -59,11 +59,13 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volRequest := &quobyte.CreateVolumeRequest{}
 	// will be overriden if shared volume name is specified in storage class
 	volRequest.Name = dynamicVolumeName
-	volRequest.ConfigurationName = DefaultConfig
 	volRequest.RootUserId = DefaultUser
 	volRequest.RootGroupId = DefaultGroup
 	createQuota := DefaultCreateQuota
 	volRequest.AccessMode = DefaultAccessModes
+	if (d.QuobyteVersion == 2) {
+		volRequest.ConfigurationName = DefaultConfig
+	}
 	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "quobytetenant":
@@ -75,7 +77,9 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "group":
 			volRequest.RootGroupId = v
 		case "quobyteconfig":
-			volRequest.ConfigurationName = v
+			if (d.QuobyteVersion == 2) {
+				volRequest.ConfigurationName = v
+			}
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "labels":

@@ -178,7 +178,7 @@ Quobyte requires a secret to authenticate volume create and delete requests. Cre
 
 Create a [storage class](example/StorageClass.yaml) with the `provisioner` set to `csi.quobyte.com` along with other configuration
  parameters. You could create multiple storage classes by varying `parameters` such as
-  `quobyteTenant`, `quobyteConfig` etc.
+  `quobyteTenant` etc.
 
   ```bash
   kubectl create -f example/StorageClass.yaml

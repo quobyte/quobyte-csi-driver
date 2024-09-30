@@ -10,7 +10,7 @@ should render when resource limits are provided:
       podInfoOnMount: false
       requiresRepublish: false
       volumeLifecycleModes:
-      - Persistent
+        - Persistent
   2: |
     apiVersion: v1
     kind: ServiceAccount
@@ -23,64 +23,64 @@ should render when resource limits are provided:
     metadata:
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - storageclasses
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshots
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotcontents
-      verbs:
-      - get
-      - list
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - storageclasses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshots
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotcontents
+        verbs:
+          - get
+          - list
   4: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -91,49 +91,49 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   5: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: quobyte-csi-attacher-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - nodes
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - csi.storage.k8s.io
-      resources:
-      - csinodeinfos
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - volumeattachments
-      verbs:
-      - get
-      - list
-      - watch
-      - update
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - csi.storage.k8s.io
+        resources:
+          - csinodeinfos
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - volumeattachments
+        verbs:
+          - get
+          - list
+          - watch
+          - update
   6: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -144,57 +144,57 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: quobyte-csi-attacher-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   7: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: external-snapshotter-runner-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotclasses
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotcontents
-      verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-      - delete
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotcontents/status
-      verbs:
-      - update
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotclasses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotcontents
+        verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - delete
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotcontents/status
+        verbs:
+          - update
   8: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -205,64 +205,64 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: external-snapshotter-runner-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   9: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: external-resizer-runner-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims/status
-      verbs:
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims/status
+        verbs:
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
   10: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -273,9 +273,9 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: external-resizer-runner-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   11: |
     apiVersion: apps/v1
     kind: StatefulSet
@@ -294,140 +294,140 @@ should render when resource limits are provided:
             role: quobyte-csi-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --csi-address=$(ADDRESS)
-            - --v=3
-            - --extra-create-metadata=true
-            - --timeout=5m
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
-            imagePullPolicy: IfNotPresent
-            name: csi-provisioner
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
-            imagePullPolicy: IfNotPresent
-            name: csi-resizer
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
-            imagePullPolicy: IfNotPresent
-            name: csi-attacher
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
-            imagePullPolicy: IfNotPresent
-            name: csi-snapshotter
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --shared_volumes_list=
-            - --role=controller
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /etc/ssl/certs/
-              name: certs
+            - args:
+                - --csi-address=$(ADDRESS)
+                - --v=3
+                - --extra-create-metadata=true
+                - --timeout=5m
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              imagePullPolicy: IfNotPresent
+              name: csi-provisioner
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              imagePullPolicy: IfNotPresent
+              name: csi-resizer
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              imagePullPolicy: IfNotPresent
+              name: csi-attacher
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
+              imagePullPolicy: IfNotPresent
+              name: csi-snapshotter
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --shared_volumes_list=
+                - --role=controller
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /etc/ssl/certs/
+                  name: certs
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
-          - emptyDir: {}
-            name: socket-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - emptyDir: {}
+              name: socket-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   12: |
     apiVersion: v1
     kind: ServiceAccount
@@ -440,23 +440,23 @@ should render when resource limits are provided:
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - delete
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
   14: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -467,9 +467,9 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-node-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-node-sa-csi-quobyte-com
+        namespace: kube-system
   15: |
     apiVersion: apps/v1
     kind: DaemonSet
@@ -487,152 +487,152 @@ should render when resource limits are provided:
             role: quobyte-csi
         spec:
           containers:
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            env:
-            - name: ADDRESS
-              value: /csi/csi.sock
-            - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
-            imagePullPolicy: IfNotPresent
-            lifecycle:
-              preStop:
-                exec:
-                  command:
-                  - /bin/sh
-                  - -c
-                  - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
-            name: csi-node-driver-registrar
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            volumeMounts:
-            - mountPath: /csi/
-              name: plugin-dir
-            - mountPath: /registration/
-              name: registration-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --enable_volume_metrics=true
-            - --role=node_driver
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///csi/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /csi
-              name: plugin-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /etc/ssl/certs/
-              name: certs
-          - args:
-            - --node_name=$(KUBE_NODE_NAME)
-            - --driver_name=csi.quobyte.com
-            - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
-            - --monitoring_interval=5s
-            - --role=monitor
-            env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-mount-monitor
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
-            securityContext:
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+                - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+              env:
+                - name: ADDRESS
+                  value: /csi/csi.sock
+                - name: DRIVER_REG_SOCK_PATH
+                  value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              imagePullPolicy: IfNotPresent
+              lifecycle:
+                preStop:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - -c
+                      - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
+              name: csi-node-driver-registrar
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              volumeMounts:
+                - mountPath: /csi/
+                  name: plugin-dir
+                - mountPath: /registration/
+                  name: registration-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --enable_volume_metrics=true
+                - --role=node_driver
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///csi/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /csi
+                  name: plugin-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /etc/ssl/certs/
+                  name: certs
+            - args:
+                - --node_name=$(KUBE_NODE_NAME)
+                - --driver_name=csi.quobyte.com
+                - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
+                - --monitoring_interval=5s
+                - --role=monitor
+              env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-mount-monitor
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
           hostNetwork: true
           priorityClassName: system-node-critical
           serviceAccount: quobyte-csi-node-sa-csi-quobyte-com
           volumes:
-          - hostPath:
-              path: /var/lib/kubelet/pods
-              type: Directory
-            name: kubelet-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /var/lib/kubelet/plugins/csi.quobyte.com
-              type: DirectoryOrCreate
-            name: plugin-dir
-          - hostPath:
-              path: /var/lib/kubelet/plugins_registry/
-              type: DirectoryOrCreate
-            name: registration-dir
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - hostPath:
+                path: /var/lib/kubelet/pods
+                type: Directory
+              name: kubelet-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /var/lib/kubelet/plugins/csi.quobyte.com
+                type: DirectoryOrCreate
+              name: plugin-dir
+            - hostPath:
+                path: /var/lib/kubelet/plugins_registry/
+                type: DirectoryOrCreate
+              name: registration-dir
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   16: |
     apiVersion: v1
     kind: ServiceAccount
@@ -645,20 +645,20 @@ should render when resource limits are provided:
     metadata:
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - list
-      - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - list
+          - watch
   18: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -669,9 +669,9 @@ should render when resource limits are provided:
       kind: ClusterRole
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
+        namespace: kube-system
   19: |
     apiVersion: apps/v1
     kind: Deployment
@@ -690,18 +690,18 @@ should render when resource limits are provided:
             role: quobyte-csi-pod-killer-cache-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --driver_name=csi.quobyte.com
-            - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-pod-killer-cache
-            ports:
-            - containerPort: 8080
-            resources:
-              limits:
-                cpu: 50m
-                memory: 50Mi
+            - args:
+                - --driver_name=csi.quobyte.com
+                - --role=cache
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-pod-killer-cache
+              ports:
+                - containerPort: 8080
+              resources:
+                limits:
+                  cpu: 50m
+                  memory: 50Mi
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
   20: |
@@ -712,9 +712,9 @@ should render when resource limits are provided:
       namespace: kube-system
     spec:
       ports:
-      - port: 80
-        protocol: TCP
-        targetPort: 8080
+        - port: 80
+          protocol: TCP
+          targetPort: 8080
       selector:
         app: quobyte-csi-pod-killer-cache-csi-quobyte-com
 should render when tolerations are provided:
@@ -729,7 +729,7 @@ should render when tolerations are provided:
       podInfoOnMount: false
       requiresRepublish: false
       volumeLifecycleModes:
-      - Persistent
+        - Persistent
   2: |
     apiVersion: v1
     kind: ServiceAccount
@@ -742,64 +742,64 @@ should render when tolerations are provided:
     metadata:
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - storageclasses
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshots
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotcontents
-      verbs:
-      - get
-      - list
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - storageclasses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshots
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotcontents
+        verbs:
+          - get
+          - list
   4: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -810,49 +810,49 @@ should render when tolerations are provided:
       kind: ClusterRole
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   5: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: quobyte-csi-attacher-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - nodes
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - csi.storage.k8s.io
-      resources:
-      - csinodeinfos
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - volumeattachments
-      verbs:
-      - get
-      - list
-      - watch
-      - update
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - csi.storage.k8s.io
+        resources:
+          - csinodeinfos
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - volumeattachments
+        verbs:
+          - get
+          - list
+          - watch
+          - update
   6: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -863,64 +863,64 @@ should render when tolerations are provided:
       kind: ClusterRole
       name: quobyte-csi-attacher-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   7: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: external-resizer-runner-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims/status
-      verbs:
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims/status
+        verbs:
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
   8: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -931,9 +931,9 @@ should render when tolerations are provided:
       kind: ClusterRole
       name: external-resizer-runner-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   9: |
     apiVersion: apps/v1
     kind: StatefulSet
@@ -952,112 +952,112 @@ should render when tolerations are provided:
             role: quobyte-csi-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --csi-address=$(ADDRESS)
-            - --v=3
-            - --extra-create-metadata=true
-            - --timeout=5m
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
-            imagePullPolicy: IfNotPresent
-            name: csi-provisioner
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
-            imagePullPolicy: IfNotPresent
-            name: csi-resizer
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
-            imagePullPolicy: IfNotPresent
-            name: csi-attacher
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --shared_volumes_list=
-            - --role=controller
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /etc/ssl/certs/
-              name: certs
+            - args:
+                - --csi-address=$(ADDRESS)
+                - --v=3
+                - --extra-create-metadata=true
+                - --timeout=5m
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              imagePullPolicy: IfNotPresent
+              name: csi-provisioner
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              imagePullPolicy: IfNotPresent
+              name: csi-resizer
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              imagePullPolicy: IfNotPresent
+              name: csi-attacher
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --shared_volumes_list=
+                - --role=controller
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /etc/ssl/certs/
+                  name: certs
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           tolerations:
-          - effect: NoSchedule
-            key: ""
-            operator: Exists
+            - effect: NoSchedule
+              key: ""
+              operator: Exists
           volumes:
-          - emptyDir: {}
-            name: socket-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - emptyDir: {}
+              name: socket-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   10: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1070,23 +1070,23 @@ should render when tolerations are provided:
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - delete
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
   12: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1097,9 +1097,9 @@ should render when tolerations are provided:
       kind: ClusterRole
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-node-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-node-sa-csi-quobyte-com
+        namespace: kube-system
   13: |
     apiVersion: apps/v1
     kind: DaemonSet
@@ -1117,144 +1117,144 @@ should render when tolerations are provided:
             role: quobyte-csi
         spec:
           containers:
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            env:
-            - name: ADDRESS
-              value: /csi/csi.sock
-            - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
-            imagePullPolicy: IfNotPresent
-            lifecycle:
-              preStop:
-                exec:
-                  command:
-                  - /bin/sh
-                  - -c
-                  - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
-            name: csi-node-driver-registrar
-            volumeMounts:
-            - mountPath: /csi/
-              name: plugin-dir
-            - mountPath: /registration/
-              name: registration-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --enable_volume_metrics=true
-            - --role=node_driver
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///csi/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /csi
-              name: plugin-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /etc/ssl/certs/
-              name: certs
-          - args:
-            - --node_name=$(KUBE_NODE_NAME)
-            - --driver_name=csi.quobyte.com
-            - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
-            - --monitoring_interval=5s
-            - --role=monitor
-            env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-mount-monitor
-            securityContext:
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+                - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+              env:
+                - name: ADDRESS
+                  value: /csi/csi.sock
+                - name: DRIVER_REG_SOCK_PATH
+                  value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              imagePullPolicy: IfNotPresent
+              lifecycle:
+                preStop:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - -c
+                      - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
+              name: csi-node-driver-registrar
+              volumeMounts:
+                - mountPath: /csi/
+                  name: plugin-dir
+                - mountPath: /registration/
+                  name: registration-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --enable_volume_metrics=true
+                - --role=node_driver
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///csi/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /csi
+                  name: plugin-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /etc/ssl/certs/
+                  name: certs
+            - args:
+                - --node_name=$(KUBE_NODE_NAME)
+                - --driver_name=csi.quobyte.com
+                - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
+                - --monitoring_interval=5s
+                - --role=monitor
+              env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-mount-monitor
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
           hostNetwork: true
           priorityClassName: system-node-critical
           serviceAccount: quobyte-csi-node-sa-csi-quobyte-com
           tolerations:
-          - effect: NoSchedule
-            key: ""
-            operator: Exists
+            - effect: NoSchedule
+              key: ""
+              operator: Exists
           volumes:
-          - hostPath:
-              path: /var/lib/kubelet/pods
-              type: Directory
-            name: kubelet-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /var/lib/kubelet/plugins/csi.quobyte.com
-              type: DirectoryOrCreate
-            name: plugin-dir
-          - hostPath:
-              path: /var/lib/kubelet/plugins_registry/
-              type: DirectoryOrCreate
-            name: registration-dir
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - hostPath:
+                path: /var/lib/kubelet/pods
+                type: Directory
+              name: kubelet-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /var/lib/kubelet/plugins/csi.quobyte.com
+                type: DirectoryOrCreate
+              name: plugin-dir
+            - hostPath:
+                path: /var/lib/kubelet/plugins_registry/
+                type: DirectoryOrCreate
+              name: registration-dir
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   14: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1267,20 +1267,20 @@ should render when tolerations are provided:
     metadata:
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - list
-      - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - list
+          - watch
   16: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1291,9 +1291,9 @@ should render when tolerations are provided:
       kind: ClusterRole
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
+        namespace: kube-system
   17: |
     apiVersion: apps/v1
     kind: Deployment
@@ -1312,20 +1312,20 @@ should render when tolerations are provided:
             role: quobyte-csi-pod-killer-cache-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --driver_name=csi.quobyte.com
-            - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-pod-killer-cache
-            ports:
-            - containerPort: 8080
+            - args:
+                - --driver_name=csi.quobyte.com
+                - --role=cache
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-pod-killer-cache
+              ports:
+                - containerPort: 8080
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
           tolerations:
-          - effect: NoSchedule
-            key: ""
-            operator: Exists
+            - effect: NoSchedule
+              key: ""
+              operator: Exists
   18: |
     apiVersion: v1
     kind: Service
@@ -1334,9 +1334,9 @@ should render when tolerations are provided:
       namespace: kube-system
     spec:
       ports:
-      - port: 80
-        protocol: TCP
-        targetPort: 8080
+        - port: 80
+          protocol: TCP
+          targetPort: 8080
       selector:
         app: quobyte-csi-pod-killer-cache-csi-quobyte-com
 should render with default values:
@@ -1351,7 +1351,7 @@ should render with default values:
       podInfoOnMount: false
       requiresRepublish: false
       volumeLifecycleModes:
-      - Persistent
+        - Persistent
   2: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1364,64 +1364,64 @@ should render with default values:
     metadata:
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - storageclasses
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshots
-      verbs:
-      - get
-      - list
-    - apiGroups:
-      - snapshot.storage.k8s.io
-      resources:
-      - volumesnapshotcontents
-      verbs:
-      - get
-      - list
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - storageclasses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshots
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotcontents
+        verbs:
+          - get
+          - list
   4: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1432,49 +1432,49 @@ should render with default values:
       kind: ClusterRole
       name: quobyte-csi-provisioner-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   5: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: quobyte-csi-attacher-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - nodes
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - csi.storage.k8s.io
-      resources:
-      - csinodeinfos
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - storage.k8s.io
-      resources:
-      - volumeattachments
-      verbs:
-      - get
-      - list
-      - watch
-      - update
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - csi.storage.k8s.io
+        resources:
+          - csinodeinfos
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - volumeattachments
+        verbs:
+          - get
+          - list
+          - watch
+          - update
   6: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1485,64 +1485,64 @@ should render with default values:
       kind: ClusterRole
       name: quobyte-csi-attacher-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   7: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: external-resizer-runner-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumeclaims/status
-      verbs:
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - list
-      - watch
-      - create
-      - update
-      - patch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - watch
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims/status
+        verbs:
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
   8: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1553,9 +1553,9 @@ should render with default values:
       kind: ClusterRole
       name: external-resizer-runner-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-controller-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-controller-sa-csi-quobyte-com
+        namespace: kube-system
   9: |
     apiVersion: apps/v1
     kind: StatefulSet
@@ -1574,108 +1574,108 @@ should render with default values:
             role: quobyte-csi-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --csi-address=$(ADDRESS)
-            - --v=3
-            - --extra-create-metadata=true
-            - --timeout=5m
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
-            imagePullPolicy: IfNotPresent
-            name: csi-provisioner
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
-            imagePullPolicy: IfNotPresent
-            name: csi-resizer
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
-            imagePullPolicy: IfNotPresent
-            name: csi-attacher
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --shared_volumes_list=
-            - --role=controller
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/csi/sockets/pluginproxy/
-              name: socket-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /etc/ssl/certs/
-              name: certs
+            - args:
+                - --csi-address=$(ADDRESS)
+                - --v=3
+                - --extra-create-metadata=true
+                - --timeout=5m
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              imagePullPolicy: IfNotPresent
+              name: csi-provisioner
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              imagePullPolicy: IfNotPresent
+              name: csi-resizer
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              imagePullPolicy: IfNotPresent
+              name: csi-attacher
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --shared_volumes_list=
+                - --role=controller
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /etc/ssl/certs/
+                  name: certs
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
-          - emptyDir: {}
-            name: socket-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - emptyDir: {}
+              name: socket-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   10: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1688,23 +1688,23 @@ should render with default values:
     metadata:
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - delete
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
   12: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1715,9 +1715,9 @@ should render with default values:
       kind: ClusterRole
       name: quobyte-csi-driver-registrar-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-node-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-node-sa-csi-quobyte-com
+        namespace: kube-system
   13: |
     apiVersion: apps/v1
     kind: DaemonSet
@@ -1735,140 +1735,140 @@ should render with default values:
             role: quobyte-csi
         spec:
           containers:
-          - args:
-            - --v=3
-            - --csi-address=$(ADDRESS)
-            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            env:
-            - name: ADDRESS
-              value: /csi/csi.sock
-            - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
-            imagePullPolicy: IfNotPresent
-            lifecycle:
-              preStop:
-                exec:
-                  command:
-                  - /bin/sh
-                  - -c
-                  - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
-            name: csi-node-driver-registrar
-            volumeMounts:
-            - mountPath: /csi/
-              name: plugin-dir
-            - mountPath: /registration/
-              name: registration-dir
-          - args:
-            - --csi_socket=$(CSI_ENDPOINT)
-            - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
-            - --node_name=$(KUBE_NODE_NAME)
-            - --api_url=$(QUOBYTE_API_URL)
-            - --driver_name=csi.quobyte.com
-            - --driver_version=v2.1.2
-            - --enable_access_key_mounts=false
-            - --quobyte_version=3
-            - --immediate_erase=false
-            - --use_k8s_namespace_as_tenant=false
-            - --enable_volume_metrics=true
-            - --role=node_driver
-            env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: CSI_ENDPOINT
-              value: unix:///csi/csi.sock
-            - name: QUOBYTE_MOUNT_PATH
-              value: /home/quobyte/mounts
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: QUOBYTE_API_URL
-              value: http://quobyte-api.default.svc.cluster.local:7860
-            image: quay.io/quobyte/csi:v2.1.2
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-driver
-            securityContext:
-              allowPrivilegeEscalation: true
-              capabilities:
-                add:
-                - SYS_ADMIN
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
-            - mountPath: /home/quobyte
-              mountPropagation: Bidirectional
-              name: quobyte-mounts
-            - mountPath: /csi
-              name: plugin-dir
-            - mountPath: /tmp
-              name: log-dir
-            - mountPath: /etc/ssl/certs/
-              name: certs
-          - args:
-            - --node_name=$(KUBE_NODE_NAME)
-            - --driver_name=csi.quobyte.com
-            - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
-            - --monitoring_interval=5s
-            - --role=monitor
-            env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-mount-monitor
-            securityContext:
-              privileged: true
-            volumeMounts:
-            - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
-              name: kubelet-dir
+            - args:
+                - --v=3
+                - --csi-address=$(ADDRESS)
+                - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+              env:
+                - name: ADDRESS
+                  value: /csi/csi.sock
+                - name: DRIVER_REG_SOCK_PATH
+                  value: /var/lib/kubelet/plugins/csi.quobyte.com/csi.sock
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              imagePullPolicy: IfNotPresent
+              lifecycle:
+                preStop:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - -c
+                      - rm -rf /registration/csi.quobyte.com /registration/csi.quobyte.com-reg.sock
+              name: csi-node-driver-registrar
+              volumeMounts:
+                - mountPath: /csi/
+                  name: plugin-dir
+                - mountPath: /registration/
+                  name: registration-dir
+            - args:
+                - --csi_socket=$(CSI_ENDPOINT)
+                - --quobyte_mount_path=$(QUOBYTE_MOUNT_PATH)
+                - --node_name=$(KUBE_NODE_NAME)
+                - --api_url=$(QUOBYTE_API_URL)
+                - --driver_name=csi.quobyte.com
+                - --driver_version=v2.1.2
+                - --enable_access_key_mounts=false
+                - --quobyte_version=3
+                - --immediate_erase=false
+                - --use_k8s_namespace_as_tenant=false
+                - --enable_volume_metrics=true
+                - --role=node_driver
+              env:
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: CSI_ENDPOINT
+                  value: unix:///csi/csi.sock
+                - name: QUOBYTE_MOUNT_PATH
+                  value: /home/quobyte/mounts
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QUOBYTE_API_URL
+                  value: http://quobyte-api.default.svc.cluster.local:7860
+              image: quay.io/quobyte/csi:v2.1.2
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-driver
+              securityContext:
+                allowPrivilegeEscalation: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
+                - mountPath: /home/quobyte
+                  mountPropagation: Bidirectional
+                  name: quobyte-mounts
+                - mountPath: /csi
+                  name: plugin-dir
+                - mountPath: /tmp
+                  name: log-dir
+                - mountPath: /etc/ssl/certs/
+                  name: certs
+            - args:
+                - --node_name=$(KUBE_NODE_NAME)
+                - --driver_name=csi.quobyte.com
+                - --service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/
+                - --monitoring_interval=5s
+                - --role=monitor
+              env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: NODE_ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: KUBE_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-mount-monitor
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/kubelet/pods
+                  mountPropagation: Bidirectional
+                  name: kubelet-dir
           hostNetwork: true
           priorityClassName: system-node-critical
           serviceAccount: quobyte-csi-node-sa-csi-quobyte-com
           volumes:
-          - hostPath:
-              path: /var/lib/kubelet/pods
-              type: Directory
-            name: kubelet-dir
-          - hostPath:
-              path: /home/quobyte
-              type: DirectoryOrCreate
-            name: quobyte-mounts
-          - hostPath:
-              path: /var/lib/kubelet/plugins/csi.quobyte.com
-              type: DirectoryOrCreate
-            name: plugin-dir
-          - hostPath:
-              path: /var/lib/kubelet/plugins_registry/
-              type: DirectoryOrCreate
-            name: registration-dir
-          - hostPath:
-              path: /tmp
-              type: Directory
-            name: log-dir
-          - hostPath:
-              path: /etc/ssl/certs/
-              type: Directory
-            name: certs
+            - hostPath:
+                path: /var/lib/kubelet/pods
+                type: Directory
+              name: kubelet-dir
+            - hostPath:
+                path: /home/quobyte
+                type: DirectoryOrCreate
+              name: quobyte-mounts
+            - hostPath:
+                path: /var/lib/kubelet/plugins/csi.quobyte.com
+                type: DirectoryOrCreate
+              name: plugin-dir
+            - hostPath:
+                path: /var/lib/kubelet/plugins_registry/
+                type: DirectoryOrCreate
+              name: registration-dir
+            - hostPath:
+                path: /tmp
+                type: Directory
+              name: log-dir
+            - hostPath:
+                path: /etc/ssl/certs/
+                type: Directory
+              name: certs
   14: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1881,20 +1881,20 @@ should render with default values:
     metadata:
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      verbs:
-      - list
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - list
-      - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - list
+          - watch
   16: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -1905,9 +1905,9 @@ should render with default values:
       kind: ClusterRole
       name: quobyte-csi-pod-killer-cache-role-csi-quobyte-com
     subjects:
-    - kind: ServiceAccount
-      name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
+        namespace: kube-system
   17: |
     apiVersion: apps/v1
     kind: Deployment
@@ -1926,14 +1926,14 @@ should render with default values:
             role: quobyte-csi-pod-killer-cache-csi-quobyte-com
         spec:
           containers:
-          - args:
-            - --driver_name=csi.quobyte.com
-            - --role=cache
-            image: quay.io/quobyte/pod-killer:v0.2.1
-            imagePullPolicy: IfNotPresent
-            name: quobyte-csi-pod-killer-cache
-            ports:
-            - containerPort: 8080
+            - args:
+                - --driver_name=csi.quobyte.com
+                - --role=cache
+              image: quay.io/quobyte/pod-killer:v0.2.1
+              imagePullPolicy: IfNotPresent
+              name: quobyte-csi-pod-killer-cache
+              ports:
+                - containerPort: 8080
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-pod-killer-cache-sa-csi-quobyte-com
   18: |
@@ -1944,8 +1944,8 @@ should render with default values:
       namespace: kube-system
     spec:
       ports:
-      - port: 80
-        protocol: TCP
-        targetPort: 8080
+        - port: 80
+          protocol: TCP
+          targetPort: 8080
       selector:
         app: quobyte-csi-pod-killer-cache-csi-quobyte-com
