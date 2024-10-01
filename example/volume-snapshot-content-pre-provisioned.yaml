@@ -1,11 +1,7 @@
 # This must be created for the pre-provisioned volume snapshot content
 # based on https://kubernetes.io/docs/concepts/storage/volume-snapshots/#volume-snapshot-contents
 
-# If kubectl -f create fails with the following error
-# no matches for kind "..." in version ".../v1beta1"
-# please try with snapshot.storage.k8s.io/v1
-# https://github.com/rook/rook/issues/6819#issuecomment-852059116
-apiVersion: snapshot.storage.k8s.io/v1beta1 
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotContent
 metadata:
   name: snapcontent-pre-provisioned
