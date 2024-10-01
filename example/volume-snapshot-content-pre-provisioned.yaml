@@ -9,7 +9,7 @@ metadata:
     # secrets are used during snapshot deletion and
     # should contain Quobyte credentials - access key details or username/password
     snapshot.storage.kubernetes.io/deletion-secret-name: quobyte-admin-credentials
-    snapshot.storage.kubernetes.io/deletion-secret-namespace: default
+    snapshot.storage.kubernetes.io/deletion-secret-namespace: quobyte
 spec:
   deletionPolicy: Delete
   driver: csi.quobyte.com # your Quobyte CSI driver
@@ -23,4 +23,4 @@ spec:
     # This VolumeSnapshotContent can only bind to future VolumeSnapshot 
     # that is created with following matching name and namespace
     name: volume-snapshot-pre-provisioned 
-    namespace: default
+    namespace: quobyte

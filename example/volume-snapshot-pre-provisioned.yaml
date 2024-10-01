@@ -6,7 +6,7 @@ metadata:
   name: volume-snapshot-pre-provisioned
   # Should match VolumeSnapshotContent.spec.volumeSnapshotRef.namespace
   # of pre-provisioned VolumeSnapshotContent object
-  namespace: default
+  namespace: quobyte
 spec:
   source:
     # VolumeSnapshotContent object name
