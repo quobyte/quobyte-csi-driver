@@ -2,7 +2,7 @@
 # no matches for kind "..." in version ".../v1beta1"
 # please try with snapshot.storage.k8s.io/v1
 # https://github.com/rook/rook/issues/6819#issuecomment-852059116
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: quobyte-csi-snapshotclass
