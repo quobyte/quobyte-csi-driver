@@ -5,7 +5,7 @@ quobyte:
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   # The default below is ready to connect to a Quobyte api 
   # service running on the same Kubernetes cluster
-  apiURL: http://venkat.corp.quobyte.com:2920
+  apiURL: http://venkat.corp.quobyte.com:2692
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated
