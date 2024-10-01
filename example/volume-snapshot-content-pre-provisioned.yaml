@@ -11,7 +11,7 @@ metadata:
   name: snapcontent-pre-provisioned
   annotations:
     # secrets are used during snapshot deletion and
-    # should contain quobyte user credentials
+    # should contain Quobyte credentials - access key details or username/password
     snapshot.storage.kubernetes.io/deletion-secret-name: quobyte-admin-credentials
     snapshot.storage.kubernetes.io/deletion-secret-namespace: default
 spec:
