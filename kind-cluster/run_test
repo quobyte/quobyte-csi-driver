@@ -240,7 +240,7 @@ function check_snapshots_resources_exists() {
 }
 
 
-grep -E "enableSnapshots:.*true" "${TEST_CASE_DIR}/values.yaml" &> /dev/null
+grep -Ei "enableSnapshots:.*true" "${TEST_CASE_DIR}/values.yaml" &> /dev/null
 enabled_snapshots=$?
 if [[ "${enabled_snapshots}" -eq 0 ]]; then
   check_snapshots_resources_exists
