@@ -436,15 +436,15 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 The below setup is required once per k8s cluster
 
   ```bash
-    kubectl create -f quobyte-csi-driver/k8s-snapshot-crd.yaml
-    kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
+    kubectl create -f quobyte-csi-driver/csi-driver-templates/k8s-snapshot-crd.yaml
+    kubectl create -f quobyte-csi-driver/csi-driver-templates/k8s-snapshot-controller.yaml
 
   ```
 
 ### Remove Snapshotter
 
   ```bash
-    kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml
-    kubectl delete -f quobyte-csi-driver/k8s-snapshot-crd.yaml
+    kubectl delete -f quobyte-csi-driver/csi-driver-templates/k8s-snapshot-controller.yaml
+    kubectl delete -f quobyte-csi-driver/csi-driver-templates/k8s-snapshot-crd.yaml
 
   ```
