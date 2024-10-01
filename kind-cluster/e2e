@@ -40,6 +40,10 @@ DriverInfo:
     singleNodeVolume: true
     snapshotDataSource: $ENABLE_SNAPSHOTS
     RWX: true
+    # Quobyte Snapshots live in <volume>/.snapshots/ cannot be moved from one volume to another.
+    # So, cannot be moved from PVC (think of Quobyte volume equivalent) to another PVC in k8s. So disable the following test
+    # https://github.com/kubernetes/kubernetes/blob/fbf1a0dc181ccbeb9925ad9c284d913a25c16562/test/e2e/storage/testsuites/provisioning.go#L454
+    FSResizeFromSourceNotSupported: true
 EOF
 
 if [[ -d kubernetes ]]; then
