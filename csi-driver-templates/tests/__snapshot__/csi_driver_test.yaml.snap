@@ -189,6 +189,7 @@ should render when resource limits are provided:
           - watch
           - update
           - delete
+          - patch
       - apiGroups:
           - snapshot.storage.k8s.io
         resources:
