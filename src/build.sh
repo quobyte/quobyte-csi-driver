@@ -107,14 +107,20 @@ else
   exit_if_failure "$?" "Failed generating required mocks for testing. Fix reported errors and retry"
   echo "Running tests..."
   go test -v ./...
-  exit_if_failure "$?" "Failed tests. Fix failing tests and retry command."
+  exit_if_failure "$?" "Failed go unit tests. Fix failing tests and retry command."
+
+  helm lint "${CHART_DIR}"
+  exit_if_failure "$?" "Helm lint command failed. Fix issues and retry"
 
   helm plugin install https://github.com/helm-unittest/helm-unittest.git
   # If this step fails, run "helm unittest -u ../csi-driver-templates" and git diff the generated
   # snapshot. If the changes are intenteded, commit the the generated snapshot and re-run build
   # command. Not updating using -u as part of the following command to avoid accidental updates.
+  helm_unit_test_fail_message="Run 'helm unittest -u ../csi-driver-templates' and see diff. If changes are \
+  intentional commit the changes and rerun command."
   helm unittest "${CHART_DIR}"
-  
+  exit_if_failure "$?" "Failed helm unit tests. $helm_unit_test_fail_message"
+
   if [[ "$1" == "container" ]]; then
     container_build_and_push $2
   elif [[ "$1" == "release" ]]; then
