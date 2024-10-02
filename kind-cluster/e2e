@@ -74,6 +74,6 @@ echo -e "\e[33mNote:\e[0m If tests stuck, you need to check kind version and kin
 
 wget https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8S_ZIP} \
 && gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar --overwrite \
-&& kubernetes/test/bin/ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
+&& kubernetes/test/bin/ginkgo --trace -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
 -skip='\[Disruptive\]' \
 kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
