@@ -65,7 +65,7 @@ echo "Creating kind k8s cluster Dockerfile * * * * * * * * *  * * * * * * * * * 
 echo ""
 echo ""
 tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
-FROM kindest/node:v1.30.4@sha256:976ea815844d5fa93be213437e3ff5754cd599b040946b5cca43ca45c2047114
+FROM kindest/node:v1.30.6@sha256:b6d08db72079ba5ae1f4a88a09025c0a904af3b52387643c285442afb05ab994
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano dnsutils
 END
