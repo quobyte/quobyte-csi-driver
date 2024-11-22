@@ -99,14 +99,6 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func getSanitizedPodUUIDFromPath(podVolPath string) string {
-	// Extracts the Pod UID from the given pod volume path. Path of pod volume is of the
-	// form /var/lib/kubelet/pods/<THE-POD-ID-HERE>/volumes/kubernetes.io~csi
-	pod_uid_start_index := strings.Index(podVolPath, POD_UUID_LOCATOR) + len(POD_UUID_LOCATOR)
-	pod_uid_end_index := strings.Index(podVolPath, POD_VOL_LOCATOR)
-	return strings.ReplaceAll(podVolPath[pod_uid_start_index:pod_uid_end_index], "-", "")
-}
-
 func parseLabels(labels string) ([]*quobyte.Label, error) {
 	labelKVs := strings.Split(labels, ",")
 	parsedLabels := make([]*quobyte.Label, 0)
