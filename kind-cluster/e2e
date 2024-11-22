@@ -4,12 +4,26 @@ KUBECONFIG=${KUBECONFIG:-"/etc/kubernetes/admin.conf"}
 NODES=1
 # Note that you need to point kubeconfig correctly, otherwise kubectl cannot list sever version
 K8S_VERSION="$(kubectl version | grep 'Server Version:' -m1 | cut -d":" -f2 | tr -d " ")"
+TEST_RUN_DIR=$(pwd)
 STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
 SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-''}
 E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 TESTS_LOGS_PATH='/tmp/test.txt'
 
+KUBERNETES_SRC_DIR="${KUBERNETES_SRC_DIR:-/tmp/kubernetes}"
+
+if [[ ! -d ${KUBERNETES_SRC_DIR} ]]; then
+git clone https://github.com/kubernetes/kubernetes.git $KUBERNETES_SRC_DIR
+fi
+
+cd $KUBERNETES_SRC_DIR
+git fetch --tags
+git checkout tags/$K8S_VERSION
+make WHAT=test/e2e/e2e.test
+go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+cd $TEST_RUN_DIR
 cd /tmp
 
 if [[ "$ENABLE_SNAPSHOTS" -eq 'true' && -z "$SNAPSHOT_CLASS" ]]; then
@@ -42,25 +56,6 @@ DriverInfo:
     RWX: true
 EOF
 
-if [[ -d kubernetes ]]; then
- rm -rf kubernetes
-fi
-
-K8S_TARBALL="kubernetes-test-linux-amd64.tar"
-K8S_ZIP="${K8S_TARBALL}.gz"
-
-if [[ -f ${K8S_ZIP} ]]; then
-  rm ${K8S_ZIP}
-fi
-
-if [[ -f "${K8S_TARBALL}" ]]; then 
-  rm "${K8S_TARBALL}"
-fi
-
-if [[ -f "$TESTS_LOGS_PATH" ]]; then
-  rm "$TESTS_LOGS_PATH"
-fi
-
 echo "Running E2E with test configuration $E2E_TEST_CONFIG_PATH"
 echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host"
 
@@ -68,8 +63,6 @@ echo -e "\e[33mNote:\e[0m If tests stuck, you need to check kind version and kin
          base image compatibility. See ./run_test kindest/node:v1.... hash and kindest version\n \
          hash (kind requires exact hash specified in kind release). https://github.com/kubernetes-sigs/kind/releases"
 
-wget https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/${K8S_ZIP} \
-&& gunzip kubernetes-test-linux-amd64.tar.gz && tar -xvf kubernetes-test-linux-amd64.tar --overwrite \
-&& kubernetes/test/bin/ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
+ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
 -skip='\[Disruptive\]' \
-kubernetes/test/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
+$KUBERNETES_SRC_DIR/_output/local/go/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
