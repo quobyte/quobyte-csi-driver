@@ -105,7 +105,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 		// - Make sure Quobyte CSI driver is deployed with "enableAccessKeyMounts: true"
 		// - Quobyte clients are deployed with access key flags enabled - see "Requirements" section of
 		// https://github.com/quobyte/quobyte-csi-driver/blob/master/docs/quobyte_access_keys.md
-		err := setfattr(xattrKey, XattrVal, fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID))
+		err := setfattr(xattrKey, XattrVal, d.clientMountPoint)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +196,7 @@ func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpan
 
 func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	if !d.enabledVolumeMetrics {
-		return nil, fmt.Errorf("volume/PVC metrics export is disabled for the Quobyte CSI Driver %s", d.Name);
+		return nil, fmt.Errorf("volume/PVC metrics export is disabled for the Quobyte CSI Driver %s", d.Name)
 	}
 	volumePath := req.GetVolumePath()
 	if len(volumePath) <= 0 {
