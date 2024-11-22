@@ -158,6 +158,7 @@ else
     git add -A
     git commit -m "Release version ${VERSION} by ./build release command"
     git tag "${VERSION}"
+    exit_if_failure "$1" "Cannot tag release version. Fix the reported issue (you may need to reset head to undo "Release commit")"
     # update chart index fiel for Artifacthub to get new update
     rebase_charts_on_master
     git push origin master --tags
