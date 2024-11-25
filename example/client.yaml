@@ -44,16 +44,23 @@ spec:
             hostPort: 55000
             protocol: TCP
         readinessProbe:
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         livenessProbe:
-          initialDelaySeconds: 30
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         command:
           - /bin/bash
           - -xec
