@@ -27,8 +27,6 @@ const (
 	//DefaultCreateQuota Quobyte CSI by default does NOT create volumes with Quotas.
 	// To create Quotas for the volumes, set createQuota: "true" in storage class
 	DefaultCreateQuota = false
-	DefaultUser        = "root"
-	DefaultGroup       = "nfsnobody"
 	DefaultAccessModes = 700
 	// Permissions for /<shared-volume>
 	// Shared volume needs permission to create directory, delete directory in it
@@ -65,8 +63,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volRequest := &quobyte.CreateVolumeRequest{}
 	// will be overriden if shared volume name is specified in storage class
 	volRequest.Name = dynamicVolumeName
-	volRequest.RootUserId = DefaultUser
-	volRequest.RootGroupId = DefaultGroup
 	createQuota := DefaultCreateQuota
 	if d.QuobyteVersion == 2 {
 		volRequest.ConfigurationName = DefaultConfig
@@ -78,6 +74,18 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		volRequest.AccessMode = DefaultAccessModes
 	}
 
+	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	if err != nil {
+		return nil, err
+	}
+	whoAmIReq := &quobyte.WhoAmIRequest{}
+	userInfo, err := quobyteClient.WhoAmI(whoAmIReq)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve user/group via Quobyte API")
+	}
+	volRequest.RootUserId = userInfo.UserName
+	volRequest.RootGroupId = userInfo.PrimaryGroup
+
 	var configuredVolumeAccessMode int32 = 0
 	for k, v := range params {
 		switch strings.ToLower(k) {
@@ -86,7 +94,9 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "sharedvolumename":
 			volRequest.Name = v
 		case "user":
-			volRequest.RootUserId = v
+			if len(strings.TrimSpace(v)) > 0 {
+				volRequest.RootUserId = v
+			}
 		case "group":
 			volRequest.RootGroupId = v
 		case "quobyteconfig":
@@ -114,9 +124,9 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	}
 
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
-	if err != nil {
-		return nil, err
+	if len(volRequest.RootGroupId) == 0 {
+		return nil, fmt.Errorf("primary group is empty. Configure user '%s' primary group or provide override in StorageClass",
+			volRequest.RootUserId)
 	}
 
 	// Use storage class tenant if provided, otherwise use namespace as tenant if feature is enabled
