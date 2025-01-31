@@ -17,4 +17,12 @@ volumes:
       path: /etc/ssl/certs/
       type: Directory
   {{- end }}
+  - name: users
+    hostPath:
+      path: /etc/passwd
+      type: File
+  - name: groups
+    hostPath:
+      path: /etc/group
+      type: File
 {{- end }}
