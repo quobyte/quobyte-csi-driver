@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru v1.0.2
-	github.com/quobyte/api v1.3.0
+	github.com/quobyte/api v1.4.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/sys v0.29.0
@@ -26,4 +26,4 @@ require (
 )
 
 // Uncomment only during testing with local version of Quobyte API
-//replace github.com/quobyte/api => /home/venkat/go/src/github.com/quobyte/api
+// replace github.com/quobyte/api => /home/venkat/go/api
