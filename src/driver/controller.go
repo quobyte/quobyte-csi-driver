@@ -30,6 +30,12 @@ const (
 	DefaultUser        = "root"
 	DefaultGroup       = "nfsnobody"
 	DefaultAccessModes = 700
+	// Permissions for /<shared-volume>
+	// Shared volume needs permission to create directory, delete directory in it
+	DefaultSharedVolumeAccessModes = 1777
+	// Permissions for /<shared-volume>/<pvc-volume>
+	// Set sticky bit so that other users cannot delete volume
+	DefaultPVCAccessModeInsideSharedVolume = 1700
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
 	pinnedKey       = "pinned"
@@ -62,10 +68,17 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	volRequest.RootUserId = DefaultUser
 	volRequest.RootGroupId = DefaultGroup
 	createQuota := DefaultCreateQuota
-	volRequest.AccessMode = DefaultAccessModes
-	if (d.QuobyteVersion == 2) {
+	if d.QuobyteVersion == 2 {
 		volRequest.ConfigurationName = DefaultConfig
 	}
+	_, isSharedVolume := params["sharedVolumeName"]
+	if isSharedVolume {
+		volRequest.AccessMode = DefaultSharedVolumeAccessModes
+	} else {
+		volRequest.AccessMode = DefaultAccessModes
+	}
+
+	var configuredVolumeAccessMode int32 = 0
 	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "quobytetenant":
@@ -77,7 +90,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "group":
 			volRequest.RootGroupId = v
 		case "quobyteconfig":
-			if (d.QuobyteVersion == 2) {
+			if d.QuobyteVersion == 2 {
 				volRequest.ConfigurationName = v
 			}
 		case "createquota":
@@ -94,7 +107,10 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			if err != nil {
 				return nil, err
 			}
-			volRequest.AccessMode = int32(u64)
+			configuredVolumeAccessMode = int32(u64)
+			if !isSharedVolume {
+				volRequest.AccessMode = configuredVolumeAccessMode
+			} // else: if shared volume not exists, created with DefaultSharedVolumeAccessModes
 		}
 	}
 
@@ -179,7 +195,6 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		volUUID = volCreateResp.VolumeUuid
 	}
 
-	_, isSharedVolume := params["sharedVolumeName"]
 	// Creating a new volume/existence of volume alone is not sufficient when Quobyte
 	// tenant is configured with "disable_oversubscription: true"
 	// Creation of a quota ensures that provisioning succeeds only if there is sufficient Quota
@@ -200,6 +215,12 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 
 	var volumeId string
 	if isSharedVolume {
+		// Apply configured access permissions to the subdirectory
+		if configuredVolumeAccessMode == 0 {
+			volRequest.AccessMode = DefaultPVCAccessModeInsideSharedVolume
+		} else {
+			volRequest.AccessMode = configuredVolumeAccessMode
+		}
 		// requested dynamic volume is subdir under the given shared volume
 		subdirPath := filepath.Join(d.clientMountPoint, volUUID, dynamicVolumeName)
 		if statInfo, err := os.Stat(subdirPath); err != nil {
@@ -212,6 +233,11 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			}
 		} else if !statInfo.IsDir() {
 			return nil, fmt.Errorf("A file with sub-directory name exists at %s", subdirPath)
+		} else {
+			// update permissions
+			if err = d.createDynamicVolumeAsADirectory(subdirPath, volRequest); err != nil {
+				return nil, err
+			}
 		}
 		volumeId = volRequest.TenantId + SEPARATOR + volUUID + SEPARATOR + dynamicVolumeName
 	} else {
@@ -233,10 +259,7 @@ func (d *QuobyteDriver) createDynamicVolumeAsADirectory(subdirPath string, volRe
 	}
 	if err = os.Mkdir(subdirPath, fs.FileMode(modeVal)); err != nil {
 		// ignore directory exists error; might have been created by replicated pods
-		if e, ok := err.(*os.PathError); ok && e.Err == syscall.EEXIST {
-			// assume user, group and permissions are already set on the existing directory
-			return nil
-		} else {
+		if e, ok := err.(*os.PathError); ok && e.Err != syscall.EEXIST {
 			return fmt.Errorf("Unable to create sub-directory %s due to %s", subdirPath, err)
 		}
 	}
