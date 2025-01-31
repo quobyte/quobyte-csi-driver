@@ -26,7 +26,7 @@ spec:
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: venkat.corp.quobyte.com:2169 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2776 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
             # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
@@ -94,6 +94,12 @@ spec:
           - name: quobyte-mount
             mountPath: /home/quobyte
             mountPropagation: Bidirectional
+          - name: users
+            mountPath: /etc/passwd
+            mountPropagation: HostToContainer
+          - name: groups
+            mountPath: /etc/group
+            mountPropagation: HostToContainer
           - name: minidumps-dir
             mountPath: /tmp/minidumps
         lifecycle:
@@ -109,3 +115,11 @@ spec:
       - name: minidumps-dir
         hostPath:
           path: /var/lib/quobyte/.minidumps
+      - name: users
+        hostPath:
+          path: /etc/passwd
+          type: File
+      - name: groups
+        hostPath:
+          path: /etc/group
+          type: File
