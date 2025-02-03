@@ -19,14 +19,14 @@ spec:
     spec:
       containers:
       - name: quobyte-client
-        image: quay.io/quobyte/quobyte-client:3.21.1
+        image: quay.io/quobyte/quobyte-client:3.24.4
         imagePullPolicy: Always
         env:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: venkat.corp.quobyte.com:2267 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2776 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
             # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
@@ -44,23 +44,30 @@ spec:
             hostPort: 55000
             protocol: TCP
         readinessProbe:
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         livenessProbe:
-          initialDelaySeconds: 30
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         command:
           - /bin/bash
           - -xec
           - |
             ENABLE_ACCESS_CONTEXTS=""
             if [[ ${ENABLE_ACCESS_KEY_MOUNTS} = true ]]; then
-              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
+              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts --no-default-permissions"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then
               umount -l ${QUOBYTE_MOUNT_POINT}
@@ -87,6 +94,12 @@ spec:
           - name: quobyte-mount
             mountPath: /home/quobyte
             mountPropagation: Bidirectional
+          - name: users
+            mountPath: /etc/passwd
+            mountPropagation: HostToContainer
+          - name: groups
+            mountPath: /etc/group
+            mountPropagation: HostToContainer
           - name: minidumps-dir
             mountPath: /tmp/minidumps
         lifecycle:
@@ -102,3 +115,11 @@ spec:
       - name: minidumps-dir
         hostPath:
           path: /var/lib/quobyte/.minidumps
+      - name: users
+        hostPath:
+          path: /etc/passwd
+          type: File
+      - name: groups
+        hostPath:
+          path: /etc/group
+          type: File
