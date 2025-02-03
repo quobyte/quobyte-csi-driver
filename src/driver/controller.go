@@ -33,6 +33,8 @@ const (
 	DefaultSharedVolumeAccessModes = 1777
 	// Permissions for /<shared-volume>/<pvc-volume>
 	// Set sticky bit so that other users cannot delete volume
+	// As of golang version 1.22.5, the sticky bit does not work and only user:group:other permissions work
+	// https://github.com/golang/go/issues/44575
 	DefaultPVCAccessModeInsideSharedVolume = 1700
 	// Metadata from K8S CSI external provisioner
 	pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
