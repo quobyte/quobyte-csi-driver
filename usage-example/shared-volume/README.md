@@ -54,7 +54,8 @@ parameters:
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
   csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
-  # optional user/group - if not provided, user/group is derived from the user credentials
+  # user/group is optional - if not provided, user/group is retrieved from the Quobyte user
+  # associated with the provisioner-secret provided above.
   user: root
   group: root
   # Permissions for PVC directory created inside shared volume (if not provided defaults to 700)
