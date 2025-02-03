@@ -396,10 +396,10 @@ should render when resource limits are provided:
                   cpu: 50m
                   memory: 50Mi
               securityContext:
-                allowPrivilegeEscalation: true
                 capabilities:
                   add:
                     - SYS_ADMIN
+                    - CHOWN
                 privileged: true
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -411,6 +411,12 @@ should render when resource limits are provided:
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
@@ -428,6 +434,14 @@ should render when resource limits are provided:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   12: |
     apiVersion: v1
     kind: ServiceAccount
@@ -573,6 +587,12 @@ should render when resource limits are provided:
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com
@@ -633,6 +653,14 @@ should render when resource limits are provided:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   16: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1022,10 +1050,10 @@ should render when tolerations are provided:
               imagePullPolicy: IfNotPresent
               name: quobyte-csi-driver
               securityContext:
-                allowPrivilegeEscalation: true
                 capabilities:
                   add:
                     - SYS_ADMIN
+                    - CHOWN
                 privileged: true
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -1037,6 +1065,12 @@ should render when tolerations are provided:
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           tolerations:
@@ -1058,6 +1092,14 @@ should render when tolerations are provided:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   10: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1195,6 +1237,12 @@ should render when tolerations are provided:
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com
@@ -1255,6 +1303,14 @@ should render when tolerations are provided:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   14: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1644,10 +1700,10 @@ should render with default values:
               imagePullPolicy: IfNotPresent
               name: quobyte-csi-driver
               securityContext:
-                allowPrivilegeEscalation: true
                 capabilities:
                   add:
                     - SYS_ADMIN
+                    - CHOWN
                 privileged: true
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -1659,6 +1715,12 @@ should render with default values:
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
@@ -1676,6 +1738,14 @@ should render with default values:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   10: |
     apiVersion: v1
     kind: ServiceAccount
@@ -1813,6 +1883,12 @@ should render with default values:
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
                   name: certs
+                - mountPath: /etc/passwd
+                  mountPropagation: HostToContainer
+                  name: users
+                - mountPath: /etc/group
+                  mountPropagation: HostToContainer
+                  name: groups
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com
@@ -1869,6 +1945,14 @@ should render with default values:
                 path: /etc/ssl/certs/
                 type: Directory
               name: certs
+            - hostPath:
+                path: /etc/passwd
+                type: File
+              name: users
+            - hostPath:
+                path: /etc/group
+                type: File
+              name: groups
   14: |
     apiVersion: v1
     kind: ServiceAccount

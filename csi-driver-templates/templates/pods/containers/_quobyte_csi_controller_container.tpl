@@ -9,8 +9,8 @@
   securityContext:
     privileged: true
     capabilities:
-      add: ["SYS_ADMIN"]
-    allowPrivilegeEscalation: true
+      # For shared volume PVCs, ownership change is required      
+      add: ["SYS_ADMIN", "CHOWN"]
   image: {{ .Values.quobyte.dev.csiImage }}
   imagePullPolicy: "IfNotPresent"
   args:
@@ -53,4 +53,10 @@
     - name: certs
       mountPath: /etc/ssl/certs/
     {{- end }}
+    - name: users
+      mountPath: /etc/passwd
+      mountPropagation: "HostToContainer"
+    - name: groups
+      mountPath: /etc/group
+      mountPropagation: "HostToContainer"
 {{- end }}

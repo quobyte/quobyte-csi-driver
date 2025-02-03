@@ -8,7 +8,8 @@ exclusive Quobyte volume.
 * Requires Quobyte client on Quobyte CSI controller pod (quobyte-csi-controller-....) running host
   with the [mount path](https://github.com/quobyte/quobyte-csi-driver/blob/v1.8.4/csi-driver-templates/values.yaml#L21)
 
-* Shared volume(s) must be accessible on the Quobyte CSI controller node.
+* Shared volume(s) must be accessible on the Quobyte CSI controller node. Suggested permissions on shared volume "1777".
+  Furtehr, the PV permissions via StorageClass should be restricted to user:group (<ug>0).
 
 * For Quobyte 2.x cluster, your Quobyte CSI driver should be
   deployed with `quobyte.sharedVolumesList`. Quobyte CSI driver runs periodic cleanup of these
@@ -40,6 +41,8 @@ parameters:
   # provisions PV as subdirectory of the "shared_volume"
   # Not having "sharedVolumeName" parameter, triggers creation of a new Quobyte volume
   # (with the name same as PV's name) for the dynamic provisioning
+  # If shared volume is created beforehand, permissions should be 1777, so that PVCs can
+  # be accessed by other users.
   sharedVolumeName: "shared_volume"
   # createQuota is not required with shared volumes and ignored if provided.
   # If Storage admin requires Quota for shared volumes, they must set Quota for volume via
@@ -51,8 +54,13 @@ parameters:
   csi.storage.k8s.io/controller-expand-secret-namespace: "quobyte"
   csi.storage.k8s.io/node-publish-secret-name: "quobyte-admin-credentials"
   csi.storage.k8s.io/node-publish-secret-namespace: "quobyte"
+  # user/group is optional - if not provided, user/group is retrieved from the Quobyte user
+  # associated with the provisioner-secret provided above.
   user: root
   group: root
+  # Permissions for PVC directory created inside shared volume (if not provided defaults to 700)
+  # Keep other permissions to 0, so that only user[/group] can access this PV inside shared
+  # volume.
   accessMode: "750"
 reclaimPolicy: Delete
 ```

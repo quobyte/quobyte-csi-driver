@@ -56,4 +56,10 @@
     - name: certs
       mountPath: /etc/ssl/certs/
     {{- end }}
+    - name: users
+      mountPath: /etc/passwd
+      mountPropagation: "HostToContainer"
+    - name: groups
+      mountPath: /etc/group
+      mountPropagation: "HostToContainer"
 {{- end}}
