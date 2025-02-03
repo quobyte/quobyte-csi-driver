@@ -350,6 +350,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 			req := &quobyte.CreateTaskRequest{}
 			req.RestrictToVolumes = []string{volumeIdParts[1]}
 			req.TaskType = quobyte.TaskType_DELETE_FILES_IN_VOLUMES
+			// place-holder comment - remove once fixed!!!
 			req.DeleteFilesSettings = quobyte.DeleteFilesSettings{}
 			req.DeleteFilesSettings.DirectoryPath = "/" + volumeIdParts[2]
 			_, err = quobyteClient.CreateTask(req)
