@@ -26,6 +26,10 @@ spec:
         app: quobyte-csi-controller-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
         role: quobyte-csi-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
+    {{- if default "" .Values.quobyte.nodeSelector | trim }}
+      nodeSelector:
+        {{ .Values.quobyte.nodeSelector | trim }}
+    {{- end }}
       priorityClassName: system-cluster-critical
       serviceAccount: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
 {{- if .Values.quobyte.tolerations }}

@@ -63,6 +63,11 @@ quobyte:
   # are not required to be exported as Prometheus metrics.
   enableVolumeMetrics: true
 
+  # Quobyte CSI driver is only deployed on nodes with the specified label.
+  # Empty means all the nodes in the k8s cluster i.e. no node selector will be used.
+  # nodeSelector: "<node-label-name>: '<node-label-value>'"
+  nodeSelector: ""
+
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again
