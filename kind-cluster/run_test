@@ -132,7 +132,7 @@ fi
 # makes nodes hang in NotReady
 dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
 if [[ -z "$dns_ips" ]]; then
-  echo "Error: could not retrive kube-dns IP required"
+  echo "Error: could not retrieve required kube-dns IP"
   exit 1
 fi
 if ! [[ "$dns_ips" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
