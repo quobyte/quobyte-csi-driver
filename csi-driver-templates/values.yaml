@@ -1,6 +1,6 @@
 quobyte:
-  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
-  version: 3
+  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x/4 for 4.x)
+  version: 4
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   # The default below is ready to connect to a Quobyte api 
@@ -66,7 +66,8 @@ quobyte:
   # Quobyte CSI driver is only deployed on nodes with the specified label.
   # Empty means all the nodes in the k8s cluster i.e. no node selector will be used.
   # nodeSelector: "<node-label-name>: '<node-label-value>'"
-  nodeSelector: ""
+  podKillerCacheNodeSelector: ""  # for pod killer cache pod
+  csiDriverNodeSelector: "" # all other CSI driver pods
 
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
