@@ -109,7 +109,7 @@ func (d *QuobyteDriver) Run() error {
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver with %v\n", d)
+	klog.Infof("Starting Quobyte-CSI Driver with %+v\n", d)
 	d.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(d.server, d)
 	csi.RegisterControllerServer(d.server, d)

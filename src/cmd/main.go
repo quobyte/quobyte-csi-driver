@@ -61,8 +61,8 @@ func main() {
 	// Quobyte CSI Driver pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
-	if *quobyteVersion != 2 && *quobyteVersion != 3 {
-		klog.Errorf("--quobyte_version must be 2 for Quobyte 2.x/3 for Quobyte 3.x (given %d)", *quobyteVersion)
+	if *quobyteVersion != 3 && *quobyteVersion != 4 {
+		klog.Errorf("--quobyte_version must be 3 for Quobyte 2.x/4 for Quobyte 4.x (given %d)", *quobyteVersion)
 		os.Exit(1)
 	}
 
