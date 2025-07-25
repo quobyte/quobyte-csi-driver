@@ -24,7 +24,7 @@
     - "--quobyte_version={{ .Values.quobyte.version }}"
     - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
     - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}"
-    - "--shared_volumes_list={{ .Values.quobyte.sharedVolumesList }}"
+    - "--shared_volumes_list={{ join "," .Values.quobyte.sharedVolumesList }}"
     - "--use_delete_files_task={{ .Values.quobyte.useDeleteFilesTaskForSharedVolumeCleanup }}"
     - "--role=controller"
   env:

@@ -62,15 +62,10 @@ quobyte:
   # to be used as shared volumes (StorageClass.parameters.sharedVolumeName). However,
   # driver does not cleanup volumes not mentioned here i.e. does not delete PVCs
   # created inside the shared volumes that are not configured here.
-  # Example, sharedVolumesList: "sharedVolume1,mySharedVolume,...,sharedVolumeN"
-  # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
-  sharedVolumesList: ""
-  # If you are creating PVCs at a rapid rate with reclaimPolicy: Delete,
-  # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
-  # In such setups set this flag to false, Quobyte CSI Driver removes the PVC via
-  # mount point rm -rf
-  useDeleteFilesTaskForSharedVolumeCleanup: false
-
+  sharedVolumesList:
+    # - <volumeUUID1>
+    # - <volumeUUID2>
+    # - <volumeUUIDN>
 
   # Set to 'false' if PVC/volume metrics (used/available/total bytes and inodes)
   # are not required to be exported as Prometheus metrics.
@@ -79,9 +74,12 @@ quobyte:
   # Quobyte CSI driver is only deployed on nodes with the specified label.
   # Empty means all the nodes in the k8s cluster i.e. no node selector will be used.
   # nodeSelector: "<node-label-name>: '<node-label-value>'"
-  podKillerCacheNodeSelector: ""  # for pod killer cache pod
-  csiDriverNodeSelector: "" # all other CSI driver pods
-
+  # Example: csiDriverNodeSelector: "quobyteCsiDriverNode: 'true'"
+  csiDriverNodeSelector: ""
+  # Pod killer cache node selector - leaving it empty creates pod killer cache pod
+  # on any of the k8s node
+  # Example: podKillerCacheNodeSelector: "quobytePodCacheNode: 'true'"
+  podKillerCacheNodeSelector: ""
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again
