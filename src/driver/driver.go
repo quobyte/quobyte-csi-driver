@@ -27,9 +27,10 @@ type QuobyteDriver struct {
 	IsQuobyteAccessKeyMountsEnabled bool
 	ImmediateErase                  bool
 	QuobyteVersion                  int
-	enabledVolumeMetrics           bool
-	quoybteClientFactory QuobyteApiClientProvider
-	mounter                        Mounter
+	enabledVolumeMetrics            bool
+	UseDeleteFilesTask              bool
+	quoybteClientFactory            QuobyteApiClientProvider
+	mounter                         Mounter
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
@@ -44,7 +45,8 @@ func NewQuobyteDriver(
 	enableQuobyteAccessKeyMounts bool,
 	immediateErase bool,
 	quobyteVersion int,
-	enableVolumeMetrics bool) *QuobyteDriver {
+	enableVolumeMetrics,
+	useDeleteFilesTask bool) *QuobyteDriver {
 	return &QuobyteDriver{
 		driverName,
 		driverVersion,
@@ -58,6 +60,7 @@ func NewQuobyteDriver(
 		immediateErase,
 		quobyteVersion,
 		enableVolumeMetrics,
+		useDeleteFilesTask,
 		&QuobyteApiClientFactory{},
 		&LinuxMounter{},
 	}
@@ -88,31 +91,25 @@ func (d *QuobyteDriver) Run() error {
 	if u.Scheme != "unix" {
 		return fmt.Errorf("CSI currently only supports unix domain sockets, given %s", u.Scheme)
 	}
-	klog.Infof("Remove socket if it already exists in the path %s", d.endpoint)
+	klog.Infof("Remove socket if it already exists in the path %s\n", d.endpoint)
 	if err := os.Remove(address); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove unix domain socket file %s, error: %v", address, err)
 	}
 	listener, err := net.Listen(u.Scheme, address)
 	if err != nil {
-		klog.Errorf("Failed to listen on %s due to error: %v.", address, err)
+		klog.Errorf("Failed to listen on %s due to error: %v.\n", address, err)
 		return err
 	}
 	errHandler := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			klog.Errorf("Method %s failed with error: %v.", info.FullMethod, err)
+			klog.Errorf("Method %s failed with error: %v.\n", info.FullMethod, err)
 		} else {
-			klog.Infof("Method %s completed.", info.FullMethod)
+			klog.Infof("Method %s completed.\n", info.FullMethod)
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver - driver: '%s' version: '%s'" +
-		"GRPC socket: '%s' mount point: '%s' API URL: '%s' " +
-		" MapNamespaceNameToQuobyteTenant: %t QuobyteAccesskeysEnabled: %t" +
-		" VolumeMetricsEnabled: %t",
-		d.Name, d.Version, d.endpoint, d.clientMountPoint, d.ApiURL,
-		d.UseK8SNamespaceAsQuobyteTenant, d.IsQuobyteAccessKeyMountsEnabled,
-		d.enabledVolumeMetrics)
+	klog.Infof("Starting Quobyte-CSI Driver with %v\n", d)
 	d.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(d.server, d)
 	csi.RegisterControllerServer(d.server, d)

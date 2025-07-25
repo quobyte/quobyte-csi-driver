@@ -25,6 +25,7 @@
     - "--immediate_erase={{ .Values.quobyte.immediateErase }}"
     - "--use_k8s_namespace_as_tenant={{ .Values.quobyte.useK8SNamespaceAsTenant }}"
     - "--shared_volumes_list={{ .Values.quobyte.sharedVolumesList }}"
+    - "--use_delete_files_task={{ .Values.quobyte.useDeleteFilesTaskForSharedVolumeCleanup }}"
     - "--role=controller"
   env:
     - name: NODE_ID

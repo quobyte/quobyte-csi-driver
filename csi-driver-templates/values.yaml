@@ -51,13 +51,26 @@ quobyte:
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
 
-  # Required only for Quobyte 2.x
-  # Specify list of shared volumes. Quobyte CSI driver allows volumes not listed here
-  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName), however,
-  # driver does not cleanup volumes not mentioned here.
+  # If you are creating PVCs at a rapid rate with reclaimPolicy: Delete,
+  # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
+  # In such setups set this flag to false, Quobyte CSI Driver removes the PVC using
+  # rm -rf via mount point (only few rm -rf run at a time)
+  useDeleteFilesTaskForSharedVolumeCleanup: true
+
+  # Specify list of shared volume UUIDs if useDeleteFilesTaskForSharedVolumeCleanup is set to false.
+  # Quobyte CSI driver allows volumes not listed here
+  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName). However,
+  # driver does not cleanup volumes not mentioned here i.e. does not delete PVCs
+  # created inside the shared volumes that are not configured here.
   # Example, sharedVolumesList: "sharedVolume1,mySharedVolume,...,sharedVolumeN"
   # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
   sharedVolumesList: ""
+  # If you are creating PVCs at a rapid rate with reclaimPolicy: Delete,
+  # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
+  # In such setups set this flag to false, Quobyte CSI Driver removes the PVC via
+  # mount point rm -rf
+  useDeleteFilesTaskForSharedVolumeCleanup: false
+
 
   # Set to 'false' if PVC/volume metrics (used/available/total bytes and inodes)
   # are not required to be exported as Prometheus metrics.
