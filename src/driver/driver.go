@@ -66,6 +66,15 @@ func NewQuobyteDriver(
 	}
 }
 
+func (d *QuobyteDriver) String() string {
+	return fmt.Sprintf("DriverName: %s, Version: %s, socket: %s, ClientMountPoint: %s,"+
+		"NodeName: %s, ApiURL: %s, UseK8SNamespaceAsQuobyteTenant: %t, IsQuobyteAccessKeyMountsEnabled: %t"+
+		"ImmediateErase: %t, QuobyteVersion: %d, EnabledVolumeMetrics: %t, UseDeleteFilesTask: %t",
+		d.Name, d.Version, d.endpoint, d.clientMountPoint, d.NodeName, d.ApiURL, d.UseK8SNamespaceAsQuobyteTenant,
+		d.IsQuobyteAccessKeyMountsEnabled, d.ImmediateErase, d.QuobyteVersion, d.enabledVolumeMetrics,
+		d.UseDeleteFilesTask)
+}
+
 // Run starts the grpc server for the driver
 func (d *QuobyteDriver) Run() error {
 	if len(d.clientMountPoint) == 0 {
@@ -109,7 +118,7 @@ func (d *QuobyteDriver) Run() error {
 		}
 		return resp, err
 	}
-	klog.Infof("Starting Quobyte-CSI Driver with %+v\n", d)
+	klog.Infof("Starting Quobyte-CSI Driver with %s\n", d)
 	d.server = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterNodeServer(d.server, d)
 	csi.RegisterControllerServer(d.server, d)
