@@ -338,9 +338,9 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 			err = quobyteClient.EraseVolumeByResolvingNamesToUUID(volumeIdParts[1], volumeIdParts[0], d.ImmediateErase)
 		}
 	} else if len(volumeIdParts) == 3 { // tenant|volume|subdir
-		if d.QuobyteVersion == 2 {
+		if !d.UseDeleteFilesTask {
 			subdirPath := filepath.Join(d.clientMountPoint, volumeIdParts[1], volumeIdParts[2])
-			renameTo := filepath.Join(d.clientMountPoint, volumeIdParts[1], fmt.Sprintf(DELETE_MARKER_FORMAT, d.NodeName, volumeIdParts[2]))
+			renameTo := filepath.Join(d.clientMountPoint, volumeIdParts[1], fmt.Sprintf(DELETE_MARKER_FORMAT, d.Name, volumeIdParts[2]))
 			if err := os.Rename(subdirPath, renameTo); err != nil {
 				if e, ok := err.(*os.LinkError); ok && e.Err != syscall.ENOENT {
 					return nil, fmt.Errorf("Cannot mark directory '%s' for deletion due to %s", subdirPath, err)

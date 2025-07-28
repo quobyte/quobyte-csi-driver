@@ -29,11 +29,13 @@ var (
 	driverVersion                = flag.String("driver_version", "", "Quobyte CSI driver version")
 	useNameSpaceAsTenant         = flag.Bool("use_k8s_namespace_as_tenant", false, "Uses k8s PVC.namespace as Quobyte tenant")
 	enableQuobyteAccessKeyMounts = flag.Bool("enable_access_key_mounts", false, "Enables use of Quobyte Access keys for mounting volumes")
-	enableVolumeMetrics         = flag.Bool("enable_volume_metrics", true, "Enables volume metrics (space and inodes) export")
+	enableVolumeMetrics          = flag.Bool("enable_volume_metrics", false, "Enables volume metrics (space and inodes) export")
 	immediateErase               = flag.Bool("immediate_erase", false, "Schedules erase volume task immediately (supported from Quobyte 3.x)")
-	quobyteVersion               = flag.Int("quobyte_version", 2, "Specify Quobyte major version (2 for Quobyte 2.x and 3 for Quobyte 3.x)")
-	sharedVolumes                = flag.String("shared_volumes_list", "", "Comma separated list of shared volumes (applicable only for Quobyte 2.x)")
-	parallelDeletions            = flag.Int("parallel_deletions", 10, "Delete 'n' shared volume directories parallelly (effective only for Quobyte 2.x)")
+	quobyteVersion               = flag.Int("quobyte_version", 3, "Specify Quobyte major version (3 for Quobyte 3.x and 4 for Quobyte 4.x)")
+	sharedVolumes                = flag.String("shared_volumes_list", "", "Comma separated list of shared volumes")
+	parallelDeletions            = flag.Int("parallel_deletions", 10, "Delete 'n' shared volume directories parallelly")
+	useDeleteFilesTask           = flag.Bool("use_delete_files_task", false,
+		"Remove shared volume PVCs using delete files task. If disabled, uses rmdir via client mount point")
 )
 
 func main() {
@@ -59,8 +61,8 @@ func main() {
 	// Quobyte CSI Driver pods.
 	// We would also need to get the logs of attacher and provisioner pods additionally.
 
-	if *quobyteVersion != 2 && *quobyteVersion != 3 {
-		klog.Errorf("--quobyte_version must be 2 for Quobyte 2.x/3 for Quobyte 3.x (given %d)", *quobyteVersion)
+	if *quobyteVersion != 3 && *quobyteVersion != 4 {
+		klog.Errorf("--quobyte_version must be 3 for Quobyte 2.x/4 for Quobyte 4.x (given %d)", *quobyteVersion)
 		os.Exit(1)
 	}
 
@@ -70,15 +72,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO (venkat): remove cleanup of shared volumes with 2.x deprecation
-	// This is only required for 2.x and cleanup is only run on active controller
-	// and active controller cleans up its own <host_name>_delete_pvc-....> inside shared volume(s) list
-	if *quobyteVersion == 2 && role == Controller {
+	// Cleanup is only run on active controller and active controller cleans up its own
+	// <driverName>_delete_pvc-....> inside shared volume(s) list
+	if role == Controller && !*useDeleteFilesTask {
 		sharedVols := strings.Split(*sharedVolumes, ",")
 		if len(sharedVols) > 0 && *parallelDeletions > 0 {
 			klog.Infof("Shared volumes cleanup is enabled for volumes %s", sharedVols)
 			// run periodic clean up for shared volumes
-			driver.LaunchDirectoryDeleter(*nodeName, *clientMountPoint, sharedVols, *parallelDeletions)
+			driver.LaunchDirectoryDeleter(*driverName, *clientMountPoint, sharedVols, *parallelDeletions)
 		} else {
 			klog.Info("Shared volumes cleanup is turned off")
 		}
@@ -95,7 +96,8 @@ func main() {
 		*enableQuobyteAccessKeyMounts,
 		*immediateErase,
 		*quobyteVersion,
-		*enableVolumeMetrics)
+		*enableVolumeMetrics,
+		*useDeleteFilesTask)
 	err = qd.Run()
 	if err != nil {
 		klog.Errorf("Failed to start Quobyte CSI grpc server due to error: %v.", err)

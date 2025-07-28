@@ -43,6 +43,35 @@ roleRef:
   kind: ClusterRole
   name: external-snapshotter-runner-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   apiGroup: rbac.authorization.k8s.io
+
 ---
+{{- if gt (.Values.quobyte.csiControllerReplicas | toString | atoi) 1 }}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: external-snapshotter-leaderelection-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+rules:
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "watch", "list", "delete", "update", "create"]
+{{- end }}
+
+---
+{{- if gt (.Values.quobyte.csiControllerReplicas | toString | atoi) 1 }}
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-snapshotter-leaderelection-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: quobyte-csi-controller-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+    namespace: kube-system
+roleRef:
+  kind: Role
+  name: external-snapshotter-leaderelection-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
   {{- end }}
 {{- end }}

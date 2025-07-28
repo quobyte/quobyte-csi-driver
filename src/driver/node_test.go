@@ -20,10 +20,10 @@ func TestGetNodeInfo(t *testing.T) {
 	d := &QuobyteDriver{}
 	d.NodeName = nodeName
 	got, _ := d.NodeGetInfo(context.TODO(), &csi.NodeGetInfoRequest{})
-	wanted := &csi.NodeGetInfoResponse {
+	wanted := &csi.NodeGetInfoResponse{
 		NodeId: nodeName,
 	}
-	assert.Equal(t, wanted, got);
+	assert.Equal(t, wanted, got)
 }
 
 func TestNodePublishVolume(t *testing.T) {
@@ -48,15 +48,15 @@ func TestNodePublishVolume(t *testing.T) {
 	tenantUuid := "some_tenant_uuid"
 	volumeUuid := "some_volume_uuid"
 	mounter.EXPECT().Mount(gomock.Eq(
-		[]string {"-o", "bind", "/quobyte/client/mountpoint/" + volumeUuid,
-		mountPath})).Return(nil)
+		[]string{"-o", "bind", "/quobyte/client/mountpoint/" + volumeUuid,
+			mountPath})).Return(nil)
 	req = &csi.NodePublishVolumeRequest{}
 	req.TargetPath = mountPath
 	req.VolumeId = tenantUuid + SEPARATOR + volumeUuid
 	got, err = d.NodePublishVolume(context.TODO(), req)
 	assert.Nil(err)
-	wanted := &csi.NodePublishVolumeResponse {}
-	assert.Equal(wanted, got);
+	wanted := &csi.NodePublishVolumeResponse{}
+	assert.Equal(wanted, got)
 
 	// Resolve tenant/volume uuid
 	tenantName := "some_tenant_name"
@@ -67,7 +67,7 @@ func TestNodePublishVolume(t *testing.T) {
 		resolvedVolumeUuid, nil)
 	quobyteClientProvider := mocks.NewMockQuobyteApiClientProvider(ctrl)
 	quobyteClientProvider.EXPECT().NewQuobyteApiClient(gomock.Any(), gomock.Any()).DoAndReturn(
-		func (_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
+		func(_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
 			return quoybteClient, nil
 		}).AnyTimes()
 	d.quoybteClientFactory = quobyteClientProvider
@@ -79,12 +79,12 @@ func TestNodePublishVolume(t *testing.T) {
 	secrets[secretPasswordKey] = "some_management_user_password"
 	req.Secrets = secrets
 	mounter.EXPECT().Mount(gomock.Eq(
-		[]string {"-o", "bind", "/quobyte/client/mountpoint/" + resolvedVolumeUuid,
-		mountPath})).Return(nil)
+		[]string{"-o", "bind", "/quobyte/client/mountpoint/" + resolvedVolumeUuid,
+			mountPath})).Return(nil)
 	got, err = d.NodePublishVolume(context.TODO(), req)
 	assert.Nil(err)
-	wanted = &csi.NodePublishVolumeResponse {}
-	assert.Equal(wanted, got);
+	wanted = &csi.NodePublishVolumeResponse{}
+	assert.Equal(wanted, got)
 
 	// TODO(venkat): Expand tests to cover snapshots, mounting with access keys
 	// mounting subdirs (with/without snapshots)
@@ -109,8 +109,8 @@ func TestNodeUnpublishVolume(t *testing.T) {
 	req = &csi.NodeUnpublishVolumeRequest{}
 	req.TargetPath = unmountPath
 	got, _ = d.NodeUnpublishVolume(context.TODO(), req)
-	wanted := &csi.NodeUnpublishVolumeResponse {}
-	assert.Equal(wanted, got);
+	wanted := &csi.NodeUnpublishVolumeResponse{}
+	assert.Equal(wanted, got)
 }
 
 func TestNodeGetVolumeStats(t *testing.T) {
@@ -120,9 +120,9 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	d.enabledVolumeMetrics = false
 	got, err := d.NodeGetVolumeStats(context.TODO(), &csi.NodeGetVolumeStatsRequest{})
 	assert := assert.New(t)
-	assert.Nil(got);
-	assert.NotNil(err);
-	assert.Contains(err.Error(), "disabled for the Quobyte CSI Driver " + driverName)
+	assert.Nil(got)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "disabled for the Quobyte CSI Driver "+driverName)
 	d = &QuobyteDriver{}
 	req := &csi.NodeGetVolumeStatsRequest{}
 	d.enabledVolumeMetrics = true
@@ -137,33 +137,33 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	mounter.EXPECT().Statfs(gomock.Eq(mountedPath)).DoAndReturn(
 		func(_ string) (unix.Statfs_t, error) {
 			return unix.Statfs_t{
-				Bsize: 2,
+				Bsize:  2,
 				Blocks: 10,
-				Bfree: 5,
+				Bfree:  5,
 				Bavail: 3,
-				Files: 20,
-				Ffree: 10,
+				Files:  20,
+				Ffree:  10,
 			}, nil
 		})
 	d.mounter = mounter
 	req = &csi.NodeGetVolumeStatsRequest{}
 	req.VolumePath = mountedPath
 	got, _ = d.NodeGetVolumeStats(context.TODO(), req)
-	wanted := &csi.NodeGetVolumeStatsResponse {
-		Usage: []*csi.VolumeUsage {
+	wanted := &csi.NodeGetVolumeStatsResponse{
+		Usage: []*csi.VolumeUsage{
 			{
 				Unit:      csi.VolumeUsage_BYTES,
-				Total: 20, // Blocks * Bsize
-				Used: 10, // (Blocks - Bfree) * Bsize
-				Available: 6, // Bavail * Bsize
+				Total:     20, // Blocks * Bsize
+				Used:      10, // (Blocks - Bfree) * Bsize
+				Available: 6,  // Bavail * Bsize
 			},
 			{
 				Unit:      csi.VolumeUsage_INODES,
-				Total: 20,
-				Used: 10,
+				Total:     20,
+				Used:      10,
 				Available: 10,
 			},
 		},
 	}
-	assert.Equal(wanted, got);
+	assert.Equal(wanted, got)
 }

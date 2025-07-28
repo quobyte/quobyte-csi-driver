@@ -26,7 +26,23 @@ quobyte:
   # Should be a valid DNS name. Do not change this between upgrades, otherwise
   # requires manual delete of Pods, PVCs, PVs and backing volumes.
   # StorageClass.provisioner must match the value configured here. 
-  csiProvisionerName: csi.quobyte.com 
+  csiProvisionerName: csi.quobyte.com
+
+    # If you are creating PVCs at a rapid rate with reclaimPolicy: Delete,
+  # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
+  # In such setups set this flag to false, Quobyte CSI Driver removes the PVC using
+  # rm -rf via mount point (only few rm -rf run at a time)
+  # useDeleteFilesTaskForSharedVolumeCleanup: true
+
+  # Specify list of shared volume UUIDs if useDeleteFilesTaskForSharedVolumeCleanup is set to false.
+  # Quobyte CSI driver allows volumes not listed here
+  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName). However,
+  # driver does not cleanup volumes not mentioned here i.e. does not delete PVCs
+  # created inside the shared volumes that are not configured here.
+  sharedVolumesList:
+    - "e4413bc1-7adf-4ad9-b3de-4efc311298fa"
+    # - <volumeUUID2>
+    # - <volumeUUIDN>
   
   # When set to true, uses PVC.namespace as Quobyte tenant.
   # This does not create tenants automatically, your storage system must

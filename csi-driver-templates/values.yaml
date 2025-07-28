@@ -1,6 +1,6 @@
 quobyte:
-  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x)
-  version: 3
+  # Quobyte cluster version (valid values - 2 for Quobyte 2.x/3 for Quobyte 3.x/4 for 4.x)
+  version: 4
   # apiURL should be of the form http(s)://<ip or resolvable host>:<port>
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   # The default below is ready to connect to a Quobyte api 
@@ -51,13 +51,21 @@ quobyte:
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
 
-  # Required only for Quobyte 2.x
-  # Specify list of shared volumes. Quobyte CSI driver allows volumes not listed here
-  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName), however,
-  # driver does not cleanup volumes not mentioned here.
-  # Example, sharedVolumesList: "sharedVolume1,mySharedVolume,...,sharedVolumeN"
-  # Name or UUID of the shared volume (UUIDs are preferred to avoid name collisions)
-  sharedVolumesList: ""
+  # If you are creating PVCs at a rapid rate with reclaimPolicy: Delete,
+  # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
+  # In such setups set this flag to false, Quobyte CSI Driver removes the PVC using
+  # rm -rf via mount point (only few rm -rf run at a time)
+  useDeleteFilesTaskForSharedVolumeCleanup: true
+
+  # Specify list of shared volume UUIDs if useDeleteFilesTaskForSharedVolumeCleanup is set to false.
+  # Quobyte CSI driver allows volumes not listed here
+  # to be used as shared volumes (StorageClass.parameters.sharedVolumeName). However,
+  # driver does not cleanup volumes not mentioned here i.e. does not delete PVCs
+  # created inside the shared volumes that are not configured here.
+  sharedVolumesList:
+    # - <volumeUUID1>
+    # - <volumeUUID2>
+    # - <volumeUUIDN>
 
   # Set to 'false' if PVC/volume metrics (used/available/total bytes and inodes)
   # are not required to be exported as Prometheus metrics.
@@ -66,8 +74,12 @@ quobyte:
   # Quobyte CSI driver is only deployed on nodes with the specified label.
   # Empty means all the nodes in the k8s cluster i.e. no node selector will be used.
   # nodeSelector: "<node-label-name>: '<node-label-value>'"
-  nodeSelector: ""
-
+  # Example: csiDriverNodeSelector: "quobyteCsiDriverNode: 'true'"
+  csiDriverNodeSelector: ""
+  # Pod killer cache node selector - leaving it empty creates pod killer cache pod
+  # on any of the k8s node
+  # Example: podKillerCacheNodeSelector: "quobytePodCacheNode: 'true'"
+  podKillerCacheNodeSelector: ""
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again
@@ -96,13 +108,13 @@ quobyte:
     # k8s sidecar containers (https://github.com/kubernetes-csi/)
     # Updating k8s...Image might require RBAC files update
     # https://github.com/quobyte/quobyte-csi/tree/master/quobyte-csi-driver/templates/pods/rbac
-    k8sProvisionerImage: "registry.k8s.io/sig-storage/csi-provisioner:v4.0.1"
-    k8sResizerImage: "registry.k8s.io/sig-storage/csi-resizer:v1.8.1"
-    k8sNodeRegistrarImage: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1"
-    k8sAttacherImage: "registry.k8s.io/sig-storage/csi-attacher:v4.5.1"
+    k8sProvisionerImage: "registry.k8s.io/sig-storage/csi-provisioner:v5.3.0"
+    k8sResizerImage: "registry.k8s.io/sig-storage/csi-resizer:v1.14.0"
+    k8sNodeRegistrarImage: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.14.0"
+    k8sAttacherImage: "registry.k8s.io/sig-storage/csi-attacher:v4.9.0"
     # when updating image for snapshotter, update snaptshotter setup CRD with
     # instructions in README (CRD should be pulled from matched release).
     # Additionally, ./quobyte-csi-driver/k8s-snapshot-controller.yaml
     # (see this file for source link) should be updated with appropriate version
     # files (Do NOT forget updating namespace to kube-system)
-    k8sSnapshotterImage: "registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2"
+    k8sSnapshotterImage: "registry.k8s.io/sig-storage/csi-snapshotter:v8.3.0"

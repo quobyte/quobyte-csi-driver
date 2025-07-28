@@ -302,7 +302,7 @@ should render when resource limits are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              image: registry.k8s.io/sig-storage/csi-provisioner:v5.3.0
               imagePullPolicy: IfNotPresent
               name: csi-provisioner
               resources:
@@ -318,7 +318,7 @@ should render when resource limits are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.14.0
               imagePullPolicy: IfNotPresent
               name: csi-resizer
               resources:
@@ -334,7 +334,7 @@ should render when resource limits are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.9.0
               imagePullPolicy: IfNotPresent
               name: csi-attacher
               resources:
@@ -350,7 +350,7 @@ should render when resource limits are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
+              image: registry.k8s.io/sig-storage/csi-snapshotter:v8.3.0
               imagePullPolicy: IfNotPresent
               name: csi-snapshotter
               resources:
@@ -368,10 +368,11 @@ should render when resource limits are provided:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --shared_volumes_list=
+                - --use_delete_files_task=true
                 - --role=controller
               env:
                 - name: NODE_ID
@@ -514,7 +515,7 @@ should render when resource limits are provided:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.14.0
               imagePullPolicy: IfNotPresent
               lifecycle:
                 preStop:
@@ -541,7 +542,7 @@ should render when resource limits are provided:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --enable_volume_metrics=true
@@ -988,7 +989,7 @@ should render when tolerations are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              image: registry.k8s.io/sig-storage/csi-provisioner:v5.3.0
               imagePullPolicy: IfNotPresent
               name: csi-provisioner
               volumeMounts:
@@ -1000,7 +1001,7 @@ should render when tolerations are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.14.0
               imagePullPolicy: IfNotPresent
               name: csi-resizer
               volumeMounts:
@@ -1012,7 +1013,7 @@ should render when tolerations are provided:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.9.0
               imagePullPolicy: IfNotPresent
               name: csi-attacher
               volumeMounts:
@@ -1026,10 +1027,11 @@ should render when tolerations are provided:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --shared_volumes_list=
+                - --use_delete_files_task=true
                 - --role=controller
               env:
                 - name: NODE_ID
@@ -1172,7 +1174,7 @@ should render when tolerations are provided:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.14.0
               imagePullPolicy: IfNotPresent
               lifecycle:
                 preStop:
@@ -1195,7 +1197,7 @@ should render when tolerations are provided:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --enable_volume_metrics=true
@@ -1638,7 +1640,7 @@ should render with default values:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
+              image: registry.k8s.io/sig-storage/csi-provisioner:v5.3.0
               imagePullPolicy: IfNotPresent
               name: csi-provisioner
               volumeMounts:
@@ -1650,7 +1652,7 @@ should render with default values:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-resizer:v1.8.1
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.14.0
               imagePullPolicy: IfNotPresent
               name: csi-resizer
               volumeMounts:
@@ -1662,7 +1664,7 @@ should render with default values:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.9.0
               imagePullPolicy: IfNotPresent
               name: csi-attacher
               volumeMounts:
@@ -1676,10 +1678,11 @@ should render with default values:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --shared_volumes_list=
+                - --use_delete_files_task=true
                 - --role=controller
               env:
                 - name: NODE_ID
@@ -1818,7 +1821,7 @@ should render with default values:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.14.0
               imagePullPolicy: IfNotPresent
               lifecycle:
                 preStop:
@@ -1841,7 +1844,7 @@ should render with default values:
                 - --driver_name=csi.quobyte.com
                 - --driver_version=v2.1.6
                 - --enable_access_key_mounts=false
-                - --quobyte_version=3
+                - --quobyte_version=4
                 - --immediate_erase=false
                 - --use_k8s_namespace_as_tenant=false
                 - --enable_volume_metrics=true

@@ -50,7 +50,7 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
     or
 
     You can run with `TEST_CASE_DIR` that contains only CSI driver values.yaml to deploy the driver
-    (note that some defined values such as CSI image/pod killer images are overriden)
+    (note that some defined values such as CSI image/pod killer images are overridden)
 
 ## Cleanup
 
