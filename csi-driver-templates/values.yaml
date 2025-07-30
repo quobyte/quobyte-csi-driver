@@ -75,11 +75,12 @@ quobyte:
   # Empty means all the nodes in the k8s cluster i.e. no node selector will be used.
   # nodeSelector: "<node-label-name>: '<node-label-value>'"
   # Example: csiDriverNodeSelector: "quobyteCsiDriverNode: 'true'"
-  csiDriverNodeSelector: ""
-  # Pod killer cache node selector - leaving it empty creates pod killer cache pod
+  csiDriverNodeSelector: {}
+  # CSI controller node selector - leaving it empty creates CSI controller pod
   # on any of the k8s node
-  # Example: podKillerCacheNodeSelector: "quobytePodCacheNode: 'true'"
-  podKillerCacheNodeSelector: ""
+  # nodeSelector object of form: <node-label-name>: '<node-label-value>'
+  csiControllerNodeSelector: {}
+
   podKiller:
     # To disable pod killer, uninstall current CSI driver (helm uninstall <chart-name>)
     # set enable: false and install CSI driver again
@@ -94,6 +95,7 @@ quobyte:
     # pod killer pod so that the cache endpoint is resolved.
     # See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
     dnsPolicy: ""
+    nodeSelector: {}
 
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise advised to change.

@@ -21,9 +21,9 @@ spec:
         app: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
         role: quobyte-csi-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
     spec:
-    {{- if default "" .Values.quobyte.podKillerCacheNodeSelector | trim }}
+    {{- if .Values.quobyte.podKiller.nodeSelector }}
       nodeSelector:
-        {{ .Values.quobyte.podKillerCacheNodeSelector | trim }}
+        {{- .Values.quobyte.podKiller.nodeSelector | toYaml | nindent 8 }}
     {{- end }}
       priorityClassName: system-cluster-critical
       serviceAccount: quobyte-csi-pod-killer-cache-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
@@ -37,7 +37,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: quobyte-pod-killer-cache
+  name: quobyte-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
   namespace: kube-system
 spec:
   selector:
