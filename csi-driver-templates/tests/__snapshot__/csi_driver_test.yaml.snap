@@ -411,13 +411,17 @@ should render when resource limits are provided:
                   mountPropagation: Bidirectional
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
@@ -587,13 +591,17 @@ should render when resource limits are provided:
                 - mountPath: /tmp
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com
@@ -1066,13 +1074,17 @@ should render when tolerations are provided:
                   mountPropagation: Bidirectional
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           tolerations:
@@ -1238,13 +1250,17 @@ should render when tolerations are provided:
                 - mountPath: /tmp
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com
@@ -1717,13 +1733,17 @@ should render with default values:
                   mountPropagation: Bidirectional
                   name: quobyte-mounts
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
           priorityClassName: system-cluster-critical
           serviceAccount: quobyte-csi-controller-sa-csi-quobyte-com
           volumes:
@@ -1885,13 +1905,17 @@ should render with default values:
                 - mountPath: /tmp
                   name: log-dir
                 - mountPath: /etc/ssl/certs/
+                  mountPropagation: HostToContainer
                   name: certs
+                  readOnly: true
                 - mountPath: /etc/passwd
                   mountPropagation: HostToContainer
                   name: users
+                  readOnly: true
                 - mountPath: /etc/group
                   mountPropagation: HostToContainer
                   name: groups
+                  readOnly: true
             - args:
                 - --node_name=$(KUBE_NODE_NAME)
                 - --driver_name=csi.quobyte.com

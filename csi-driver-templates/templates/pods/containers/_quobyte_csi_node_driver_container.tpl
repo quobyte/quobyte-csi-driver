@@ -55,11 +55,15 @@
     {{- if .Values.quobyte.mapHostCertsIntoContainer }}
     - name: certs
       mountPath: /etc/ssl/certs/
+      mountPropagation: "HostToContainer"
+      readOnly: true
     {{- end }}
     - name: users
       mountPath: /etc/passwd
       mountPropagation: "HostToContainer"
+      readOnly: true
     - name: groups
       mountPath: /etc/group
       mountPropagation: "HostToContainer"
+      readOnly: true
 {{- end}}
