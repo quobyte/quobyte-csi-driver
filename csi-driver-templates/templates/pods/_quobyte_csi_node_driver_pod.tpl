@@ -19,9 +19,9 @@ spec:
         app: quobyte-csi-node-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}
         role: quobyte-csi
     spec:
-    {{- if default "" .Values.quobyte.csiDriverNodeSelector | trim }}
+    {{- if .Values.quobyte.csiDriverNodeSelector }}
       nodeSelector:
-        {{ .Values.quobyte.csiDriverNodeSelector | trim }}
+        {{- .Values.quobyte.csiDriverNodeSelector | toYaml | nindent 8 }}
     {{- end }}
       priorityClassName: system-node-critical
       serviceAccount: quobyte-csi-node-sa-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}

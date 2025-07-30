@@ -14,7 +14,7 @@
   args:
     - "--node_name=$(KUBE_NODE_NAME)"
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
-    - "--service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/"
+    - "--service_url=http://quobyte-pod-killer-cache-{{ .Values.quobyte.csiProvisionerName | replace "." "-"  }}.$(NAMESPACE).svc.cluster.local:80/"
     - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
     - "--role=monitor"
   env:
