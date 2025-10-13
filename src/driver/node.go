@@ -89,6 +89,10 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
+	// https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
+	if len(options) > 0 {
+		return nil, fmt.Errorf("Mount options are not supported by Quobyte CSI Driver but provided %d options", len(options))
+	}
 	var mountPath string
 	if d.QuobyteVersion >= 3 && d.IsQuobyteAccessKeyMountsEnabled {
 		accesskeyHandle := uuid.New().String()
@@ -138,7 +142,7 @@ func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePubl
 			}
 		}
 	}
-	err := Mount(mountPath, targetPath, options, d.mounter)
+	err := Mount(mountPath, targetPath, d.mounter)
 	if err != nil {
 		return nil, err
 	}

@@ -47,9 +47,8 @@ func TestNodePublishVolume(t *testing.T) {
 		}).AnyTimes()
 	tenantUuid := "some_tenant_uuid"
 	volumeUuid := "some_volume_uuid"
-	mounter.EXPECT().Mount(gomock.Eq(
-		[]string{"-o", "bind", "/quobyte/client/mountpoint/" + volumeUuid,
-			mountPath})).Return(nil)
+	mounter.EXPECT().Mount("/quobyte/client/mountpoint/"+volumeUuid,
+		mountPath).Return(nil)
 	req = &csi.NodePublishVolumeRequest{}
 	req.TargetPath = mountPath
 	req.VolumeId = tenantUuid + SEPARATOR + volumeUuid
@@ -78,9 +77,8 @@ func TestNodePublishVolume(t *testing.T) {
 	secrets[secretUserKey] = "some_management_user"
 	secrets[secretPasswordKey] = "some_management_user_password"
 	req.Secrets = secrets
-	mounter.EXPECT().Mount(gomock.Eq(
-		[]string{"-o", "bind", "/quobyte/client/mountpoint/" + resolvedVolumeUuid,
-			mountPath})).Return(nil)
+	mounter.EXPECT().Mount("/quobyte/client/mountpoint/"+resolvedVolumeUuid,
+		mountPath).Return(nil)
 	got, err = d.NodePublishVolume(context.TODO(), req)
 	assert.Nil(err)
 	wanted = &csi.NodePublishVolumeResponse{}

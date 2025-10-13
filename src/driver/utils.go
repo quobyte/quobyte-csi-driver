@@ -2,10 +2,10 @@ package driver
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/pkg/xattr"
 	quobyte "github.com/quobyte/api/quobyte"
 )
 
@@ -28,15 +28,8 @@ func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
 }
 
 func setfattr(key, val, mountPath string) error {
-	cmd := "setfattr"
-	var options []string
-	options = append(options, "-n")
-	options = append(options, key)
-	options = append(options, "-v")
-	options = append(options, val)
-	options = append(options, mountPath)
-	if out, err := exec.Command(cmd, options...).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed setfattr due to %v. command output: %q", err, string(out))
+	if err := xattr.Set(mountPath, key, []byte(val)); err != nil {
+		return fmt.Errorf("failed setfattr due to %v", err)
 	}
 	return nil
 }
