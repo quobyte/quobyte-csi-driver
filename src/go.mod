@@ -29,4 +29,4 @@ require (
 )
 
 // Uncomment only during testing with local version of Quobyte API
-// replace github.com/quobyte/api => /home/venkat/go/api
+replace github.com/quobyte/api => /home/venkat/go/api
