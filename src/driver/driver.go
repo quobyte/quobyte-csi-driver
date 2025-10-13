@@ -31,6 +31,9 @@ type QuobyteDriver struct {
 	UseDeleteFilesTask              bool
 	quoybteClientFactory            QuobyteApiClientProvider
 	mounter                         Mounter
+	csi.UnimplementedNodeServer
+	csi.UnimplementedControllerServer
+	csi.UnimplementedIdentityServer
 }
 
 // NewQuobyteDriver returns the quobyteDriver object
@@ -63,6 +66,9 @@ func NewQuobyteDriver(
 		useDeleteFilesTask,
 		&QuobyteApiClientFactory{},
 		&LinuxMounter{},
+		csi.UnimplementedNodeServer{},
+		csi.UnimplementedControllerServer{},
+		csi.UnimplementedIdentityServer{},
 	}
 }
 
