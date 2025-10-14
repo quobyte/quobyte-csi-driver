@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
-	mock_quobyte_api "github.com/quobyte/api/mocks"
-	"github.com/quobyte/api/quobyte"
+	mock_quobyte_api "github.com/quobyte/api/v4/mocks"
+	"github.com/quobyte/api/v4/quobyte"
 	"github.com/quobyte/quobyte-csi-driver/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"

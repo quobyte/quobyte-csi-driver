@@ -13,7 +13,7 @@ import (
 	url "net/url"
 	reflect "reflect"
 
-	quobyte "github.com/quobyte/api/quobyte"
+	quobyte "github.com/quobyte/api/v4/quobyte"
 	gomock "go.uber.org/mock/gomock"
 )
 

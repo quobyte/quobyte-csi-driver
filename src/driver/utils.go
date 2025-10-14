@@ -6,7 +6,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/pkg/xattr"
-	quobyte "github.com/quobyte/api/quobyte"
+	quobyte "github.com/quobyte/api/v4/quobyte"
 )
 
 var (

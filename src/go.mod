@@ -1,8 +1,6 @@
 module github.com/quobyte/quobyte-csi-driver
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.25.2
 
 require (
 	github.com/container-storage-interface/spec v1.11.0
@@ -10,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/pkg/xattr v0.4.12
-	github.com/quobyte/api v1.4.0
+	github.com/quobyte/api/v4 v4.5.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
 	golang.org/x/sys v0.37.0
@@ -29,4 +27,4 @@ require (
 )
 
 // Uncomment only during testing with local version of Quobyte API
-replace github.com/quobyte/api => /home/venkat/go/api
+// replace github.com/quobyte/api => /home/venkat/go/api

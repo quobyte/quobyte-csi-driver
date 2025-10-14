@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	cache "github.com/hashicorp/golang-lru"
-	quobyte "github.com/quobyte/api/quobyte"
+	quobyte "github.com/quobyte/api/v4/quobyte"
 	"k8s.io/klog"
 )
 
