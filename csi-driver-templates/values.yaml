@@ -5,7 +5,7 @@ quobyte:
   # Example Quobyte API: http://hydrogen.quobyte.com:26801
   # The default below is ready to connect to a Quobyte api 
   # service running on the same Kubernetes cluster
-  apiURL: http://quobyte-api.default.svc.cluster.local:7860
+  apiURL: http://venkat.corp.quobyte.com:2915
 
   # Replication for csi controller pod, must be at least one
   # Note that node driver which is responsible for mounting volume cannot be replicated
@@ -46,7 +46,7 @@ quobyte:
 
   # Enabling this feature requires additional driver setup (see README.md)
   # Quobyte 3.x is recommended for snapshots
-  enableSnapshots: false
+  enableSnapshots: true
 
   # Set to true to schedule erase volume task immediately (supported by Quobyte 3.x)
   immediateErase: false
