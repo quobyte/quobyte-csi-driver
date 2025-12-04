@@ -32,7 +32,7 @@ quobyte:
   # that leads to too many DELETE_FILES_IN_VOLUMES against the same Quobyte volume.
   # In such setups set this flag to false, Quobyte CSI Driver removes the PVC using
   # rm -rf via mount point (only few rm -rf run at a time)
-  useDeleteFilesTaskForSharedVolumeCleanup: true
+  useDeleteFilesTaskForSharedVolumeCleanup: false
 
   # Specify list of shared volume UUIDs if useDeleteFilesTaskForSharedVolumeCleanup is set to false.
   # Quobyte CSI driver allows volumes not listed here
@@ -40,7 +40,7 @@ quobyte:
   # driver does not cleanup volumes not mentioned here i.e. does not delete PVCs
   # created inside the shared volumes that are not configured here.
   sharedVolumesList:
-    - "e0c69a2d-db0f-4b13-b19e-01a49a81a5df"
+    - "b6cff7d6-e614-4349-a002-05369aae6626"
     # - <volumeUUID2>
     # - <volumeUUIDN>
   

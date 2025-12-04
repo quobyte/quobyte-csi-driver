@@ -15,22 +15,22 @@ spec:
         prometheus.io/port: '55000'
       labels:
         role: client
-        version: "2"
+        version: "3"
     spec:
       containers:
       - name: quobyte-client
-        image: quay.io/quobyte/quobyte-client:3
+        image: quay.io/quobyte/quobyte-client:4
         imagePullPolicy: Always
         env:
           - name: QUOBYTE_CLIENT_LOG_LEVEL
             value: INFO
           - name: QUOBYTE_REGISTRY
             # Your Quobyte registry endpoint
-            value: 10.20.2.82:2472 # Example: hydrogen.quobyte.com:12354
+            value: venkat.corp.quobyte.com:2922 # Example: hydrogen.quobyte.com:12354
           - name: QUOBYTE_MOUNT_POINT
             # Corresponding volume mount must be one directory below this path
-            # Example volumeMount is : /mnt/quobyte and clientMountPoint is /mnt/quobyte/mounts
-            value: /mnt/quobyte/mounts
+            # Example volumeMount is : /home/quobyte and clientMountPoint is /home/quobyte/mounts
+            value: /home/quobyte/mounts
           # Enabling access keys requires Quobyte version 3.0 or later
           - name: ENABLE_ACCESS_KEY_MOUNTS
             value: "false"  # to enable, set it to true
@@ -44,23 +44,30 @@ spec:
             hostPort: 55000
             protocol: TCP
         readinessProbe:
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         livenessProbe:
-          initialDelaySeconds: 30
-          timeoutSeconds: 5
-          httpGet:
-            port: 55000
-            path: /
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          exec:
+            command:
+              - /bin/bash
+              - "-c"
+              - |
+                getfattr -n quobyte.statuspage_port ${QUOBYTE_MOUNT_POINT}
         command:
           - /bin/bash
           - -xec
           - |
             ENABLE_ACCESS_CONTEXTS=""
             if [[ ${ENABLE_ACCESS_KEY_MOUNTS} = true ]]; then
-              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts"
+              ENABLE_ACCESS_CONTEXTS="--enable-access-contexts --no-default-permissions"
             fi
             if cut -d" " -f2 /proc/self/mounts | grep -q ${QUOBYTE_MOUNT_POINT}; then
               umount -l ${QUOBYTE_MOUNT_POINT}
@@ -85,8 +92,14 @@ spec:
           privileged: true
         volumeMounts:
           - name: quobyte-mount
-            mountPath: /mnt/quobyte
+            mountPath: /home/quobyte
             mountPropagation: Bidirectional
+          - name: users
+            mountPath: /etc/passwd
+            mountPropagation: HostToContainer
+          - name: groups
+            mountPath: /etc/group
+            mountPropagation: HostToContainer
           - name: minidumps-dir
             mountPath: /tmp/minidumps
         lifecycle:
@@ -98,7 +111,15 @@ spec:
       volumes:
       - name: quobyte-mount
         hostPath:
-          path: /mnt/quobyte
+          path: /home/quobyte
       - name: minidumps-dir
         hostPath:
           path: /var/lib/quobyte/.minidumps
+      - name: users
+        hostPath:
+          path: /etc/passwd
+          type: File
+      - name: groups
+        hostPath:
+          path: /etc/group
+          type: File
