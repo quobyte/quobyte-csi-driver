@@ -94,6 +94,10 @@ quobyte:
     # pod killer pod so that the cache endpoint is resolved.
     # See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
     dnsPolicy: ""
+    # Batch size for pod uid resolution via pod killer cache
+    podUidLookupBatchSize: 10
+    # Number of pods killed parallelly per node
+    parallelPodKills: 10
 
   # The dev configuration is intended for Quobyte Developers and internal use.
   # Please do NOT change the dev: configuration unless otherwise advised to change.
