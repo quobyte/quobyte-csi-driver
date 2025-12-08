@@ -100,7 +100,7 @@ Quobyte CSI is the implementation of
 5. (optional) generate driver deployment `.yaml` and verify the configuration.
 
     ```bash
-    helm template ./quobyte-csi-driver --debug > csi-driver.yaml
+    helm template ./csi-driver-templates --debug > csi-driver.yaml
     ```
 
 6. Deploy the Quobyte CSI driver with customizations
