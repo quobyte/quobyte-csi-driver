@@ -1,8 +1,12 @@
-FROM ubuntu:22.04
+FROM alpine AS build
 
-RUN apt-get -y update && apt-get -y upgrade && apt-get install -y attr \
-  && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+RUN mkdir /final_root/; \
+    cd /final_root; \
+    mkdir -p var tmp run bin; \
+    ln -s var/run run; \
+    chmod -R 755 var tmp run bin
+COPY quobyte-csi /final_root/bin
 
-ADD quobyte-csi /bin
-
+FROM scratch
+COPY --from=build /final_root/ /
 ENTRYPOINT ["/bin/quobyte-csi"]

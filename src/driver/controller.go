@@ -15,7 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
-	quobyte "github.com/quobyte/api/quobyte"
+	quobyte "github.com/quobyte/api/v4/quobyte"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

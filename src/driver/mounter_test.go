@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/quobyte/quobyte-csi-driver/mocks"
@@ -11,15 +10,19 @@ import (
 func TestMount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockMounter(ctrl)
-	m.EXPECT().Mount(gomock.Any()).DoAndReturn(
-		func(opts []string) error {
-			wanted := []string{"-o", "opt1,opt2,bind", "some-source", "some-target"}
-			if !reflect.DeepEqual(wanted, opts) {
-				t.Errorf("wanted: %v but got: %v", wanted, opts)
+	wantedSource := "/some/source"
+	wantedTarget := "/some/target"
+	m.EXPECT().Mount(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(gotSource string, gotTarget string) error {
+			if wantedSource != gotSource {
+				t.Errorf("wanted: %v but got: %v", wantedSource, gotSource)
+			}
+			if wantedTarget != gotTarget {
+				t.Errorf("wanted: %v but got: %v", wantedTarget, gotTarget)
 			}
 			return nil
 		})
-	Mount("some-source", "some-target", []string{"opt1", "opt2"}, m)
+	Mount(wantedSource, wantedTarget, m)
 }
 
 func TestUnmount(t *testing.T) {

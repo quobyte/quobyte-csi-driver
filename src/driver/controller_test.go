@@ -2,14 +2,14 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
-	"fmt"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	mock_quobyte_api "github.com/quobyte/api/mocks"
-	"github.com/quobyte/api/quobyte"
+	mock_quobyte_api "github.com/quobyte/api/v4/mocks"
+	"github.com/quobyte/api/v4/quobyte"
 	"github.com/quobyte/quobyte-csi-driver/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -64,7 +64,7 @@ func TestDeleteVolume(t *testing.T) {
 		gomock.Eq(volume), gomock.Eq(tenant), gomock.Any()).Return(nil)
 	quobyteClientProvider := mocks.NewMockQuobyteApiClientProvider(ctrl)
 	quobyteClientProvider.EXPECT().NewQuobyteApiClient(gomock.Any(), gomock.Any()).DoAndReturn(
-		func (_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
+		func(_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
 			return quoybteClient, nil
 		}).AnyTimes()
 	d.quoybteClientFactory = quobyteClientProvider
@@ -73,7 +73,7 @@ func TestDeleteVolume(t *testing.T) {
 	secrets[secretPasswordKey] = "some_management_user_password"
 	req = &csi.DeleteVolumeRequest{
 		VolumeId: tenant + SEPARATOR + volume,
-		Secrets: secrets,
+		Secrets:  secrets,
 	}
 	got, err = d.DeleteVolume(context.TODO(), req)
 	assert.Nil(err)
@@ -87,13 +87,13 @@ func TestDeleteVolume(t *testing.T) {
 		gomock.Eq(volume), gomock.Eq(tenant), gomock.Any()).Return(fmt.Errorf("Erase volume error"))
 	quobyteClientProvider = mocks.NewMockQuobyteApiClientProvider(ctrl)
 	quobyteClientProvider.EXPECT().NewQuobyteApiClient(gomock.Any(), gomock.Any()).DoAndReturn(
-		func (_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
+		func(_ *url.URL, _ map[string]string) (quobyte.ExtendedQuobyteApi, error) {
 			return quoybteClient, nil
 		}).AnyTimes()
 	d.quoybteClientFactory = quobyteClientProvider
 	req = &csi.DeleteVolumeRequest{
 		VolumeId: tenant + SEPARATOR + volume,
-		Secrets: secrets,
+		Secrets:  secrets,
 	}
 	got, err = d.DeleteVolume(context.TODO(), req)
 	assert.NotNil(err)
@@ -109,7 +109,7 @@ func TestControllerGetCapabilities(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(resp)
 	gotCapabilities := parseCapabilities(resp.Capabilities)
-	wanted := []csi.ControllerServiceCapability_RPC_Type {
+	wanted := []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
@@ -118,7 +118,7 @@ func TestControllerGetCapabilities(t *testing.T) {
 	assert.Equal(wanted, gotCapabilities)
 }
 
-func parseCapabilities(capabilities []*csi.ControllerServiceCapability) ([]csi.ControllerServiceCapability_RPC_Type) {
+func parseCapabilities(capabilities []*csi.ControllerServiceCapability) []csi.ControllerServiceCapability_RPC_Type {
 	var caps []csi.ControllerServiceCapability_RPC_Type
 	for _, capability := range capabilities {
 		caps = append(caps, capability.GetRpc().Type)

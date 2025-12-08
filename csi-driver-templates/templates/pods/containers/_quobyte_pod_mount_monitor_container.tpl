@@ -16,6 +16,12 @@
     - "--driver_name={{ .Values.quobyte.csiProvisionerName }}"
     - "--service_url=http://quobyte-pod-killer-cache.$(NAMESPACE).svc.cluster.local:80/"
     - "--monitoring_interval={{ .Values.quobyte.podKiller.monitoringInterval }}"
+    {{- if .Values.quobyte.podKiller.parallelPodKills }}
+    - "--parallel_kills={{ .Values.quobyte.podKiller.parallelPodKills }}"
+    {{- end }}
+    {{- if .Values.quobyte.podKiller.podUidLookupBatchSize }}
+    - "--pod_lookup_batch_size={{ .Values.quobyte.podKiller.podUidLookupBatchSize }}"
+    {{- end }}
     - "--role=monitor"
   env:
     - name: NAMESPACE

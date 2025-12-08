@@ -100,7 +100,7 @@ Quobyte CSI is the implementation of
 5. (optional) generate driver deployment `.yaml` and verify the configuration.
 
     ```bash
-    helm template ./quobyte-csi-driver --debug > csi-driver.yaml
+    helm template ./csi-driver-templates --debug > csi-driver.yaml
     ```
 
 6. Deploy the Quobyte CSI driver with customizations
@@ -436,15 +436,15 @@ In order to use the pre-provisioned `test` volume belonging to the tenant `My Te
 The below setup is required once per k8s cluster
 
   ```bash
-    kubectl create -f quobyte-csi-driver/k8s-snapshot-crd.yaml
-    kubectl create -f quobyte-csi-driver/k8s-snapshot-controller.yaml
+    kubectl create -f csi-driver-templates/k8s-snapshot-crd.yaml
+    kubectl create -f csi-driver-templates/k8s-snapshot-controller.yaml
 
   ```
 
 ### Remove Snapshotter
 
   ```bash
-    kubectl delete -f quobyte-csi-driver/k8s-snapshot-controller.yaml
-    kubectl delete -f quobyte-csi-driver/k8s-snapshot-crd.yaml
+    kubectl delete -f csi-driver-templates/k8s-snapshot-controller.yaml
+    kubectl delete -f csi-driver-templates/k8s-snapshot-crd.yaml
 
   ```

@@ -1,12 +1,11 @@
 package driver
 
 import (
-	"os"
-	"golang.org/x/sys/unix"
 	"errors"
 	"fmt"
-	"os/exec"
-	"strings"
+	"os"
+
+	"golang.org/x/sys/unix"
 
 	"k8s.io/klog"
 )
@@ -14,7 +13,7 @@ import (
 //go:generate mockgen -package=mocks -destination  ../mocks/mock_mounter.go github.com/quobyte/quobyte-csi-driver/driver Mounter
 type Mounter interface {
 	CreateMountPath(path string) error
-	Mount(mount_options []string) error
+	Mount(source, target string) error
 	Unmount(path string) error
 	Statfs(path string) (unix.Statfs_t, error)
 }
@@ -29,11 +28,10 @@ func (m *LinuxMounter) CreateMountPath(mountPath string) error {
 	return nil
 }
 
-func (m *LinuxMounter) Mount(mount_options []string) error {
-	cmd := "mount"
-	klog.Infof("Executing mount command '%s %s'", cmd, strings.Join(mount_options, " "))
-	if out, err := exec.Command(cmd, mount_options...).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed mount: %v cmd: '%s %s' command output: %q", err, cmd, mount_options, string(out))
+func (m *LinuxMounter) Mount(source, target string) error {
+	klog.Infof("Executing bind mount for source:'%s' target: '%s'", source, target)
+	if err := unix.Mount(source, target, "" /*bind mount*/, unix.MS_BIND, ""); err != nil {
+		return fmt.Errorf("failed bind mount of source: '%s' target: '%s' due to: %s", source, target, err)
 	}
 	return nil
 }
@@ -42,9 +40,8 @@ func (m *LinuxMounter) Unmount(path string) error {
 	if len(path) == 0 {
 		return errors.New("Given unmount path is empty.")
 	}
-	cmd := "umount"
-	if out, err := exec.Command(cmd, path).CombinedOutput(); err != nil {
-		klog.Errorf("failed unmount: %v cmd: '%s %s' command output: %q", err, cmd, path, string(out))
+	if err := unix.Unmount(path, 0 /*normal unmount - not a lazy unmount*/); err != nil {
+		klog.Errorf("failed unmount of %s due to %s", path, err)
 	}
 	return nil
 }
@@ -57,9 +54,8 @@ func (m *LinuxMounter) Statfs(path string) (unix.Statfs_t, error) {
 	return statfs, nil
 }
 
-
 // Mount bind mounts the Quobyte volume to the target
-func Mount(source, target string, opts []string, mounter Mounter) error {
+func Mount(source, target string, mounter Mounter) error {
 	// Readonly is left to kubelet running on host machines.
 	// Remounting from the pods is not allowed from the running container
 	// https://github.com/moby/moby/issues/31591
@@ -67,13 +63,7 @@ func Mount(source, target string, opts []string, mounter Mounter) error {
 	// on remount with -o remount,ro,bind and we don't want that.
 
 	// We bind mount the host Quobyte path into the pod
-	opts = append(opts, "bind")
-	var options []string
-	options = append(options, "-o")
-	options = append(options, strings.Join(opts, ","))
-	options = append(options, source)
-	options = append(options, target)
-	if err := mounter.Mount(options); err != nil {
+	if err := mounter.Mount(source, target); err != nil {
 		return err
 	}
 	return nil
