@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: "v2.2.0"
-description: Quobyte CSI Helm chart
-name: quobyte-csi-driver
-version: "2.2.0"
