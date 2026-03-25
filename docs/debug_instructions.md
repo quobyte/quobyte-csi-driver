@@ -1,6 +1,6 @@
-#Debugging Driver issues
+# Debugging Driver issues
 
-## Attach Debug container to Quobyte CSI Driver
+## Attach Debug container to Quobyte CSI Driver Pod
 
 Debug container can be added to the Quobyte CSI driver as following
 ```bash
