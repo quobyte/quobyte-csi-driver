@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 
@@ -40,10 +41,17 @@ func (m *LinuxMounter) Unmount(path string) error {
 	if len(path) == 0 {
 		return errors.New("Given unmount path is empty.")
 	}
-	if err := unix.Unmount(path, 0 /*normal unmount - not a lazy unmount*/); err != nil {
-		klog.Errorf("failed unmount of %s due to %s", path, err)
+	err := unix.Unmount(path, 0 /*normal unmount - not a lazy unmount*/)
+	if err == nil {
+		return nil
 	}
-	return nil
+	errno := err.(syscall.Errno)
+	if errno == unix.ENOTCONN {
+		klog.Infof("mount point %s is no longer connected. So, no need to unmount it.", path)
+		return nil
+	}
+	klog.Errorf("failed unmount of %s due to %s", path, err)
+	return err
 }
 
 func (m *LinuxMounter) Statfs(path string) (unix.Statfs_t, error) {
