@@ -8,11 +8,12 @@ TEST_CASE_DIR="${TEST_CASE_DIR:-}"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR='kind-cluster/kind-csi-testing'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
+CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
 CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
 # dummy.quobyte.com is not a docker registry. We buid docker image locally
 # and make it available to kind nodes via 'kind load docker-image'
-CSI_DRIVER_IMAGE="dummy.quobyte.com/quobyte-csi-driver:${CSI_DRIVER_VERSION}"
+CSI_DRIVER_IMAGE="${CONTAINER_URL_BASE}:${CSI_DRIVER_VERSION}"
 KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
@@ -30,15 +31,15 @@ echo "*** Building pod killer ***"
 cd ${POD_KILLER_DIR}
 POD_KILLER_VERSION="$(git rev-parse --short HEAD)"
 POD_KILLER_CONTAINER_URL_BASE="dummy.quobyte.com/pod-killer"
-POD_KILLER_IMAGE="${POD_KILLER_CONTAINER_URL_BASE}:${POD_KILLER_VERSION}"
-${POD_KILLER_DIR}/build
-docker build -t ${POD_KILLER_IMAGE} -f Dockerfile .
+CONTAINER_URL_BASE="${POD_KILLER_CONTAINER_URL_BASE}" \
+ LOCAL_IMAGE='true' ${POD_KILLER_DIR}/build container ${POD_KILLER_VERSION}
 pod_killer_container_build_status=$?
 
 if [[ "${pod_killer_container_build_status}" -ne 0 ]]; then
   die "Failed building pod killer container"
 else
-  echo "Successfully build pod killer image $POD_KILLER_IMAGE"
+  POD_KILLER_IMAGE=${POD_KILLER_CONTAINER_URL_BASE}:${POD_KILLER_VERSION}
+  echo "Successfully built pod killer image $POD_KILLER_IMAGE"
 fi
 
 cd $CODE_BASE_DIR
@@ -70,7 +71,7 @@ echo ""
 # to your PATH) from the releases on testing host
 # and update the kindest/node: image
 tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
-FROM kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
+FROM kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano dnsutils
 RUN groupadd admin && useradd admin -g admin
@@ -179,8 +180,10 @@ for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
 done
 
 echo "Building local csi driver image"
-${CODE_BASE_DIR}/src/build.sh
-docker build -t ${CSI_DRIVER_IMAGE} -f ${CODE_BASE_DIR}/src/Dockerfile ${CODE_BASE_DIR}/src
+CONTAINER_URL_BASE=${CONTAINER_URL_BASE} LOCAL_IMAGE='true' \
+ DISABLE_VERSION_VALIDATION='true' ${CODE_BASE_DIR}/src/build.sh \
+ container ${CSI_DRIVER_VERSION}
+
 if [[ "$?" -ne 0 ]]; then
   echo "Failed to create local image (compile or image build failed!)"
   exit 1
@@ -192,8 +195,8 @@ echo "creating and setting default namespace to quobyte * * * * * * * * * * * *"
 #to retrieve instances from all namespaces use '-A' argument
 kubectl create ns quobyte
 kubectl config get-contexts
-kubectl get namespaces --context kind-quobyte-csi-experiment-testing
-kubectl config use-context kind-quobyte-csi-experiment-testing
+kubectl get namespaces --context kind-quobyte-csi-testing
+kubectl config use-context kind-quobyte-csi-testing
 kubectl config set-context --current --namespace=quobyte
 
 echo "To access the test cluster you should export KUBECONFIG=$KUBECONFIG env varialbe"

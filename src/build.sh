@@ -1,11 +1,16 @@
 
 #!/bin/bash
+
 DEFAULT_CONTAINER_URL_BASE="quay.io/quobyte/csi"
 # change default with with CONTAINER_URL_BASE="<container-base-url>" ./build
 CONTAINER_URL_BASE="${CONTAINER_URL_BASE:-$DEFAULT_CONTAINER_URL_BASE}"
 # https://helm.sh/docs/topics/chart_repository/#github-pages-example
 # Quobyte CSI charts are hosted as github pages. Artifacthub.io uses this
 # location to grab the deployable charts from docs/index.yaml
+
+# buildx needs "load" for local testing (vs push to remote)
+LOCAL_IMAGE="${LOCAL_IMAGE:-false}"
+DISABLE_VERSION_VALIDATION="${DISABLE_VERSION_VALIDATION:-false}"
 
 if [[ "$(dirname $0)" != '.' ]]; then
   echo "Executing build command in $(dirname $0)"
@@ -23,9 +28,15 @@ exit_if_failure() {
   fi
 }
 
-container_build_and_push(){
-  if [[ -z "${CONTAINER_URL_BASE}" ]]; then
-    echo "FAILURE: container base url should not be empty"
+# Enable docker containerd storage backend to build multi-arch images and load them for tests
+docker info -f '{{ .DriverStatus }}' | grep "io.containerd.snapshotter.v1" > /dev/null 2>&1
+exit_if_failure "$?" "Enable docker containerd storage backend and retry"
+(docker buildx use multi-builder || docker buildx create --name multi-builder --use) > /dev/null 2>&1
+exit_if_failure "$?" "Cannot use docker multi-builder to build multi-arch image"
+
+validate_version() {
+  if [[ ${DISABLE_VERSION_VALIDATION} = 'true' ]]; then
+    return
   fi
   VERSION=$1
   if [[ -z "${VERSION}" || "{$VERSION}" == *\ * ]]; then
@@ -37,14 +48,20 @@ container_build_and_push(){
     echo "version must start be of the form vX.Y.Z (ex, v1.8.3)"
     exit 1
   fi
+}
+
+container_build_and_push(){
+  if [[ -z "${CONTAINER_URL_BASE}" ]]; then
+    echo "FAILURE: container base url should not be empty"
+  fi
+  validate_version $1
+  VERSION=$1
   IMAGE="${CONTAINER_URL_BASE}:${VERSION}"
-  echo "Building docker image and pushing it to ${IMAGE}"
-  sudo docker build -t quobyte-csi -f Dockerfile .
-  sudo docker run -it quobyte-csi
-  CSI_RUN_ID="$(sudo docker ps -l | grep 'quobyte-csi' | awk '{print $1}')"
-  echo "Pushing $CSI_RUN_ID to ${IMAGE}"
-  sudo docker commit "$CSI_RUN_ID" "$IMAGE"
-  sudo docker push "$IMAGE"
+  image_store_option="--push"
+  if [[ "${LOCAL_IMAGE}" = 'true' ]]; then
+    image_store_option="--load"
+  fi
+  docker buildx build --platform linux/amd64,linux/arm64 -t "$IMAGE" ${image_store_option} .
   push_succeeded="$?"
   if [[ ${push_succeeded} -ne 0 ]]; then
     echo "FAILURE: container image ${IMAGE} cannot be pushed"
@@ -100,14 +117,18 @@ else
   if [[ -f quobyte-csi ]]; then
     rm quobyte-csi
   fi
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go
-  exit_if_failure "$?" "Building binary failed. Fix the reported errors and retry"
-  echo "Generating //go:generate marked statemets in source file"
+  echo "Generating //go:generate marked statements in source file"
   go generate ./...
   exit_if_failure "$?" "Failed generating required mocks for testing. Fix reported errors and retry"
   echo "Running tests..."
   go test -v ./...
   exit_if_failure "$?" "Failed go unit tests. Fix failing tests and retry command."
+
+  if [[ $# -eq 0 ]]; then
+    docker buildx build --platform linux/amd64,linux/arm64 .
+    exit_if_failure "$?" "Building binary failed. Fix the reported errors and retry"
+    exit 0
+  fi
 
   helm lint "${CHART_DIR}"
   exit_if_failure "$?" "Helm lint command failed. Fix issues and retry"
