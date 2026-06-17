@@ -108,7 +108,7 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "labels":
-			if d.QuobyteVersion == 3 {
+			if d.QuobyteVersion >= 3 {
 				volRequest.Label, err = parseLabels(v)
 				if err != nil {
 					return nil, err
