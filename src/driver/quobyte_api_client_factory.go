@@ -29,13 +29,12 @@ type QuobyteApiClientFactory struct{}
 func (c *QuobyteApiClientFactory) NewQuobyteApiClient(ApiURL *url.URL, secrets map[string]string) (quobyte.ExtendedQuobyteApi, error) {
 	var apiUser, apiPass string
 
-	// TODO (venkat): priority to access key after 2.x support EOL
-	if hasApiUserAndPassword(secrets) { // Quobyte API access using user and password
-		apiUser = secrets[secretUserKey]
-		apiPass = secrets[secretPasswordKey]
-	} else if hasApiAccessKeyIdAndSecret(secrets) { // Quobyte API access using access key & secret
+	if hasApiAccessKeyIdAndSecret(secrets) {
 		apiUser = secrets[accessKeyID]
 		apiPass = secrets[accessKeySecret]
+	} else if hasApiUserAndPassword(secrets) {
+		apiUser = secrets[secretUserKey]
+		apiPass = secrets[secretPasswordKey]
 	} else {
 		return nil, fmt.Errorf("Requires Quobyte management API user/password or accessKeyId/accessKeySecret combination")
 	}

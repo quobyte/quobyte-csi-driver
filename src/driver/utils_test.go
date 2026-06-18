@@ -2,7 +2,12 @@ package driver
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
+
+	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/quobyte/api/v4/quobyte"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetVolUUIDFromErrorMSG(t *testing.T) {
@@ -47,5 +52,88 @@ func TestQuobyteApiClientSecretsCheck(t *testing.T) {
 	if !check {
 		t.Errorf("expected: true got: %t", check)
 	}
+}
 
+func TestParseLabels(t *testing.T) {
+	assert := assert.New(t)
+
+	gotLabels, err := parseLabels("label:")
+	assert.NotNil(err)
+
+	gotLabels, err = parseLabels("label")
+	assert.NotNil(err)
+
+	gotLabels, err = parseLabels(":")
+	assert.NotNil(err)
+
+	gotLabels, err = parseLabels("label:  ")
+	assert.NotNil(err)
+
+	gotLabels, err = parseLabels(": value")
+	assert.NotNil(err)
+
+	gotLabels, err = parseLabels("label:value")
+	wantedLabels := []*quobyte.Label{
+		{
+			Name:  "label",
+			Value: "value",
+		},
+	}
+	assert.Nil(err)
+	assert.True(reflect.DeepEqual(wantedLabels, gotLabels))
+
+	gotLabels, err = parseLabels("label:value, label2:value2")
+	wantedLabels = []*quobyte.Label{
+		{
+			Name:  "label",
+			Value: "value",
+		},
+		{
+			Name:  "label2",
+			Value: "value2",
+		},
+	}
+	assert.Nil(err)
+	assert.True(reflect.DeepEqual(wantedLabels, gotLabels))
+
+	// Allow spaces in
+	gotLabels, err = parseLabels("label : value   , label2 :value2 ")
+	wantedLabels = []*quobyte.Label{
+		{
+			Name:  "label",
+			Value: "value",
+		},
+		{
+			Name:  "label2",
+			Value: "value2",
+		},
+	}
+	assert.Nil(err)
+	assert.True(reflect.DeepEqual(wantedLabels, gotLabels))
+}
+
+func TestValidateVolumeCapabilities(t *testing.T) {
+	assert := assert.New(t)
+	err := validateCreateVolumeRequest(nil)
+	assert.NotNil(err)
+
+	req := &csi.CreateVolumeRequest{
+		CapacityRange: &csi.CapacityRange{RequiredBytes: 1000},
+		Parameters:    map[string]string{},
+		Secrets:       map[string]string{"a": "b"},
+	}
+	req.VolumeCapabilities = []*csi.VolumeCapability{}
+	err = validateCreateVolumeRequest(req)
+	assert.Nil(err)
+
+	// Quobyte CSI Driver does not support block volumes
+	req.VolumeCapabilities = []*csi.VolumeCapability{
+		{
+			AccessType: &csi.VolumeCapability_Block{
+				Block: &csi.VolumeCapability_BlockVolume{},
+			},
+		},
+	}
+	err = validateCreateVolumeRequest(req)
+	assert.NotNil(err)
 }

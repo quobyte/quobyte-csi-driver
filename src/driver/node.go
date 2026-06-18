@@ -3,150 +3,167 @@ package driver
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/sys/unix"
 	"k8s.io/klog"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const (
-	xattrKey     string = "quobyte.access_key"
-	empty_string string = ""
-	snapshotsDir string = ".snapshots"
+	xAttrKey                        string      = "quobyte.access_key"
+	snapshotsDir                    string      = ".snapshots"
+	accessKeyContextHandleSeparator string      = "@"
+	mountPathDefaultPermissions     os.FileMode = 0750
 )
 
 // NodePublishVolume mounts the volume to the pod with the given target path
 // QuobyteClient does the mounting of the volumes
 func (d *QuobyteDriver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	var volumeId string
+	var volumeHandle string
 
-	var snapshotName string = empty_string
-	volContext := req.GetVolumeContext()
+	var snapshotName string
 	targetPath := req.GetTargetPath()
 	if len(targetPath) == 0 {
 		return nil, fmt.Errorf("given target mount path is empty")
 	}
-	if err := d.mounter.CreateMountPath(targetPath); err != nil {
+	if err := d.mounter.Mkdirs(targetPath, mountPathDefaultPermissions); err != nil {
 		return nil, err
 	}
 	// see controller.go -- CreateVolume method. VolumeContext is only added for snapshot volumes
-	if volContext != nil && strings.HasPrefix(req.VolumeId, SnapshotVolumeHandlePrefix) {
-		if snapshotId, ok := volContext[SnapshotIDKey]; ok {
-			snapshotParts := strings.Split(snapshotId, SEPARATOR)
-			if len(snapshotParts) < 3 {
-				return nil, getInvalidSnapshotIdError(snapshotId)
-			}
-			if len(snapshotParts) == 4 {
-				volumeId = snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + snapshotParts[3]
-			} else {
-				volumeId = snapshotParts[0] + SEPARATOR + snapshotParts[1]
-			}
-			snapshotName = snapshotParts[2]
-		}
-	} else {
-		volumeId = req.GetVolumeId()
+	volumeHandle, snapshotName, err := mayGetVolumeHandleFromSnapshotContext(req)
+	if err != nil {
+		return nil, err
 	}
-	// Incase of preprovisioned volumes, NodePublishSecrets are not taken from storage class but
+	// In case of pre-provisioned volumes, NodePublishSecrets are not taken from storage class but
 	// needs to be passed as nodePublishSecretRef in PV (kubernetes) definition
 	secrets := req.GetSecrets()
-	volParts := strings.Split(volumeId, SEPARATOR)
-	if len(volParts) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>%s<VOL_NAME/VOL_UUID>", volumeId, SEPARATOR)
-	}
 
-	var volUUID string
+	tenant, volume, subDirectory, err := processVolumeHandle(volumeHandle)
+	if err != nil {
+		return nil, err
+	}
+	volumeUUID := volume
 	if len(secrets) == 0 || !hasApiCredentials(secrets) {
 		// cannot resolve volume Id without Quobyte API credentials if tenant name & volume name is given..assume volume uuid
 		klog.Infof("csiNodePublishSecret is  not received with sufficient Quobyte API credential. Assuming volume given with UUID")
-		volUUID = volParts[1]
 	} else {
-		quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+		quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 		if err != nil {
 			return nil, err
 		}
+		// Even if secrets are present, they may be Quobyte mount/file system secrets which
+		// cannot be used against Quobyte API. So, the request may fail.
 		// volume name should be retrieved from the req.GetVolumeId()
 		// Due to csi lacking in parameter passing during delete Volume, req.volumeId is changed
 		// to <TENANT_NAME/TENANT_UUID>|<VOL_NAME/VOL_UUID>. see controller.go CreateVolume for the details.
-		volUUID, err = quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
+		volumeUUID, err = quobyteClient.GetVolumeUUID(volume, tenant)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var options []string
-	volCap := req.GetVolumeCapability()
-	if volCap != nil {
-		mount := volCap.GetMount()
-		if mount != nil {
-			mntFlags := mount.GetMountFlags()
-			if mntFlags != nil {
-				options = mntFlags
-			}
-		}
-	}
+	options := getMountOptions(req)
 	// https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
 	if len(options) > 0 {
 		return nil, fmt.Errorf("Mount options are not supported by Quobyte CSI Driver but provided %d options", len(options))
 	}
 	var mountPath string
-	if d.QuobyteVersion >= 3 && d.IsQuobyteAccessKeyMountsEnabled {
-		accesskeyHandle := uuid.New().String()
-		accesskeyID, ok := secrets[accessKeyID]
+	var accessKeyHandle string
+	if d.IsQuobyteAccessKeyMountsEnabled {
+		accessKeyHandle = d.mounter.CreateAccessKeyContextHandle()
+		keyID, ok := secrets[accessKeyID]
 		if !ok {
 			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_ID>'", accessKeyID)
 		}
-		accesskeySecret, ok := secrets[accessKeySecret]
+		keySecret, ok := secrets[accessKeySecret]
 		if !ok {
 			return nil, fmt.Errorf("Mount secret should have '%s: <YOUR_ACCESS_KEY_SECRET>'", accessKeySecret)
 		}
-		XattrVal := getAccessKeyValStr(accesskeyID, accesskeySecret, accesskeyHandle)
+		xAttrVal := getAccessKeyValStr(keyID, keySecret, accessKeyHandle)
 		// In case of setfattr failure:
 		// - Make sure Quobyte CSI driver is deployed with "enableAccessKeyMounts: true"
 		// - Quobyte clients are deployed with access key flags enabled - see "Requirements" section of
 		// https://github.com/quobyte/quobyte-csi-driver/blob/master/docs/quobyte_access_keys.md
-		err := setfattr(xattrKey, XattrVal, d.clientMountPoint)
-		if err != nil {
+		if err := d.mounter.SetXAttr(xAttrKey, xAttrVal, d.clientMountPoint); err != nil {
+			klog.Errorf("failed setting access key handle as an extended attribute due to %v", err)
 			return nil, err
 		}
-		if snapshotName == empty_string {
-			if len(volParts) == 3 { // tenant|volume|subDir
-				mountPath = fmt.Sprintf("%s/%s@%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, volParts[2])
-			} else {
-				mountPath = fmt.Sprintf("%s/%s@%s", d.clientMountPoint, accesskeyHandle, volUUID)
-			}
-		} else {
-			// We  tenant|volume|snapshot|subDir
-			if len(volParts) == 3 { // tenant|volume|subDir
-				mountPath = fmt.Sprintf("%s/%s@%s/%s/%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, snapshotsDir, snapshotName, volParts[2])
-			} else {
-				mountPath = fmt.Sprintf("%s/%s@%s/%s/%s", d.clientMountPoint, accesskeyHandle, volUUID, snapshotsDir, snapshotName)
-			}
-		}
-	} else {
-		if snapshotName == empty_string {
-			if len(volParts) == 3 { // tenant|volume|subDir
-				mountPath = fmt.Sprintf("%s/%s/%s", d.clientMountPoint, volUUID, volParts[2])
-			} else { // tenant|volume
-				mountPath = fmt.Sprintf("%s/%s", d.clientMountPoint, volUUID)
-			}
-		} else {
-			if len(volParts) == 3 { // tenant|volume|subDir
-				mountPath = fmt.Sprintf("%s/%s/%s/%s/%s", d.clientMountPoint, volUUID, snapshotsDir, snapshotName, volParts[2])
-			} else { // tenant|volume
-				mountPath = fmt.Sprintf("%s/%s/%s/%s", d.clientMountPoint, volUUID, snapshotsDir, snapshotName)
-			}
-		}
 	}
-	err := Mount(mountPath, targetPath, d.mounter)
-	if err != nil {
+	mountPath = formMountPath(d.clientMountPoint, volumeUUID, accessKeyHandle, snapshotName, subDirectory)
+	if err := Mount(mountPath, targetPath, d.mounter); err != nil {
 		return nil, err
 	}
 	return &csi.NodePublishVolumeResponse{}, nil
+}
+
+func mayGetVolumeHandleFromSnapshotContext(req *csi.NodePublishVolumeRequest) (string, string, error) {
+	if !strings.HasPrefix(req.VolumeId, SnapshotVolumeHandlePrefix) {
+		return req.GetVolumeId(), "" /* no snapshot */, nil
+	}
+	volumeContext := req.GetVolumeContext()
+	if volumeContext == nil {
+		return "", "", fmt.Errorf("volume context should not empty for snapshot")
+	}
+	snapshotHandle, ok := volumeContext[SnapshotIDKey]
+	if !ok {
+		return "", "", fmt.Errorf("%s key is not found in the volume context", SnapshotIDKey)
+	}
+	snapshotParts := strings.Split(snapshotHandle, VOLUME_HANDLE_PART_SEPARATOR)
+	if len(snapshotParts) < 3 {
+		return "", "", getInvalidSnapshotIdError(snapshotHandle)
+	}
+	var volumeHandle string
+	var snapshotName = snapshotParts[2]
+	if len(snapshotParts) == 4 {
+		// Ex: volumeHandle = tenant|volume|subDirectory
+		volumeHandle = snapshotParts[0] + VOLUME_HANDLE_PART_SEPARATOR + snapshotParts[1] + VOLUME_HANDLE_PART_SEPARATOR + snapshotParts[3]
+	} else {
+		// Ex: volumeHandle = tenant|volume
+		volumeHandle = snapshotParts[0] + VOLUME_HANDLE_PART_SEPARATOR + snapshotParts[1]
+	}
+	return volumeHandle, snapshotName, nil
+}
+
+func formMountPath(clientMountPoint, volumeUUID, accessKeyHandle, snapshotName, subDirectory string) string {
+	if len(accessKeyHandle) > 0 {
+		volumeUUID = accessKeyHandle + accessKeyContextHandleSeparator + volumeUUID
+	}
+	// basic volume mount path - /home/clientMount/volumeUuid
+	mountPath := fmt.Sprintf("%s/%s", clientMountPoint, volumeUUID)
+	if len(snapshotName) > 0 {
+		// /home/clientMount/volumeUuid/.snapshots/mySnapshot
+		mountPath = fmt.Sprintf("%s/%s/%s", mountPath, snapshotsDir, snapshotName)
+	}
+	if len(subDirectory) > 0 {
+		// /home/clientMount/volumeUuid/.snapshots/mySnapshot/mySubDir or
+		// /home/clientMount/volumeUuid/mySubDir
+		mountPath = fmt.Sprintf("%s/%s", mountPath, subDirectory)
+	}
+	return mountPath
+}
+
+func getMountOptions(req *csi.NodePublishVolumeRequest) []string {
+	volCap := req.GetVolumeCapability()
+	if volCap == nil || volCap.GetMount() == nil {
+		return nil
+	}
+	return volCap.GetMount().GetMountFlags()
+}
+
+func processVolumeHandle(volumeHandle string) (string, string, string, error) {
+	volumeHandleFragments := strings.Split(volumeHandle, VOLUME_HANDLE_PART_SEPARATOR)
+	if len(volumeHandleFragments) < 2 {
+		return "", "", "", fmt.Errorf("given volumeHandle '%s' is not in the format <TENANT_NAME/TENANT_UUID>%s<VOL_NAME/VOL_UUID>", volumeHandle, VOLUME_HANDLE_PART_SEPARATOR)
+	}
+	if len(volumeHandleFragments) == 2 {
+		return volumeHandleFragments[0], volumeHandleFragments[1], "", nil
+	}
+	return volumeHandleFragments[0], volumeHandleFragments[1], volumeHandleFragments[2], nil
 }
 
 // NodeUnpublishVolume Currently not implemented as Quobyte has only single mount point
@@ -178,14 +195,14 @@ func (d *QuobyteDriver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGe
 	}, nil
 }
 
-// NodeStageVolume Stages the volume to the node under /mnt/quobyte
+// NodeStageVolume Unimplemented - not required for Quobyte CSI Driver
 func (d *QuobyteDriver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeStageVolume: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "NodeStageVolume: Not implemented by Quobyte CSI")
 }
 
-// NodeUnstageVolume Unstages the volume from /mnt/quobyte
+// NodeUnstageVolume Unimplemented - not required for Quobyte CSI Driver
 func (d *QuobyteDriver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeUnstageVolume: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "NodeUnstageVolume: Not implemented by Quobyte CSI")
 }
 
 func (d *QuobyteDriver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
@@ -195,7 +212,7 @@ func (d *QuobyteDriver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReq
 }
 
 func (d *QuobyteDriver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume: Not implemented by Quobyte CSI")
 }
 
 func (d *QuobyteDriver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
