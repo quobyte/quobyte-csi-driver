@@ -9,18 +9,20 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: '1.25'
 
     - name: Install Dependencies
-      working-directory: src/
       run: go mod tidy
 
     - name: Build for amd64
@@ -30,4 +32,4 @@ jobs:
       run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o quobyte-csi ./cmd/main.go
 
     - name: Run Tests
-      run: go test -v ./src/...
+      run: go test -v ./...
