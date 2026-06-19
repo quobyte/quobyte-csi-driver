@@ -279,6 +279,45 @@ func TestCreateVolumeWithNamespaceAsTenant(t *testing.T) {
 	assert.Equal(storageClassTenant+"|created-volume-uuid", resp.Volume.VolumeId)
 }
 
+func TestCreateVolumeWithNoTenant(t *testing.T) {
+	assert := assert.New(t)
+
+	ctrl := gomock.NewController(t)
+	clientFactory := mocks.NewMockQuobyteApiClientProvider(ctrl)
+	client := mock_quobyte_api.NewMockExtendedQuobyteApi(ctrl)
+	clientFactory.EXPECT().NewQuobyteApiClient(gomock.Any(), gomock.Any()).Return(client, nil).AnyTimes()
+	d := &QuobyteDriver{
+		UseK8SNamespaceAsQuobyteTenant: false,
+		quobyteClientFactory:           clientFactory,
+	}
+	pvName := "pv-abcdef"
+	user := "user"
+	primaryGroup := "group"
+	client.EXPECT().WhoAmI(gomock.Any()).Return(&quobyte.WhoAmIResponse{
+		UserName: user, PrimaryGroup: primaryGroup}, nil).AnyTimes()
+
+	req := &csi.CreateVolumeRequest{
+		Name:          pvName,
+		Parameters:    map[string]string{},
+		Secrets:       map[string]string{"a": "b"},
+		CapacityRange: &csi.CapacityRange{RequiredBytes: 1000},
+	}
+
+	client.EXPECT().CreateVolume(gomock.Any()).DoAndReturn(
+		func(req *quobyte.CreateVolumeRequest) (*quobyte.CreateVolumeResponse, error) {
+			assert.Equal(pvName, req.Name)
+			assert.Equal(0, len(req.TenantId))
+			assert.Equal(0, len(req.TenantDomain))
+			assert.Equal(user, req.RootUserId)
+			assert.Equal(primaryGroup, req.RootGroupId)
+			return &quobyte.CreateVolumeResponse{VolumeUuid: "created-volume-uuid"}, nil
+		})
+	resp, err := d.CreateVolume(t.Context(), req)
+	assert.Nil(err)
+	assert.NotNil(resp)
+	assert.Equal("|created-volume-uuid", resp.Volume.VolumeId)
+}
+
 type ExistingDirMock struct {
 	os.FileInfo
 	name string

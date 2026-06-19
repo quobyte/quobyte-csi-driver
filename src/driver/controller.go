@@ -130,14 +130,10 @@ func (d *QuobyteDriver) CreateVolume(
 		}
 	}
 
-	if len(volRequest.TenantId) == 0 {
-		return nil, fmt.Errorf("Configure quobyteTenant in StorageClass parameters or deploy" +
-			" driver with useK8SNamespaceAsTenant feature enabled")
-	}
-
-	volRequest.TenantId, err = quobyteClient.GetTenantUUID(volRequest.TenantId)
-	if err != nil {
-		return nil, err
+	if len(volRequest.TenantId) > 0 {
+		if volRequest.TenantId, err = quobyteClient.GetTenantUUID(volRequest.TenantId); err != nil {
+			return nil, err
+		}
 	}
 
 	var volUUID string
