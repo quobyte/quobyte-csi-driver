@@ -59,7 +59,7 @@ EOF
 echo "Running E2E with test configuration $E2E_TEST_CONFIG_PATH"
 echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host"
 
-echo -e "\e[33mNote:\e[0m If tests are stuck, you need to check kind version and kind-cluster\n \
+echo -e "\e[33mNote:\e[0m If tests are stuck, you need to check kind version and kind cluster\n \
          base image compatibility. See ./run_test kindest/node:v1.... hash and kindest version\n \
          hash (kind requires exact hash specified in kind release). https://github.com/kubernetes-sigs/kind/releases"
 
