@@ -9,7 +9,7 @@ STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
 SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-''}
 E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
-TESTS_LOGS_PATH='/tmp/test.txt'
+TESTS_LOGS_PATH='/tmp/csi-driver-e2e.log'
 
 KUBERNETES_SRC_DIR="${KUBERNETES_SRC_DIR:-/tmp/kubernetes}"
 
@@ -59,7 +59,7 @@ EOF
 echo "Running E2E with test configuration $E2E_TEST_CONFIG_PATH"
 echo "E2E test results can be found at $TESTS_LOGS_PATH on test running host"
 
-echo -e "\e[33mNote:\e[0m If tests stuck, you need to check kind version and kind-cluster\n \
+echo -e "\e[33mNote:\e[0m If tests are stuck, you need to check kind version and kind-cluster\n \
          base image compatibility. See ./run_test kindest/node:v1.... hash and kindest version\n \
          hash (kind requires exact hash specified in kind release). https://github.com/kubernetes-sigs/kind/releases"
 

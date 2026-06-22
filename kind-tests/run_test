@@ -3,10 +3,11 @@
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
-POD_KILLER_DIR="$(pwd)/../quobyte-csi-pod-killer"
+KIND_DIR="$(pwd)/kind-tests"
+POD_KILLER_DIR="${KIND_DIR}/quobyte-csi-pod-killer"
 TEST_CASE_DIR="${TEST_CASE_DIR:-}"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
-TEST_CLUSTER_DIR='kind-cluster/kind-csi-testing'
+TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
