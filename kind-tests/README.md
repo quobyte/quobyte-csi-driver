@@ -1,7 +1,9 @@
 # Quobyte CSI E2e tests
 
-The aim of these set of scripts is to enable CSI e2e test runs against internal Quobyte cluster
-(testing cluster)
+The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
+and Quobyte setup.
+
+NOTE: These scripts trigger E2E tests. Results needs to manual verified.
 
 ## Requirements
 
@@ -16,26 +18,11 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
 
 5. Quobyte API endpoint and registry endpoint
 
-6. Checkout [Quobyte CSI Pod Killer](https://github.com/quobyte/quobyte-csi-pod-killer) at the same
- level in directory as Quobyte CSI Driver and change to required branch of `quobyte-csi-pod-killer`
-
-    ```bash
-    $ls
-    quobyte-csi-driver/
-    quobyte-csi-pod-killer/
-    ```
-
 ## Run tests
 
-1. Clone `quobyte-csi` repo & checkout a feature branch
+1. Setup your test following [test example](./test-configs/)
 
-    ```bash
-    git clone <https://github.com/quobyte/quobyte-csi-driver.git> && cd quobyte-csi-driver && git checkout <branch/commit>
-    ```
-
-2. Setup your test following [test example](./test-configs/)
-
-3. Run your test with command (from project root - quobyte-csi-driver)
+2. Run your test with command (from project root - quobyte-csi-driver)
 
     ```bash
     kind-tests/cleanup; TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
@@ -60,4 +47,3 @@ The aim of these set of scripts is to enable CSI e2e test runs against internal 
   ```bash
   kind-tests/cleanup
   ```
-  
