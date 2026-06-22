@@ -70,37 +70,11 @@ container_build_and_push(){
   fi
 }
 
-rebase_charts_on_master(){
-  echo 'updating master with version files...'
-  git push origin master
-  git checkout charts
-  echo 'rebasing charts on current master...'
-  git rebase master
-  echo 'updating charts with rebased version...'
-  git push origin charts
-  echo 'switching back to master...'
-  git checkout master
-}
-
 print_post_release_instructions(){
   echo ''
   echo ''
   echo -e '\e[33mPlease go to https://github.com/quobyte/quobyte-csi/releases'
   echo -e "and make a release for the tag version ${VERSION} with release notes\e[0m"
-}
-
-build_helm_package(){
-  helm package -d "${CHART_PACKAGE_DIR}" "${CHART_DIR}" 
-  helm repo index "${CHART_PACKAGE_DIR}"
-}
-
-update_files_with_version(){
-  sed -i "s|appVersion:.*|appVersion: \"${VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
-  sed -i "s|version:.*|version: \"${CHART_VERSION}\"|g" "${CHART_DIR}/Chart.yaml"
-  sed -i "s|.*csiProvisionerVersion:.*|    csiProvisionerVersion: \"${VERSION}\"|g" "${CHART_DIR}/values.yaml"
-  sed -i "s|.*csiImage:.*|    csiImage: \"${CONTAINER_URL_BASE}:${VERSION}\"|g" "${CHART_DIR}/values.yaml"
-  sed -i "s|- --driver_version=.*|- --driver_version=${VERSION}|g" "${CHART_DIR}/tests/__snapshot__/csi_driver_test.yaml.snap"
-  sed -i "s|image: quay.io/quobyte/csi:.*|image: quay.io/quobyte/csi:${VERSION}|g" "${CHART_DIR}/tests/__snapshot__/csi_driver_test.yaml.snap"
 }
 
 if [[ "$1" = '-h' || "$1" = '--help' ]]; then
@@ -154,34 +128,20 @@ else
       exit 1
     fi
     git pull
+    if [[ ! -z "$(git tag -l ${VERSION})" ]]; then
+      exit_if_failure "1" "Release version tag already exists on local repo."
+    fi
     container_build_and_push $2
-    if [[ $(command -v helm &> /dev/null; echo "$?" ) -eq 1 ]]; then 
-       (cd /tmp && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-          && chmod 700 get_helm.sh && ./get_helm.sh)
+    if [[ ! -z "$(git ls-remote --tags origin ${VERSION})" ]]; then
+      exit_if_failure "1" "Release version tag already exists on the remote origin."
     fi
-    echo "Updating chart, and CSI driver files with release version ${VERSION}"
-    if [[ -z "$3" ]]; then
-      echo "Requires helm chart version"
-      exit 1
-    fi
-    CHART_VERSION="$3"
-    if [[ "$CHART_VERION" = v* ]]; then
-    echo "chart version should be semversion (X.Y.Z) - v prefix is allowed"
-    exit 1
-    fi
-    update_files_with_version
-    build_helm_package
-    echo "Adding packaged chart to docs"
-    git add ${CHART_PACKAGE_DIR}/index.yaml
-    git add ${CHART_PACKAGE_DIR}/*.tgz
     # Assumption is, at this point we do not have any modified files except
     # those modified by the script 
     git add -A
     git commit -m "Release version ${VERSION} by ./build release command"
+    # TODO(venkat) - check if tag already exists
     git tag "${VERSION}"
     exit_if_failure "$1" "Cannot tag release version. Fix the reported issue (you may need to reset head to undo "Release commit")"
-    # update chart index fiel for Artifacthub to get new update
-    rebase_charts_on_master
     git push origin master --tags
     print_post_release_instructions
   fi

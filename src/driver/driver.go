@@ -29,7 +29,7 @@ type QuobyteDriver struct {
 	QuobyteVersion                  int
 	enabledVolumeMetrics            bool
 	UseDeleteFilesTask              bool
-	quoybteClientFactory            QuobyteApiClientProvider
+	quobyteClientFactory            QuobyteApiClientProvider
 	mounter                         Mounter
 	csi.UnimplementedNodeServer
 	csi.UnimplementedControllerServer

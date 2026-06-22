@@ -9,15 +9,17 @@ import (
 	"k8s.io/klog"
 )
 
-// Rename deleted PV of shared volume with with <node_name>_<dir>
+var mounter Mounter = &LinuxMounter{}
+
+// Rename deleted PV of shared volume with with <nodeName>_delete_<dir>
 const DELETE_MARKER_FORMAT = "%s_delete_%s"
 
 func LaunchDirectoryDeleter(nodeName, mountPath string, sharedVolumes []string, parallelDeletes int) {
 	directoryChannel := make(chan string, parallelDeletes)
 
 	go walkAndQueueDirectories(nodeName, mountPath, sharedVolumes, directoryChannel)
-	for i := 0; i < parallelDeletes; i++ {
-		go deletionWorker(nodeName, mountPath, directoryChannel)
+	for range parallelDeletes {
+		go deletionWorker(nodeName, mountPath, directoryChannel, mounter)
 	}
 }
 
@@ -51,12 +53,15 @@ func walkAndQueueDirectories(nodeName, mountPath string, sharedVolumes []string,
 	}
 }
 
-func deletionWorker(nodeName, mountPath string, directoryChannel <-chan string) {
+func deletionWorker(
+	nodeName, mountPath string,
+	directoryChannel <-chan string,
+	mounter Mounter) {
 	for directory := range directoryChannel {
 		dir, file := filepath.Split(directory)
 		if strings.HasPrefix(dir, mountPath) && strings.HasPrefix(file, nodeName) {
 			klog.Infof("Deleting directory %s", directory)
-			os.RemoveAll(directory)
+			mounter.RemoveAll(directory)
 		}
 	}
 }

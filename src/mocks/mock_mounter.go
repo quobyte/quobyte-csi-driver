@@ -10,6 +10,8 @@
 package mocks
 
 import (
+	fs "io/fs"
+	user "os/user"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -39,18 +41,118 @@ func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
 }
 
-// CreateMountPath mocks base method.
-func (m *MockMounter) CreateMountPath(arg0 string) error {
+// Chmod mocks base method.
+func (m *MockMounter) Chmod(arg0 string, arg1 fs.FileMode) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMountPath", arg0)
+	ret := m.ctrl.Call(m, "Chmod", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateMountPath indicates an expected call of CreateMountPath.
-func (mr *MockMounterMockRecorder) CreateMountPath(arg0 any) *gomock.Call {
+// Chmod indicates an expected call of Chmod.
+func (mr *MockMounterMockRecorder) Chmod(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMountPath", reflect.TypeOf((*MockMounter)(nil).CreateMountPath), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Chmod", reflect.TypeOf((*MockMounter)(nil).Chmod), arg0, arg1)
+}
+
+// Chown mocks base method.
+func (m *MockMounter) Chown(arg0 string, arg1, arg2 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Chown", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Chown indicates an expected call of Chown.
+func (mr *MockMounterMockRecorder) Chown(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Chown", reflect.TypeOf((*MockMounter)(nil).Chown), arg0, arg1, arg2)
+}
+
+// CreateAccessKeyContextHandle mocks base method.
+func (m *MockMounter) CreateAccessKeyContextHandle() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAccessKeyContextHandle")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// CreateAccessKeyContextHandle indicates an expected call of CreateAccessKeyContextHandle.
+func (mr *MockMounterMockRecorder) CreateAccessKeyContextHandle() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessKeyContextHandle", reflect.TypeOf((*MockMounter)(nil).CreateAccessKeyContextHandle))
+}
+
+// GetNodeName mocks base method.
+func (m *MockMounter) GetNodeName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetNodeName indicates an expected call of GetNodeName.
+func (mr *MockMounterMockRecorder) GetNodeName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeName", reflect.TypeOf((*MockMounter)(nil).GetNodeName))
+}
+
+// Lookup mocks base method.
+func (m *MockMounter) Lookup(arg0 string) (*user.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Lookup", arg0)
+	ret0, _ := ret[0].(*user.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Lookup indicates an expected call of Lookup.
+func (mr *MockMounterMockRecorder) Lookup(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lookup", reflect.TypeOf((*MockMounter)(nil).Lookup), arg0)
+}
+
+// LookupGroup mocks base method.
+func (m *MockMounter) LookupGroup(arg0 string) (*user.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LookupGroup", arg0)
+	ret0, _ := ret[0].(*user.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LookupGroup indicates an expected call of LookupGroup.
+func (mr *MockMounterMockRecorder) LookupGroup(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupGroup", reflect.TypeOf((*MockMounter)(nil).LookupGroup), arg0)
+}
+
+// Mkdir mocks base method.
+func (m *MockMounter) Mkdir(arg0 string, arg1 fs.FileMode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Mkdir", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Mkdir indicates an expected call of Mkdir.
+func (mr *MockMounterMockRecorder) Mkdir(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mkdir", reflect.TypeOf((*MockMounter)(nil).Mkdir), arg0, arg1)
+}
+
+// Mkdirs mocks base method.
+func (m *MockMounter) Mkdirs(arg0 string, arg1 fs.FileMode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Mkdirs", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Mkdirs indicates an expected call of Mkdirs.
+func (mr *MockMounterMockRecorder) Mkdirs(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mkdirs", reflect.TypeOf((*MockMounter)(nil).Mkdirs), arg0, arg1)
 }
 
 // Mount mocks base method.
@@ -65,6 +167,63 @@ func (m *MockMounter) Mount(arg0, arg1 string) error {
 func (mr *MockMounterMockRecorder) Mount(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockMounter)(nil).Mount), arg0, arg1)
+}
+
+// RemoveAll mocks base method.
+func (m *MockMounter) RemoveAll(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveAll", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveAll indicates an expected call of RemoveAll.
+func (mr *MockMounterMockRecorder) RemoveAll(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAll", reflect.TypeOf((*MockMounter)(nil).RemoveAll), arg0)
+}
+
+// Rename mocks base method.
+func (m *MockMounter) Rename(arg0, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rename", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rename indicates an expected call of Rename.
+func (mr *MockMounterMockRecorder) Rename(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockMounter)(nil).Rename), arg0, arg1)
+}
+
+// SetXAttr mocks base method.
+func (m *MockMounter) SetXAttr(arg0, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetXAttr", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetXAttr indicates an expected call of SetXAttr.
+func (mr *MockMounterMockRecorder) SetXAttr(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetXAttr", reflect.TypeOf((*MockMounter)(nil).SetXAttr), arg0, arg1, arg2)
+}
+
+// Stat mocks base method.
+func (m *MockMounter) Stat(arg0 string) (fs.FileInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stat", arg0)
+	ret0, _ := ret[0].(fs.FileInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Stat indicates an expected call of Stat.
+func (mr *MockMounterMockRecorder) Stat(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stat", reflect.TypeOf((*MockMounter)(nil).Stat), arg0)
 }
 
 // Statfs mocks base method.

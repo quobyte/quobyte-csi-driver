@@ -3,9 +3,7 @@ package driver
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,9 +19,7 @@ import (
 )
 
 const (
-	SEPARATOR = "|"
-	//DefaultConfig Default configuration to use if none provided by user
-	DefaultConfig = "BASE"
+	VOLUME_HANDLE_PART_SEPARATOR = "|"
 	//DefaultCreateQuota Quobyte CSI by default does NOT create volumes with Quotas.
 	// To create Quotas for the volumes, set createQuota: "true" in storage class
 	DefaultCreateQuota = false
@@ -42,41 +38,38 @@ const (
 	SnapshotIDKey   = "snapshot_id_key"
 	// VolumeHandle prefix for snapshots PV.
 	SnapshotVolumeHandlePrefix = "SnapshotVolumeHandle-"
+	SharedVolumeNameKey        = "sharedVolumeName"
 )
 
 // CreateVolume creates quobyte volume
-func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	if req == nil {
-		return nil, fmt.Errorf("container orchestrator should send the storage cluster details")
-	}
-	err := validateVolCapabilities(req.GetVolumeCapabilities())
-	if err != nil {
+func (d *QuobyteDriver) CreateVolume(
+	ctx context.Context,
+	req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	if err := validateCreateVolumeRequest(req); err != nil {
 		return nil, err
 	}
+
+	// if snapshot volume create request, just populate with snapshot id and return.
+	// No need to create the volume as Quobyte snapshots does not require a new volume per
+	// snapshot
+	if result, err := createSnapshotResponse(req); err != nil {
+		return nil, err
+	} else if result != nil {
+		return result, nil
+	} // else: not a snapshot volume
+
 	params := req.Parameters
 	secrets := req.Secrets
-	if len(secrets) == 0 {
-		return nil, fmt.Errorf("secrets are required to dynamically provision volume." +
-			"Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
-	}
-
 	capacity := req.GetCapacityRange().RequiredBytes
-	dynamicVolumeName := req.Name
+	k8sPVName := req.Name
 	volRequest := &quobyte.CreateVolumeRequest{}
-	// will be overriden if shared volume name is specified in storage class
-	volRequest.Name = dynamicVolumeName
+	// will be overridden if shared volume name is specified in storage class
+	volRequest.Name = k8sPVName
 	createQuota := DefaultCreateQuota
-	if d.QuobyteVersion == 2 {
-		volRequest.ConfigurationName = DefaultConfig
-	}
-	_, isSharedVolume := params["sharedVolumeName"]
-	if isSharedVolume {
-		volRequest.AccessMode = DefaultSharedVolumeAccessModes
-	} else {
-		volRequest.AccessMode = DefaultAccessModes
-	}
+	_, isSharedVolume := params[SharedVolumeNameKey]
+	volRequest.AccessMode = accessMode(isSharedVolume)
 
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -101,18 +94,12 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			}
 		case "group":
 			volRequest.RootGroupId = v
-		case "quobyteconfig":
-			if d.QuobyteVersion == 2 {
-				volRequest.ConfigurationName = v
-			}
 		case "createquota":
 			createQuota = strings.ToLower(v) == "true"
 		case "labels":
-			if d.QuobyteVersion >= 3 {
-				volRequest.Label, err = parseLabels(v)
-				if err != nil {
-					return nil, err
-				}
+			volRequest.Label, err = parseLabels(v)
+			if err != nil {
+				return nil, err
 			}
 		case "accessmode":
 			u64, err := strconv.ParseUint(v, 10, 32)
@@ -143,51 +130,9 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 		}
 	}
 
-	if len(volRequest.TenantId) == 0 {
-		return nil, fmt.Errorf("Configure quobyteTenant in StorageClass parameters or deploy" +
-			" driver with useK8SNamespaceAsTenant feature enabled")
-	}
-
-	volRequest.TenantId, err = quobyteClient.GetTenantUUID(volRequest.TenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	// if snapshot request, just populate with snapshot id and return.
-	// No need to create the volume as volume already created before
-	volumeContext := make(map[string]string)
-	volumeContentSource := req.GetVolumeContentSource()
-	if volumeContentSource != nil {
-		snapshot := volumeContentSource.GetSnapshot()
-		if snapshot != nil {
-			snapshotIdParts := strings.Split(snapshot.SnapshotId, SEPARATOR)
-			if len(snapshotIdParts) < 3 {
-				return nil, getInvalidSnapshotIdError(snapshot.SnapshotId)
-			}
-			volumeContext[SnapshotIDKey] = snapshot.SnapshotId
-			resp := &csi.CreateVolumeResponse{
-				Volume: &csi.Volume{
-					// k8s expects that storage system takes snapshot (during creation of VolumeSnapshot and VolumeSnapshotContent)
-					// and later populates a volume (with its own volumeId) based on the snapshot
-					// (during creation of PVC with VolumeSnapshot ref).
-					// Used to filter out snapshot based PVs during volume delete.
-					// We only create dummy PV for snapshot volumes
-					// as Quobyte doesn't create separate volumes for snapshots, there is no need
-					// to delete volume/snapshot with PV. Deletion of VolumeSnapshot and VolumeSnapshotContent
-					// should delete the snapshot.
-					VolumeId:      SnapshotVolumeHandlePrefix + req.Name,
-					CapacityBytes: capacity,
-					ContentSource: &csi.VolumeContentSource{
-						Type: &csi.VolumeContentSource_Snapshot{
-							Snapshot: &csi.VolumeContentSource_SnapshotSource{
-								SnapshotId: snapshot.SnapshotId,
-							},
-						},
-					},
-					VolumeContext: volumeContext,
-				},
-			}
-			return resp, nil
+	if len(volRequest.TenantId) > 0 {
+		if volRequest.TenantId, err = quobyteClient.GetTenantUUID(volRequest.TenantId); err != nil {
+			return nil, err
 		}
 	}
 
@@ -234,26 +179,14 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 			volRequest.AccessMode = configuredVolumeAccessMode
 		}
 		// requested dynamic volume is subdir under the given shared volume
-		subdirPath := filepath.Join(d.clientMountPoint, volUUID, dynamicVolumeName)
-		if statInfo, err := os.Stat(subdirPath); err != nil {
-			if e, ok := err.(*os.PathError); ok && e.Err == syscall.ENOENT {
-				if err = d.createDynamicVolumeAsADirectory(subdirPath, volRequest); err != nil {
-					return nil, err
-				}
-			} else {
-				return nil, err
-			}
-		} else if !statInfo.IsDir() {
-			return nil, fmt.Errorf("A file with sub-directory name exists at %s", subdirPath)
-		} else {
-			// update permissions
-			if err = d.createDynamicVolumeAsADirectory(subdirPath, volRequest); err != nil {
-				return nil, err
-			}
+		subdirPath := filepath.Join(d.clientMountPoint, volUUID, k8sPVName)
+		sharedDirectoryMaker := &DirectoryMaker{d.mounter}
+		if err := sharedDirectoryMaker.Mkdir(subdirPath, volRequest); err != nil {
+			return nil, err
 		}
-		volumeId = volRequest.TenantId + SEPARATOR + volUUID + SEPARATOR + dynamicVolumeName
+		volumeId = volRequest.TenantId + VOLUME_HANDLE_PART_SEPARATOR + volUUID + VOLUME_HANDLE_PART_SEPARATOR + k8sPVName
 	} else {
-		volumeId = volRequest.TenantId + SEPARATOR + volUUID
+		volumeId = volRequest.TenantId + VOLUME_HANDLE_PART_SEPARATOR + volUUID
 	}
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
@@ -264,44 +197,56 @@ func (d *QuobyteDriver) CreateVolume(ctx context.Context, req *csi.CreateVolumeR
 	return resp, nil
 }
 
-func (d *QuobyteDriver) createDynamicVolumeAsADirectory(subdirPath string, volRequest *quobyte.CreateVolumeRequest) error {
-	modeVal, err := strconv.ParseUint(strconv.Itoa(int(volRequest.AccessMode)), 8, 32)
-	if err != nil {
-		return fmt.Errorf("Cannot parse access mode due to %s", err)
+// returns nil, nil if not a snapshot volume creation request
+func createSnapshotResponse(req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	if req.GetVolumeContentSource() == nil {
+		return nil, nil
 	}
-	if err = os.Mkdir(subdirPath, fs.FileMode(modeVal)); err != nil {
-		// ignore directory exists error; might have been created by replicated pods
-		if e, ok := err.(*os.PathError); ok && e.Err != syscall.EEXIST {
-			return fmt.Errorf("Unable to create sub-directory %s due to %s", subdirPath, err)
-		}
+
+	volumeContentSource := req.GetVolumeContentSource()
+	snapshot := volumeContentSource.GetSnapshot()
+	if snapshot == nil {
+		return nil, nil
 	}
-	if err = os.Chmod(subdirPath, fs.FileMode(modeVal)); err != nil {
-		return fmt.Errorf("Cannot apply requested permissions %d for %s due to %s", modeVal, subdirPath, err)
+	volumeContext := make(map[string]string)
+	snapshotIdParts := strings.Split(
+		snapshot.SnapshotId,
+		VOLUME_HANDLE_PART_SEPARATOR)
+	// CreateSnapshot should create a valid snapshot id
+	if len(snapshotIdParts) < 3 {
+		return nil, getInvalidSnapshotIdError(snapshot.SnapshotId)
 	}
-	return d.chownDirectory(subdirPath, volRequest)
+	volumeContext[SnapshotIDKey] = snapshot.SnapshotId
+	resp := &csi.CreateVolumeResponse{
+		Volume: &csi.Volume{
+			// k8s expects that storage system takes snapshot (during creation of VolumeSnapshot and VolumeSnapshotContent)
+			// and later populates a volume (with its own volumeId) based on the snapshot
+			// (during creation of PVC with VolumeSnapshot ref).
+			// Used to filter out snapshot based PVs during volume delete.
+			// We only create dummy PV for snapshot volumes
+			// as Quobyte doesn't create separate volumes for snapshots, there is no need
+			// to delete volume/snapshot with PV. Deletion of VolumeSnapshot and VolumeSnapshotContent
+			// should delete the snapshot.
+			VolumeId:      SnapshotVolumeHandlePrefix + req.Name,
+			CapacityBytes: req.CapacityRange.RequiredBytes,
+			ContentSource: &csi.VolumeContentSource{
+				Type: &csi.VolumeContentSource_Snapshot{
+					Snapshot: &csi.VolumeContentSource_SnapshotSource{
+						SnapshotId: snapshot.SnapshotId,
+					},
+				},
+			},
+			VolumeContext: volumeContext,
+		},
+	}
+	return resp, nil
 }
 
-func (d *QuobyteDriver) chownDirectory(subdirPath string, volRequest *quobyte.CreateVolumeRequest) error {
-	var userInfo *user.User
-	var groupInfo *user.Group
-	var err error
-	if userInfo, err = user.Lookup(volRequest.RootUserId); err != nil {
-		return fmt.Errorf("Cannot look up user '%s' on node '%s' due to error %s", volRequest.RootUserId, d.NodeName, err)
+func accessMode(isSharedVolume bool) int32 {
+	if isSharedVolume {
+		return DefaultSharedVolumeAccessModes
 	}
-	if groupInfo, err = user.LookupGroup(volRequest.RootGroupId); err != nil {
-		return fmt.Errorf("Cannot look up group '%s' on node '%s' due to error %s", volRequest.RootGroupId, d.NodeName, err)
-	}
-	var userId, groupId int
-	if userId, err = strconv.Atoi(userInfo.Uid); err != nil {
-		return err
-	}
-	if groupId, err = strconv.Atoi(groupInfo.Gid); err != nil {
-		return err
-	}
-	if err := os.Chown(subdirPath, userId, groupId); err != nil {
-		return fmt.Errorf("Cannot change ownership of '%s' to '%s:%s' on node '%s' due to %s", subdirPath, volRequest.RootUserId, volRequest.RootGroupId, d.NodeName, err)
-	}
-	return nil
+	return DefaultAccessModes
 }
 
 // DeleteVolume deletes the given volume or
@@ -317,31 +262,27 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 		// See CreateVolume for more information
 		return &csi.DeleteVolumeResponse{}, nil
 	}
-	volumeIdParts := strings.Split(volID, SEPARATOR)
-	if len(volumeIdParts) < 2 {
-		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>", volID, SEPARATOR)
+	volumeIdParts := strings.Split(volID, VOLUME_HANDLE_PART_SEPARATOR)
+	if len(volumeIdParts) < 2 || len(volumeIdParts) > 3 {
+		return nil, fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>%s<VOL_NAME/VOL_UUID>[|<subdir>]", volID, VOLUME_HANDLE_PART_SEPARATOR)
 	}
 	secrets := req.GetSecrets()
 	if len(secrets) == 0 {
 		return nil, fmt.Errorf("secrets are required to delete a volume." +
 			" Provide csi.storage.k8s.io/provisioner-secret-name/namespace in storage class")
 	}
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(volumeIdParts) == 2 { // tenant|volume
-		if d.QuobyteVersion == 2 {
-			err = quobyteClient.EraseVolumeByResolvingNamesToUUID_2X(volumeIdParts[1], volumeIdParts[0])
-		} else {
-			err = quobyteClient.EraseVolumeByResolvingNamesToUUID(volumeIdParts[1], volumeIdParts[0], d.ImmediateErase)
-		}
+		err = quobyteClient.EraseVolumeByResolvingNamesToUUID(volumeIdParts[1], volumeIdParts[0], d.ImmediateErase)
 	} else if len(volumeIdParts) == 3 { // tenant|volume|subdir
 		if !d.UseDeleteFilesTask {
 			subdirPath := filepath.Join(d.clientMountPoint, volumeIdParts[1], volumeIdParts[2])
 			renameTo := filepath.Join(d.clientMountPoint, volumeIdParts[1], fmt.Sprintf(DELETE_MARKER_FORMAT, d.Name, volumeIdParts[2]))
-			if err := os.Rename(subdirPath, renameTo); err != nil {
+			if err := d.mounter.Rename(subdirPath, renameTo); err != nil {
 				if e, ok := err.(*os.LinkError); ok && e.Err != syscall.ENOENT {
 					return nil, fmt.Errorf("Cannot mark directory '%s' for deletion due to %s", subdirPath, err)
 				}
@@ -357,8 +298,6 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 				return nil, fmt.Errorf("could not delete subdirectory of the shared volume due to %s", err)
 			}
 		}
-	} else {
-		return nil, fmt.Errorf("Unknown volume id format")
 	}
 
 	if err != nil {
@@ -367,18 +306,18 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
-// ControllerPublishVolume Quobyte CSI does not implement this method. Quobyte Client is responsible for attaching volume.
+// ControllerPublishVolume  Nothing to do - mounts volume on NodePublishVolume
 func (d *QuobyteDriver) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	// Quobyte client mounts the volume if it exists
 	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
-// ControllerGetVolume Quobyte CSI does not implement this method.
+// ControllerGetVolume - nothing to do
 func (d *QuobyteDriver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
 	return &csi.ControllerGetVolumeResponse{}, nil
 }
 
-// ControllerUnpublishVolume Quobyte CSI does not implement this method.
+// ControllerUnpublishVolume - nothing to do
 func (d *QuobyteDriver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	// Quobyte does not require any clean up, return to the Quobyte client
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
@@ -386,18 +325,18 @@ func (d *QuobyteDriver) ControllerUnpublishVolume(ctx context.Context, req *csi.
 
 // ValidateVolumeCapabilities Quobyte CSI does not implement this method.
 func (d *QuobyteDriver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ValidateVolumeCapabilities: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "ValidateVolumeCapabilities: Not implemented by Quobyte CSI")
 }
 
 // ListVolumes Quobyte CSI does not implement this method.
 func (d *QuobyteDriver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListVolumes: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "ListVolumes: Not implemented by Quobyte CSI")
 }
 
 // GetCapacity Quobyte volumes are not capacity bound by default
 func (d *QuobyteDriver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	// TODO (venkat) : This seems to be the storage system capacity query and not of the volume
-	return nil, status.Errorf(codes.Unimplemented, "GetCapacity: Quobyte  does not support it, at the moment.")
+	return nil, status.Errorf(codes.Unimplemented, "GetCapacity: Not implemented by Quobyte CSI")
 }
 
 // ControllerGetCapabilities returns supported capabilities.
@@ -443,12 +382,12 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 		isPinned = false
 	}
 	volumeId := req.SourceVolumeId
-	volParts := strings.Split(volumeId, SEPARATOR)
+	volParts := strings.Split(volumeId, VOLUME_HANDLE_PART_SEPARATOR)
 	if len(volParts) < 2 {
-		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, SEPARATOR)
+		return nil, fmt.Errorf("given volumeId %s is not of the form <Tenant>%s<Volume>", volumeId, VOLUME_HANDLE_PART_SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -474,7 +413,8 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 			return nil, err
 		}
 	}
-	snapshotID := tenantUUID + SEPARATOR + volUUID + SEPARATOR + req.Name
+	// TODO(venkat): Pre-provisioned PV can have subdir, so append subDir to the snapshotId
+	snapshotID := tenantUUID + VOLUME_HANDLE_PART_SEPARATOR + volUUID + VOLUME_HANDLE_PART_SEPARATOR + req.Name
 	timestamp := &timestamp.Timestamp{Seconds: time.Now().Unix()}
 	resp := &csi.CreateSnapshotResponse{Snapshot: &csi.Snapshot{SnapshotId: snapshotID, SourceVolumeId: req.SourceVolumeId, CreationTime: timestamp, ReadyToUse: true}}
 	return resp, nil
@@ -482,13 +422,13 @@ func (d *QuobyteDriver) CreateSnapshot(ctx context.Context, req *csi.CreateSnaps
 
 func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	snapshotID := req.SnapshotId
-	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	snapshotParts := strings.Split(snapshotID, VOLUME_HANDLE_PART_SEPARATOR)
 	if len(snapshotParts) < 3 {
 		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
-			snapshotID, SEPARATOR, SEPARATOR)
+			snapshotID, VOLUME_HANDLE_PART_SEPARATOR, VOLUME_HANDLE_PART_SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -510,13 +450,13 @@ func (d *QuobyteDriver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnaps
 
 func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	snapshotID := req.SnapshotId
-	snapshotParts := strings.Split(snapshotID, SEPARATOR)
+	snapshotParts := strings.Split(snapshotID, VOLUME_HANDLE_PART_SEPARATOR)
 	if len(snapshotParts) < 3 {
 		return nil, fmt.Errorf("invalid snapshot UID: %s. VolumeSnapshotRef.uid must be of form '<tenant>%s<volume>%s<snapshot-name>'",
-			snapshotID, SEPARATOR, SEPARATOR)
+			snapshotID, VOLUME_HANDLE_PART_SEPARATOR, VOLUME_HANDLE_PART_SEPARATOR)
 	}
 	secrets := req.Secrets
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -538,20 +478,54 @@ func (d *QuobyteDriver) ListSnapshots(ctx context.Context, req *csi.ListSnapshot
 	for i, entry := range listResp.Snapshot {
 		// important we use tenant and volume from req.SnapshotId
 		// to match the snapshot id
-		snapshotID := snapshotParts[0] + SEPARATOR + snapshotParts[1] + SEPARATOR + entry.Name
+		snapshotID := snapshotParts[0] + VOLUME_HANDLE_PART_SEPARATOR + snapshotParts[1] + VOLUME_HANDLE_PART_SEPARATOR + entry.Name
 		snapshotEntries[i] = &csi.ListSnapshotsResponse_Entry{Snapshot: &csi.Snapshot{SourceVolumeId: entry.VolumeUuid, SnapshotId: snapshotID, CreationTime: &timestamp.Timestamp{Seconds: (entry.Timestamp / 1000)}, ReadyToUse: true}}
 	}
 	return &csi.ListSnapshotsResponse{Entries: snapshotEntries}, nil
 }
 
 func (d *QuobyteDriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	if req.GetCapacityRange() == nil {
+		return nil, fmt.Errorf("invalid capacity range nil for expand volume")
+	}
 	capacity := req.CapacityRange.RequiredBytes
-	if err := d.expandVolume(&ExpandVolumeReq{volID: req.VolumeId, expandSecrets: req.Secrets, capacity: capacity}); err != nil {
+	if err := d.expandVolume(req.VolumeId, req.Secrets, capacity); err != nil {
 		return nil, err
 	}
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity}, nil
 }
 
+func (d *QuobyteDriver) expandVolume(volumeId string, secrets map[string]string, capacity int64) error {
+	volParts := strings.Split(volumeId, VOLUME_HANDLE_PART_SEPARATOR)
+	if len(volParts) < 2 {
+		return fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volumeId)
+	}
+	// Shared volume is assumed to have unlimited capacity. If need user should set
+	// Quota limits on via Quobyte management API/webconsole
+	// We return success if expansion is requested. This gives customer flexibility with PVC
+	// rescaling on k8s. On the other hand, failed status requires destruction
+	// of pod, pvc, pv and recreation to rescale PVC.
+	if len(volParts) == 3 {
+		return nil
+	}
+	if len(secrets) == 0 {
+		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
+	}
+	quobyteClient, err := d.quobyteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
+	if err != nil {
+		return err
+	}
+	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
+	if err != nil {
+		return err
+	}
+	err = quobyteClient.SetVolumeQuota(volUUID, capacity)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *QuobyteDriver) ControllerModifyVolume(ctx context.Context, req *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ControllerModifyVolume: Not implented by Quobyte CSI")
+	return nil, status.Errorf(codes.Unimplemented, "ControllerModifyVolume: Not implemented by Quobyte CSI")
 }

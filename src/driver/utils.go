@@ -1,11 +1,11 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/pkg/xattr"
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	quobyte "github.com/quobyte/api/v4/quobyte"
 )
 
@@ -23,86 +23,62 @@ const (
 	accessKeySecret   string = "accessKeySecret"
 )
 
-func getAccessKeyValStr(key_id, key_secret, accesskeyHandle string) string {
-	return fmt.Sprintf(KEY_VAL, key_id, key_secret, accesskeyHandle)
-}
-
-func setfattr(key, val, mountPath string) error {
-	if err := xattr.Set(mountPath, key, []byte(val)); err != nil {
-		return fmt.Errorf("failed setfattr due to %v", err)
-	}
-	return nil
-}
-
-func (d *QuobyteDriver) expandVolume(req *ExpandVolumeReq) error {
-	volID := req.volID
-	volParts := strings.Split(volID, "|")
-	if len(volParts) < 2 {
-		return fmt.Errorf("given volumeHandle '%s' is not in the form <Tenant_Name/Tenant_UUID>|<VOL_NAME/VOL_UUID>", volID)
-	}
-	// Shared volume is assumed to have unlimited capacity. If need user should set
-	// Quota limits on via Quobyte management API/webconsole
-	// We return success if expansion is requested. This gives customer flexibility with PVC
-	// rescaling on k8s. On the other hand, failed status requires destruction
-	// of pod, pvc, pv and recreation to rescale PVC.
-	if len(volParts) == 3 {
-		return nil
-	}
-	secrets := req.expandSecrets
-	if len(secrets) == 0 {
-		return fmt.Errorf("controller-expand-secret-name and controller-expand-secret-namespace should be configured")
-	}
-	quobyteClient, err := d.quoybteClientFactory.NewQuobyteApiClient(d.ApiURL, secrets)
-	if err != nil {
-		return err
-	}
-	capacity := req.capacity
-	volUUID, err := quobyteClient.GetVolumeUUID(volParts[1], volParts[0])
-	if err != nil {
-		return err
-	}
-	err = quobyteClient.SetVolumeQuota(volUUID, capacity)
-	if err != nil {
-		return err
-	}
-	return nil
+func getAccessKeyValStr(key_id, key_secret, accessKeyHandle string) string {
+	return fmt.Sprintf(KEY_VAL, key_id, key_secret, accessKeyHandle)
 }
 
 func getUUIDFromError(str string) string {
 	index := strings.Index(str, VOL_UUID_LOCATOR)
-	uuid := str[index+len(VOL_UUID_LOCATOR) : len(str)]
+	uuid := str[index+len(VOL_UUID_LOCATOR):]
 	return strings.TrimSpace(uuid)
 }
 
-func validateVolCapabilities(caps []*csi.VolumeCapability) error {
+func validateCreateVolumeRequest(req *csi.CreateVolumeRequest) error {
+	if req == nil {
+		return errors.New("invalid create volume request")
+	}
+	if req.GetCapacityRange() == nil {
+		return errors.New("capacity range must not be empty")
+	}
+	if req.Parameters == nil {
+		return errors.New("request must not be empty")
+	}
+	if len(req.Secrets) == 0 {
+		return fmt.Errorf("secrets are required to dynamically provision a volume. " +
+			"Provide csi.storage.k8s.io/provisioner-secret-<name/namespace> in storage class")
+	}
+	caps := req.GetVolumeCapabilities()
+	if caps == nil {
+		return nil
+	}
 	for _, cap := range caps {
 		if cap.GetBlock() != nil {
-			return fmt.Errorf("Quobyte CSI provisioner does not support block volumes.")
+			return errors.New("Quobyte CSI provisioner does not support block volumes.")
 		}
 	}
 	return nil
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }
 
 func parseLabels(labels string) ([]*quobyte.Label, error) {
 	labelKVs := strings.Split(labels, ",")
 	parsedLabels := make([]*quobyte.Label, 0)
 	for _, labelKV := range labelKVs {
+		labelKV = strings.TrimSpace(labelKV)
 		labelKVArr := strings.Split(labelKV, ":")
 		if len(labelKVArr) < 2 {
-			return parsedLabels, fmt.Errorf("Found invalid label '%s'. Label should be <Name>:<Value>", labelKV)
+			return nil, fmt.Errorf("Found invalid label '%s'. Label should be of the form <Name>:<Value>.", labelKV)
+		}
+		key := strings.TrimSpace(labelKVArr[0])
+		value := strings.TrimSpace(labelKVArr[1])
+		if len(key) == 0 {
+			return nil, fmt.Errorf("Found invalid label '%s'. Label name must not be empty.", labelKV)
+		}
+		if len(value) == 0 {
+			return nil, fmt.Errorf("Found invalid label '%s'. Label value must not be empty.", labelKV)
 		}
 		label := &quobyte.Label{
-			Name:  labelKVArr[0],
-			Value: labelKVArr[1],
+			Name:  key,
+			Value: value,
 		}
 		parsedLabels = append(parsedLabels, label)
 	}
@@ -110,7 +86,9 @@ func parseLabels(labels string) ([]*quobyte.Label, error) {
 }
 
 func getInvalidSnapshotIdError(snapshotId string) error {
-	return fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>", snapshotId, SEPARATOR, SEPARATOR)
+	return fmt.Errorf("given snapshot id %s is not of the form <Tenant>%s<Volume>%s<Snapshot_Name>[%sSubDirectory]",
+		snapshotId, VOLUME_HANDLE_PART_SEPARATOR,
+		VOLUME_HANDLE_PART_SEPARATOR, VOLUME_HANDLE_PART_SEPARATOR)
 }
 
 func hasApiCredentials(secrets map[string]string) bool {
