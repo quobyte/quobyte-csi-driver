@@ -1,0 +1,6 @@
+[submodule "kind-tests/quobyte-csi-pod-killer"]
+	path = kind-tests/quobyte-csi-pod-killer
+	url = git@github.com:quobyte/quobyte-csi-pod-killer.git
+[submodule "kind-tests/quobyte-k8s-resources"]
+	path = kind-tests/quobyte-k8s-resources
+	url = git@github.com:quobyte/quobyte-k8s-resources.git
