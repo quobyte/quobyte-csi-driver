@@ -1,0 +1,9 @@
+[submodule "kind-cluster/quobyte-csi-driver"]
+	path = kind-cluster/quobyte-csi-driver
+	url = https://github.com/quobyte/quobyte-csi-driver.git
+[submodule "kind-cluster/quobyte-csi-pod-killer"]
+	path = kind-cluster/quobyte-csi-pod-killer
+	url = https://github.com/quobyte/quobyte-csi-pod-killer.git
+[submodule "kind-cluster/quobyte-k8s-resources"]
+	path = kind-cluster/quobyte-k8s-resources
+	url = https://github.com/quobyte/quobyte-k8s-resources.git
