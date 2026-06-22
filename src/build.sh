@@ -93,7 +93,7 @@ else
   fi
   echo "Generating //go:generate marked statements in source file"
   go generate ./...
-  exit_if_failure "$?" "Failed generating required mocks for testing. Fix reported errors and retry"
+  exit_if_failure "$?" "Failed generating required mocks for testing. Fix reported errors and retry."
   echo "Running tests..."
   go test -v ./...
   exit_if_failure "$?" "Failed go unit tests. Fix failing tests and retry command."
@@ -123,14 +123,10 @@ else
     if [[ ! -z "$(git ls-remote --tags origin ${VERSION})" ]]; then
       exit_if_failure "1" "Release version tag already exists on the remote origin."
     fi
-    # Assumption is, at this point we do not have any modified files except
-    # those modified by the script 
-    git add -A
-    git commit -m "Release version ${VERSION} by ./build release command"
-    # TODO(venkat) - check if tag already exists
     git tag "${VERSION}"
     exit_if_failure "$1" "Cannot tag release version. Fix the reported issue (you may need to reset head to undo "Release commit")"
     git push origin master --tags
     print_post_release_instructions
   fi
 fi
+
