@@ -8,7 +8,29 @@ This repository holds source code and development related documentation. For ins
 instructions and examples, please refer to
 [Quobyte K8S resources](https://github.com/quobyte/quobyte-k8s-resources)
 
+
+## CSI Driver Options
+
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| api_url | string |  | Quobyte API URL |
+| driver_name | string |  | Quobyte CSI driver name |
+| driver_version | string |  | Quobyte CSI driver version |
+| enable_access_key_mounts | boolean | false | Enables use of Quobyte Access keys for mounting volumes |
+| enable_volume_metrics | boolean | false | Enables volume metrics (space and inodes) export |
+| immediate_erase | boolean | false | Schedules erase volume task immediately |
+| node_name | string |  | K8S node name |
+| parallel_deletions | int | 10 | Delete 'n' shared volume directories parallelly |
+| quobyte_mount_path | string | /mnt/quobyte/mounts | Mount point of Quobyte Client |
+| quobyte_version | integer | 4 | Specify Quobyte major version |
+| role | string | node_driver/controller | Quobyte CSI container role |
+| shared_volumes_list | string |  | Comma separated list of shared volume UUIDs |
+| use_delete_files_task | boolean | false | Remove shared volume PVCs using delete files task. If false, uses rmdir via client mount point |
+| use_k8s_namespace_as_tenant | boolean | false | Uses k8s PVC.namespace as Quobyte tenant |
+
 ## Developer Notes
+
+### Building
 
 Quobyte CSI Driver builds multi-arch (amd64, arm64) images using `docker buildx`. To build images,
 containerd storage backed should be enabled for docker.
@@ -44,4 +66,18 @@ To **build binary**:
 (cd src; CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o quobyte-csi ./cmd/main.go)
 ```
 
+### Testing
 
+To **run tests and compile in container**, run:
+
+```bash
+./src/build.sh
+```
+
+You can also run
+
+```bash
+(cd src; go test -v ./...;)
+```
+
+To run **E2E** tests see [here](kind-tests/README.md)
