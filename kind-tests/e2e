@@ -18,6 +18,8 @@ die() {
     exit 1
 }
 
+git submodule update --remote || die "Cannot update submodule dependencies"
+
 if [[ ! -d ${KUBERNETES_SRC_DIR} ]]; then
 git clone https://github.com/kubernetes/kubernetes.git $KUBERNETES_SRC_DIR \
  || die "Cannot clone kubernetes to compile e2e tests"
