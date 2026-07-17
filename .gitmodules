@@ -4,3 +4,4 @@
 [submodule "kind-tests/quobyte-k8s-resources"]
 	path = kind-tests/quobyte-k8s-resources
 	url = git@github.com:quobyte/quobyte-k8s-resources.git
+	branch = main
