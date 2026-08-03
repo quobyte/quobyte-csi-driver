@@ -11,16 +11,24 @@ E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 TESTS_LOGS_PATH='/tmp/csi-driver-e2e.log'
 
-KUBERNETES_SRC_DIR="${KUBERNETES_SRC_DIR:-/tmp/kubernetes}"
+KUBERNETES_SRC_DIR="${KUBERNETES_SRC_DIR:-/home/venkat/kubernetes}"
+
+die() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+git submodule update --remote || die "Cannot update submodule dependencies"
 
 if [[ ! -d ${KUBERNETES_SRC_DIR} ]]; then
-git clone https://github.com/kubernetes/kubernetes.git $KUBERNETES_SRC_DIR
+git clone https://github.com/kubernetes/kubernetes.git $KUBERNETES_SRC_DIR \
+ || die "Cannot clone kubernetes to compile e2e tests"
 fi
 
 cd $KUBERNETES_SRC_DIR
 git fetch --tags
-git checkout tags/$K8S_VERSION
-make WHAT=test/e2e/e2e.test
+git checkout tags/$K8S_VERSION || die "Kubernetes version tag $K8S_VERSION is not found"
+make WHAT=test/e2e/e2e.test  || die "Cannot make e2e tests"
 go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 cd $TEST_RUN_DIR

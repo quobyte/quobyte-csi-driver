@@ -141,7 +141,7 @@ func (d *QuobyteDriver) CreateVolume(
 	volCreateResp, err := quobyteClient.CreateVolume(volRequest)
 	if err != nil {
 		// CSI requires idempotency. (calling volume create multiple times should return the volume if it already exists)
-		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY/POSIX_ERROR_NONE") {
+		if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY") {
 			return nil, err
 		}
 		volUUID, err = quobyteClient.ResolveVolumeNameToUUID(volRequest.Name, volRequest.TenantId)
