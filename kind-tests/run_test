@@ -1,6 +1,10 @@
 #!/bin/bash
 
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
+# When true, run the self-contained Go e2e suite (kind-tests/e2e-tests) instead of
+# the legacy YAML-driven flow. Requires QUOBYTE_API_URL, QUOBYTE_API_USER,
+# QUOBYTE_API_PASSWORD, QUOBYTE_TENANT to be set in the environment.
+RUN_GO_E2E_TESTS=${RUN_GO_E2E_TESTS:-false}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
 KIND_DIR="$(pwd)/kind-tests"
@@ -294,12 +298,30 @@ if [[ "$enabled_snapshots" -eq 0 ]]; then
 fi
 
 echo ""
-if [[ ! -f "$TEST_CASE_DIR/k8s_storage_class.yaml" ]]; then
+if [[ "$RUN_GO_E2E_TESTS" == "true" ]]; then
+  for var in QUOBYTE_API_URL QUOBYTE_API_USER QUOBYTE_API_PASSWORD QUOBYTE_TENANT; do
+    if [[ -z "${!var}" ]]; then
+      die "RUN_GO_E2E_TESTS=true requires $var to be set"
+    fi
+  done
+
+  echo "Running Go e2e tests (RUN_GO_E2E_TESTS=true) against $QUOBYTE_API_URL (tenant: $QUOBYTE_TENANT)"
+  ( cd "${CODE_BASE_DIR}/kind-tests/e2e-tests" && \
+    KUBECONFIG="$KUBECONFIG" \
+    NAMESPACE="quobyte" \
+    QUOBYTE_API_URL="$QUOBYTE_API_URL" \
+    QUOBYTE_API_USER="$QUOBYTE_API_USER" \
+    QUOBYTE_API_PASSWORD="$QUOBYTE_API_PASSWORD" \
+    QUOBYTE_TENANT="$QUOBYTE_TENANT" \
+    CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" \
+    go test ./... -v -timeout 20m ) || die 'Failed running e2e tests'
+elif [[ -f "$TEST_CASE_DIR/k8s_storage_class.yaml" ]]; then
+  echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
+  STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
+   SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
+   CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$ENABLE_SNAPSHOTS" kind-tests/e2e \
+   || die 'Failed running e2e tests'
+else
   echo "No k8s_storage_class.yaml exists in the given test path $TEST_CASE_DIR. So not running e2e tests"
-  exit 0  # success as driver is setup with given values.yaml 
+  exit 0  # success as driver is setup with given values.yaml
 fi
-echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
-STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
- SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
- CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$ENABLE_SNAPSHOTS" kind-tests/e2e \
- || die 'Failed running e2e tests'

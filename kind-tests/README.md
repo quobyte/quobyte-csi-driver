@@ -3,7 +3,18 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-NOTE: These scripts trigger E2E tests. Results needs to manual verified.
+`run_test` provisions the kind cluster and deploys the CSI driver (built from source) and the
+Quobyte client. It then runs tests in one of two modes:
+
+- **Legacy (default)**: applies the `k8s_*.yaml` manifests in `TEST_CASE_DIR` (StorageClass,
+  Secret, Quobyte client) and, if a `k8s_storage_class.yaml` is present, runs the upstream
+  sig-storage "external storage" ginkgo suite via [`kind-tests/e2e`](./e2e). Results need manual
+  verification.
+- **Go e2e suite** (`RUN_GO_E2E_TESTS=true`): runs the self-contained suite in
+  [`e2e-tests/`](./e2e-tests), which builds its own Secret/StorageClass/PVC/Pod in Go (uniquely
+  named per run), writes/reads a file through the pod's Quobyte mount, and talks directly to the
+  Quobyte API to confirm the backing volume was actually created -- so results are asserted by
+  `go test`, not eyeballed.
 
 ## Requirements
 
@@ -38,6 +49,30 @@ NOTE: These scripts trigger E2E tests. Results needs to manual verified.
 
     You can run with `TEST_CASE_DIR` that contains only CSI driver values.yaml to deploy the driver
     (note that some defined values such as CSI image/pod killer images are overridden)
+
+3. To run the Go e2e suite instead of the legacy flow, set `RUN_GO_E2E_TESTS=true` and provide
+   `QUOBYTE_API_URL`, `QUOBYTE_API_USER`, `QUOBYTE_API_PASSWORD`, and `QUOBYTE_TENANT` in the
+   environment (same pattern as `TEST_CASE_DIR`/`CSI_PROVISIONER_NAME` -- `run_test` just forwards
+   them to `go test`, it does not read them from any YAML file):
+
+    ```bash
+    RUN_GO_E2E_TESTS=true \
+    QUOBYTE_API_URL=http://<host>:<port> \
+    QUOBYTE_API_USER=<user> QUOBYTE_API_PASSWORD=<password> QUOBYTE_TENANT="My Tenant" \
+    TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
+    ```
+
+   To iterate on the Go tests against an already-running cluster without rerunning all of
+   `run_test`:
+
+    ```bash
+    cd kind-tests/e2e-tests
+    KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte \
+    QUOBYTE_API_URL=http://<host>:<port> \
+    QUOBYTE_API_USER=<user> QUOBYTE_API_PASSWORD=<password> QUOBYTE_TENANT="My Tenant" \
+    CSI_PROVISIONER_NAME=csi.quobyte.com \
+    go test ./... -v -run TestDynamicProvisioning -timeout 20m
+    ```
 
 ## Cleanup
 
