@@ -330,7 +330,7 @@ go_e2e_tests_found=0
 for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   test_name="$(basename "$test_dir")"
   env_file="${test_dir}env"
-  values_file="${test_dir}values.yaml"
+  values_file="${CSI_CHART_TEMPLATES_DIR}values.yaml"
   if [[ ! -f "$env_file" ]]; then
     continue
   fi
