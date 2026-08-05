@@ -1,10 +1,5 @@
 #!/bin/bash
 
-MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
-# When true, run the self-contained Go e2e suite (kind-tests/e2e-tests) instead of
-# the legacy YAML-driven flow. Requires QUOBYTE_API_URL, QUOBYTE_API_USER,
-# QUOBYTE_API_PASSWORD, QUOBYTE_TENANT to be set in the environment.
-RUN_GO_E2E_TESTS=${RUN_GO_E2E_TESTS:-false}
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
 KIND_DIR="$(pwd)/kind-tests"
@@ -14,6 +9,15 @@ CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
 TEST_CASE_DIR="${TEST_CASE_DIR:-}"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
+KUBECONFIG='/tmp/quobyte-k8s-config'
+
+die() { echo "$*" 1>&2 ; exit 1; }
+
+MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
+# When true, run the self-contained Go e2e suite (kind-tests/e2e-tests) instead of
+# the legacy YAML-driven flow. Each kind-tests/e2e-tests/<name>/ directory with an
+# "env" file is run as its own test, using that file's variables.
+RUN_GO_E2E_TESTS=${RUN_GO_E2E_TESTS:-false}
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 # Quobyte registry endpoint and access-key mount feature flag for the quobyte-client helm
 # chart. QUOBYTE_REGISTRY is required; ENABLE_ACCESS_KEY_MOUNTS defaults to false.
@@ -25,9 +29,6 @@ CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
 # dummy.quobyte.com is not a docker registry. We buid docker image locally
 # and make it available to kind nodes via 'kind load docker-image'
 CSI_DRIVER_IMAGE="${CONTAINER_URL_BASE}:${CSI_DRIVER_VERSION}"
-KUBECONFIG='/tmp/quobyte-k8s-config'
-
-die() { echo "$*" 1>&2 ; exit 1; }
 
 if [ ! -z "$(git status --porcelain)" ]; then
   echo 'Requires clean directory (no stage/unstaged/untracked files) in repo'
@@ -272,72 +273,122 @@ fi
 echo "Deploying k8s resources (k8s_<...>.yaml) files in test dir $TEST_CASE_DIR"
 for file in ${TEST_CASE_DIR}/k8s_*.yaml ; do kubectl apply -f "$file"; done
 
-if [[ -z "$QUOBYTE_REGISTRY" ]]; then
-  die "QUOBYTE_REGISTRY must be set to install the quobyte-client helm chart"
-fi
-
-echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
-helm install quobyte-client "${CLIENT_CHART_DIR}" --namespace kube-system \
- --set quobyte.registry="$QUOBYTE_REGISTRY" \
- --set-string quobyte.enableAccessKeys="$ENABLE_ACCESS_KEY_MOUNTS" \
- --set-string nodeSelector.quobyte_client="true" \
- || die 'Failed installing quobyte-client helm chart'
-
-sleep 30s
-
-if [[ ! -f "${TEST_CASE_DIR}/values.yaml" ]]; then
-  die "${TEST_CASE_DIR}/values.yaml not found. Cannot setup Quobyte CSI Driver."
-fi
-
-echo ""
-echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml with overrides \
-      quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
-      quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
-      quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
-      quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME"
-# install CSI driver with the custom image
-helm install quobyte-csi-driver ${CSI_CHART_TEMPLATES_DIR} -f ${TEST_CASE_DIR}/values.yaml \
- --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
- --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
- --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
- --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME"
-
-sleep 1m
-verify_namespace_has_no_crashing_pods
-
-echo "List all pods"
-kubectl get po --all-namespaces
-
 ENABLE_SNAPSHOTS='false'
 if [[ "$enabled_snapshots" -eq 0 ]]; then
   ENABLE_SNAPSHOTS='true'
 fi
 
+# Deploys quobyte-client using the current QUOBYTE_REGISTRY/ENABLE_ACCESS_KEY_MOUNTS
+# (either the top-level defaults, or the values from a per-test "env" file below).
+deploy_quobyte_client() {
+  if [[ -z "$QUOBYTE_REGISTRY" ]]; then
+    die "QUOBYTE_REGISTRY must be set to install the quobyte-client helm chart"
+  fi
+  echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
+  helm install quobyte-client "${CLIENT_CHART_DIR}" --namespace kube-system \
+   --set quobyte.registry="$QUOBYTE_REGISTRY" \
+   --set-string quobyte.enableAccessKeys="$ENABLE_ACCESS_KEY_MOUNTS" \
+   --set-string nodeSelector.quobyte_client="true" \
+   || die 'Failed installing quobyte-client helm chart'
+  sleep 30s
+}
+
+# Deploys quobyte-csi-driver using the current CSI_PROVISIONER_NAME (either the
+# top-level default, or the value from a per-test "env" file below).
+deploy_csi_driver() {
+  if [[ ! -f "${TEST_CASE_DIR}/values.yaml" ]]; then
+    die "${TEST_CASE_DIR}/values.yaml not found. Cannot setup Quobyte CSI Driver."
+  fi
+  echo ""
+  echo "Deploying CSI Driver with $TEST_CASE_DIR/values.yaml with overrides \
+        quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
+        quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
+        quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
+        quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME"
+  helm install quobyte-csi-driver ${CSI_CHART_TEMPLATES_DIR} -f ${TEST_CASE_DIR}/values.yaml \
+   --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
+   --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
+   --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
+   --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME" \
+   || die 'Failed installing quobyte-csi-driver helm chart'
+
+  sleep 1m
+  verify_namespace_has_no_crashing_pods
+
+  echo "List all pods"
+  kubectl get po --all-namespaces
+}
+
+undeploy_csi_driver_and_client() {
+  helm uninstall quobyte-csi-driver -n quobyte || true
+  helm uninstall quobyte-client -n kube-system || true
+}
+
 echo ""
 if [[ "$RUN_GO_E2E_TESTS" == "true" ]]; then
-  for var in QUOBYTE_API_URL QUOBYTE_API_USER QUOBYTE_API_PASSWORD QUOBYTE_TENANT; do
-    if [[ -z "${!var}" ]]; then
-      die "RUN_GO_E2E_TESTS=true requires $var to be set"
+  # Each subdirectory of kind-tests/e2e-tests is a self-contained Go test package
+  # with its own "env" file (QUOBYTE_REGISTRY, ENABLE_ACCESS_KEY_MOUNTS,
+  # CSI_PROVISIONER_NAME, QUOBYTE_API_URL/USER/PASSWORD/TENANT, ...). For each one
+  # found: deploy its environment (export the file's variables), deploy
+  # quobyte-client and quobyte-csi-driver using that environment, run just that
+  # package's tests, then tear down the driver/client and remove the environment
+  # (unset those variables) before moving on to the next test.
+  GO_E2E_TESTS_DIR="${CODE_BASE_DIR}/kind-tests/e2e-tests"
+  go_e2e_tests_failed=0
+  go_e2e_tests_found=0
+
+  for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
+    test_name="$(basename "$test_dir")"
+    env_file="${test_dir}env"
+    if [[ ! -f "$env_file" ]]; then
+      continue
     fi
+    go_e2e_tests_found=1
+
+    echo "Deploying environment for Go e2e test '$test_name' from $env_file"
+    set -a
+    source "$env_file"
+    set +a
+
+    deploy_quobyte_client
+    deploy_csi_driver
+
+    echo "Running Go e2e test '$test_name'"
+    ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="quobyte" \
+      go test "./${test_name}/..." -v -timeout 20m )
+    if [[ "$?" -ne 0 ]]; then
+      echo "Go e2e test '$test_name' failed"
+      go_e2e_tests_failed=1
+    fi
+
+    echo "Removing quobyte-csi-driver/quobyte-client deployed for '$test_name'"
+    undeploy_csi_driver_and_client
+
+    echo "Removing environment for Go e2e test '$test_name'"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      unset "${line%%=*}"
+    done < "$env_file"
   done
 
-  echo "Running Go e2e tests (RUN_GO_E2E_TESTS=true) against $QUOBYTE_API_URL (tenant: $QUOBYTE_TENANT)"
-  ( cd "${CODE_BASE_DIR}/kind-tests/e2e-tests" && \
-    KUBECONFIG="$KUBECONFIG" \
-    NAMESPACE="quobyte" \
-    QUOBYTE_API_URL="$QUOBYTE_API_URL" \
-    QUOBYTE_API_USER="$QUOBYTE_API_USER" \
-    QUOBYTE_API_PASSWORD="$QUOBYTE_API_PASSWORD" \
-    QUOBYTE_TENANT="$QUOBYTE_TENANT" \
-    CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" \
-    go test ./... -v -timeout 20m ) || die 'Failed running e2e tests'
-elif [[ -f "$TEST_CASE_DIR/k8s_storage_class.yaml" ]]; then
-  echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
-  STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
-   SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
-   CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$ENABLE_SNAPSHOTS" kind-tests/e2e \
-   || die 'Failed running e2e tests'
+  if [[ "$go_e2e_tests_found" -eq 0 ]]; then
+    die "RUN_GO_E2E_TESTS=true but no test directory with an 'env' file was found under ${GO_E2E_TESTS_DIR}"
+  fi
+  if [[ "$go_e2e_tests_failed" -ne 0 ]]; then
+    die 'One or more Go e2e tests failed'
+  fi
 else
-  echo "No k8s_storage_class.yaml exists in the given test path $TEST_CASE_DIR. So not running e2e tests"
-  exit 0  # success as driver is setup with given values.yaml
+  deploy_quobyte_client
+  deploy_csi_driver
+
+  if [[ -f "$TEST_CASE_DIR/k8s_storage_class.yaml" ]]; then
+    echo "Running e2e tests the storage class in $TEST_CASE_DIR/k8s_storage_class.yaml"
+    STORAGE_CLASS="$TEST_CASE_DIR/k8s_storage_class.yaml" KUBECONFIG="$KUBECONFIG" \
+     SNAPSHOT_CLASS="$TEST_CASE_DIR/k8s_volume-snapshot-class.yaml" \
+     CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$ENABLE_SNAPSHOTS" kind-tests/e2e \
+     || die 'Failed running e2e tests'
+  else
+    echo "No k8s_storage_class.yaml exists in the given test path $TEST_CASE_DIR. So not running e2e tests"
+    exit 0  # success as driver is setup with given values.yaml
+  fi
 fi
