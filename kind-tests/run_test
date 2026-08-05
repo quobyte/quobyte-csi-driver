@@ -13,6 +13,23 @@ KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
+# --- Quobyte API endpoint / registry (positional args) ---------------------------
+QUOBYTE_API_URL="$1"
+QUOBYTE_REGISTRY="$2"
+QUOBYTE_API_USER="${3:-admin}"
+QUOBYTE_API_PASSWORD="${4:-quobyte}"
+
+if [[ -z "$QUOBYTE_API_URL" || -z "$QUOBYTE_REGISTRY" ]]; then
+  die "Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+  QUOBYTE_API_URL and QUOBYTE_REGISTRY are required. QUOBYTE_API_USER/QUOBYTE_API_PASSWORD
+  are optional, defaulting to 'admin'/'quobyte' if not given.
+  Example: kind-tests/run_test http://host:port host:port"
+fi
+
+# Exported so every helm/kubectl call and the Go e2e tests (framework.LoadConfig reads
+# these via os.Getenv) below can see them, the same way KUBECONFIG is exported.
+export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD
+
 # --- Required tools (see kind-tests/README.md "Requirements") -------------------
 # docker and go are foundational (version/daemon management is out of scope for this
 # script) so we only check for them. kind/helm/kubectl are simple standalone binaries,
@@ -90,6 +107,9 @@ install_helm_if_missing
 install_kubectl_if_missing
 
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
+# Same physical driver for every test directory in a run, so this is script-level config
+# rather than something duplicated into each test's "env" file.
+export CSI_PROVISIONER_NAME="${CSI_PROVISIONER_NAME:-csi.quobyte.com}"
 CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
 CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
@@ -345,12 +365,9 @@ deploy_snapshot_resources_if_needed() {
   snapshot_crds_installed=1
 }
 
-# Deploys quobyte-client using the current QUOBYTE_REGISTRY/ENABLE_ACCESS_KEY_MOUNTS
-# (set by the per-test "env" file sourced by the caller).
+# Deploys quobyte-client using QUOBYTE_REGISTRY (a required script argument, see top of
+# file) and ENABLE_ACCESS_KEY_MOUNTS (set by the per-test "env" file sourced by the caller).
 deploy_quobyte_client() {
-  if [[ -z "$QUOBYTE_REGISTRY" ]]; then
-    die "QUOBYTE_REGISTRY must be set to install the quobyte-client helm chart"
-  fi
   echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
   helm install quobyte-client "${CLIENT_CHART_DIR}" --namespace kube-system \
    --set quobyte.registry="$QUOBYTE_REGISTRY" \
@@ -360,8 +377,8 @@ deploy_quobyte_client() {
   sleep 30s
 }
 
-# Deploys quobyte-csi-driver from the given values.yaml, using the current
-# CSI_PROVISIONER_NAME (set by the per-test "env" file sourced by the caller).
+# Deploys quobyte-csi-driver from the given values.yaml, using CSI_PROVISIONER_NAME and
+# QUOBYTE_API_URL (both script-level config, see top of file).
 deploy_csi_driver() {
   local values_file="$1"
   if [[ ! -f "$values_file" ]]; then
@@ -400,6 +417,7 @@ undeploy_csi_driver_and_client() {
 dump_debug_info() {
   local test_name="$1"
   local debug_dir="$2"
+  local test_namespace="$3"
   echo "Dumping debug information for failed test '$test_name' to $debug_dir"
 
   {
@@ -419,17 +437,18 @@ dump_debug_info() {
   kubectl get csidriver -o yaml > "${debug_dir}/csidriver.yaml" 2>&1
   helm list --all-namespaces > "${debug_dir}/helm-releases.txt" 2>&1
 
-  # The Go e2e test's own PVC/Pod/Secret live in the "quobyte" namespace (NAMESPACE
-  # passed to go test). Events/describe/logs scoped to just that namespace are the
-  # most directly relevant signal for why the test pod itself failed to schedule,
-  # mount, or run -- pulled out separately from the all-namespaces dump above since
-  # that gets noisy with kube-system/kind-system events.
-  echo "Collecting events/pod state for the quobyte namespace (where the e2e test pod runs)"
-  kubectl get events -n quobyte --sort-by='.lastTimestamp' > "${debug_dir}/events-quobyte-namespace.txt" 2>&1
-  kubectl -n quobyte describe pods > "${debug_dir}/pods-describe-quobyte-namespace.txt" 2>&1
+  # The Go e2e test's own PVC/Pod/Secret live in test_namespace (NAMESPACE passed to
+  # go test, randomized per test run). Events/describe/logs scoped to just that
+  # namespace are the most directly relevant signal for why the test pod itself
+  # failed to schedule, mount, or run -- pulled out separately from the
+  # all-namespaces dump above since that gets noisy with kube-system/kind-system
+  # events.
+  echo "Collecting events/pod state for the test namespace $test_namespace (where the e2e test pod runs)"
+  kubectl get events -n "$test_namespace" --sort-by='.lastTimestamp' > "${debug_dir}/events-test-namespace.txt" 2>&1
+  kubectl -n "$test_namespace" describe pods > "${debug_dir}/pods-describe-test-namespace.txt" 2>&1
   local test_pod
-  for test_pod in $(kubectl -n quobyte get po -o name 2>/dev/null); do
-    kubectl -n quobyte logs "${test_pod#pod/}" --all-containers > "${debug_dir}/${test_pod#pod/}.log" 2>&1
+  for test_pod in $(kubectl -n "$test_namespace" get po -o name 2>/dev/null); do
+    kubectl -n "$test_namespace" logs "${test_pod#pod/}" --all-containers > "${debug_dir}/${test_pod#pod/}.log" 2>&1
   done
 
   echo "Collecting Quobyte CSI driver logs via log_collector.sh"
@@ -445,39 +464,40 @@ dump_debug_info() {
   echo "Debug information for '$test_name' saved to $debug_dir"
 }
 
-# If ${test_dir}k8s_storage_class.yaml exists, runs the upstream Kubernetes e2e
-# (sig-storage "external storage") suite via kind-tests/e2e against the exact same
+# If a StorageClass artifact was dumped into artifacts_dir by the Go test (see
+# framework.DumpStorageClassYAML in kind-tests/e2e-tests), runs the upstream Kubernetes
+# e2e (sig-storage "external storage") suite via kind-tests/e2e against the exact same
 # quobyte-csi-driver/quobyte-client deployment the Go test in $test_dir just passed
-# against -- applying that directory's own k8s_quobyte_secret.yaml/k8s_storage_class.yaml
-# (not the Go test's dynamically-named, already-deleted ones) so the upstream suite has
-# a StorageClass to provision against. Returns non-zero on failure; caller decides what
-# to do (the debug snapshot/cleanup-skip behavior lives in the caller, same as for the
-# Go test, so both failure paths look the same to the user).
+# against. The Go test's own successful cleanup has already deleted its Secret and
+# StorageClass from the cluster by the time this runs, so the dumped copies are
+# re-applied here, used for the upstream suite, then deleted again afterward. Returns
+# non-zero on failure; caller decides what to do (the debug snapshot/cleanup-skip
+# behavior lives in the caller, same as for the Go test, so both failure paths look the
+# same to the user).
 run_upstream_k8s_e2e_if_configured() {
   local test_name="$1"
-  local test_dir="$2"
-  local values_file="$3"
-  local debug_dir="$4"
+  local artifacts_dir="$2"
+  local debug_dir="$3"
 
-  local storage_class_file="${test_dir}k8s_storage_class.yaml"
-  if [[ ! -f "$storage_class_file" ]]; then
+  local storage_class_file
+  storage_class_file="$(ls "${artifacts_dir}"/*-storageclass.yaml 2>/dev/null | head -n1)"
+  if [[ -z "$storage_class_file" ]]; then
+    echo "No StorageClass artifact found in $artifacts_dir. Skipping upstream k8s e2e for '$test_name'."
     return 0
   fi
 
   echo ""
   echo "Running upstream Kubernetes e2e (external-storage) suite for '$test_name' against the same setup"
 
-  local secret_file="${test_dir}k8s_quobyte_secret.yaml"
-  if [[ -f "$secret_file" ]]; then
+  local secret_file
+  secret_file="$(ls "${artifacts_dir}"/*-secret.yaml 2>/dev/null | head -n1)"
+  if [[ -n "$secret_file" ]]; then
     kubectl apply -f "$secret_file" || die "Failed applying $secret_file"
   fi
   kubectl apply -f "$storage_class_file" || die "Failed applying $storage_class_file"
 
-  local snapshot_class_file="${test_dir}k8s_volume-snapshot-class.yaml"
+  local snapshot_class_file="${artifacts_dir}/k8s_volume-snapshot-class.yaml"
   local enable_snapshots='false'
-  if grep -E "enableSnapshots:.*true" "$values_file" &> /dev/null; then
-    enable_snapshots='true'
-  fi
 
   STORAGE_CLASS="$storage_class_file" KUBECONFIG="$KUBECONFIG" \
    SNAPSHOT_CLASS="$snapshot_class_file" \
@@ -486,7 +506,7 @@ run_upstream_k8s_e2e_if_configured() {
   local status=${PIPESTATUS[0]}
 
   kubectl delete -f "$storage_class_file" --ignore-not-found
-  if [[ -f "$secret_file" ]]; then
+  if [[ -n "$secret_file" ]]; then
     kubectl delete -f "$secret_file" --ignore-not-found
   fi
 
@@ -495,9 +515,13 @@ run_upstream_k8s_e2e_if_configured() {
 
 echo ""
 # Each subdirectory of kind-tests/e2e-tests is a self-contained Go test package with
-# its own "env" file (QUOBYTE_REGISTRY, ENABLE_ACCESS_KEY_MOUNTS, CSI_PROVISIONER_NAME,
-# QUOBYTE_API_URL/USER/PASSWORD/TENANT, ...) and its own "values.yaml" for the CSI
-# driver chart. For each one found: deploy its environment (export the env file's
+# its own "env" file (ENABLE_ACCESS_KEY_MOUNTS and any test-specific overrides like
+# QUOBYTE_TENANT) and its own "values.yaml" for the CSI driver chart. The Quobyte API
+# endpoint/client registry (QUOBYTE_API_URL/USER/PASSWORD, QUOBYTE_REGISTRY) and
+# CSI_PROVISIONER_NAME are script-level config (see top of file), not part of any
+# per-test env file -- the same physical endpoints/driver apply to every test directory
+# in a run.
+# For each test directory found: deploy its environment (export the env file's
 # variables), deploy quobyte-client and quobyte-csi-driver using that environment and
 # values.yaml, run just that package's tests, then tear down the driver/client and
 # remove the environment (unset those variables) before moving on to the next test.
@@ -525,14 +549,33 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   deploy_quobyte_client
   deploy_csi_driver "$values_file"
 
+  # Randomize the namespace the test's own Secret/StorageClass/PVC/Pod live in
+  # (separate from the driver's fixed "quobyte" operating namespace set up above)
+  # so each test run gets isolated, uniquely-named resources.
+  test_suffix="$(date +%s)-${RANDOM}"
+  test_namespace="quobyte-e2e-${test_suffix}"
+  storage_class_name="quobyte-sc-${test_suffix}"
+  # Generate a unique tenant name per run, unless the test's own "env" file already
+  # pins one (e.g. because it must run against a pre-existing tenant). Only the name
+  # is generated here -- actually creating the tenant + user and granting access to it
+  # is not done yet (TODO(venkat)), so this only helps once that exists, or for tests
+  # that create/expect their own tenant out of band.
+  quobyte_tenant="${QUOBYTE_TENANT:-quobyte-tenant-${test_suffix}}"
+  echo "Creating test namespace $test_namespace"
+  kubectl create ns "$test_namespace" || die "Failed creating namespace $test_namespace"
+
   echo "Running Go e2e test '$test_name'"
   debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}"
-  mkdir -p "$debug_dir"
-  ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="quobyte" \
+  artifacts_dir="${debug_dir}/artifacts"
+  mkdir -p "$debug_dir" "$artifacts_dir"
+  ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="$test_namespace" \
+    STORAGE_CLASS_NAME="$storage_class_name" \
+    QUOBYTE_TENANT="$quobyte_tenant" \
+    ARTIFACTS_DIR="$artifacts_dir" \
     go test "./${test_name}/..." -v -timeout 20m -count="${GO_TEST_COUNT:-1}" ) 2>&1 | tee "${debug_dir}/go-test-output.log"
   test_status=${PIPESTATUS[0]}
   if [[ "$test_status" -ne 0 ]]; then
-    dump_debug_info "$test_name" "$debug_dir"
+    dump_debug_info "$test_name" "$debug_dir" "$test_namespace"
     echo ""
     echo "Go e2e test '$test_name' FAILED."
     echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
@@ -540,7 +583,7 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
     echo "running -- inspect them live, e.g.:"
     echo ""
     echo "  export KUBECONFIG=$KUBECONFIG"
-    echo "  kubectl -n quobyte get pods,pvc,secret,storageclass"
+    echo "  kubectl -n $test_namespace get pods,pvc,secret,storageclass"
     echo ""
     echo "A best-effort debug snapshot (pod/events/driver+client logs) was also saved to"
     echo "$debug_dir"
@@ -548,9 +591,13 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
     echo "Run 'kind-tests/cleanup' when done to tear everything down."
     die "Stopping after first failed Go e2e test ('$test_name')."
   fi
+  run_upstream_k8s_e2e_if_configured "$test_name" "$artifacts_dir" "$debug_dir"
 
   echo "Removing quobyte-csi-driver/quobyte-client deployed for '$test_name'"
   undeploy_csi_driver_and_client
+
+  echo "Removing test namespace $test_namespace"
+  kubectl delete ns "$test_namespace" --ignore-not-found
 
   echo "Removing environment for Go e2e test '$test_name'"
   while IFS= read -r line || [[ -n "$line" ]]; do

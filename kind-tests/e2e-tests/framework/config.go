@@ -9,12 +9,23 @@ import (
 // against an already-deployed kind cluster + CSI driver + Quobyte client.
 type Config struct {
 	Kubeconfig         string
-	Namespace          string
 	QuobyteAPIURL      string
 	QuobyteAPIUser     string
 	QuobyteAPIPassword string
-	QuobyteTenant      string
 	CSIProvisionerName string
+	// Created by the script during the test run
+	Namespace string
+	// Created by the script during the test run - only override in env if needed
+	// some specific tenant
+	QuobyteTenant string
+	// StorageClassName optionally overrides the StorageClass name the test
+	// generates for itself. Not required -- if unset, the test falls back to
+	// its own generated name.
+	StorageClassName string
+	// ArtifactsDir optionally names a directory the test should write copies
+	// of the Secret/StorageClass it creates to, before deleting them. Not
+	// required -- if unset, artifact dumping is skipped.
+	ArtifactsDir string
 }
 
 // LoadConfig reads the required environment variables and fails the test
@@ -30,6 +41,8 @@ func LoadConfig(t *testing.T) Config {
 		QuobyteAPIPassword: os.Getenv("QUOBYTE_API_PASSWORD"),
 		QuobyteTenant:      os.Getenv("QUOBYTE_TENANT"),
 		CSIProvisionerName: os.Getenv("CSI_PROVISIONER_NAME"),
+		StorageClassName:   os.Getenv("STORAGE_CLASS_NAME"),
+		ArtifactsDir:       os.Getenv("ARTIFACTS_DIR"),
 	}
 
 	required := map[string]string{

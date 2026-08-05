@@ -51,12 +51,24 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 
 	quobyteClient := framework.NewQuobyteClient(cfg)
 
+	require.NoError(t, framework.EnsureTenant(quobyteClient, cfg.QuobyteTenant, cfg.QuobyteAPIUser),
+		"ensuring tenant %q exists and %q has access to it", cfg.QuobyteTenant, cfg.QuobyteAPIUser)
+
 	suffix := time.Now().UnixNano()
 	secretName := fmt.Sprintf("e2e-dynprov-secret-%d", suffix)
-	storageClassName := fmt.Sprintf("e2e-dynprov-sc-%d", suffix)
+	storageClassName := cfg.StorageClassName
+	if storageClassName == "" {
+		storageClassName = fmt.Sprintf("e2e-dynprov-sc-%d", suffix)
+	}
 	pvcName := fmt.Sprintf("e2e-dynprov-pvc-%d", suffix)
 	podName := fmt.Sprintf("e2e-dynprov-pod-%d", suffix)
 	const mountPath = "/mnt/test"
+
+	// Shared prefix for artifact files dumped below -- lets run_test find
+	// and re-apply this run's Secret/StorageClass after the test's own
+	// cleanup has deleted them (e.g. to run the upstream k8s e2e suite
+	// against the exact same setup).
+	artifactPrefix := fmt.Sprintf("%s-%d", t.Name(), suffix)
 
 	// Registered in dependency order (secret -> storage class -> pvc -> pod) so
 	// t.Cleanup, which runs LIFO, tears down pod -> pvc -> storage class -> secret
@@ -67,6 +79,11 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	secret := framework.NewSecret(secretName, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword)
 	_, err = clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	require.NoError(t, err, "creating secret")
+	if path, err := framework.DumpSecretYAML(cfg.ArtifactsDir, artifactPrefix, secret); err != nil {
+		t.Logf("warning: failed to dump secret artifact: %v", err)
+	} else if path != "" {
+		t.Logf("wrote secret artifact to %s", path)
+	}
 	cleanupUnlessFailed(t, fmt.Sprintf("secret %s/%s", cfg.Namespace, secretName), func() {
 		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secretName, metav1.DeleteOptions{})
 	})
@@ -74,6 +91,11 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	storageClass := framework.NewStorageClass(storageClassName, cfg.CSIProvisionerName, cfg.QuobyteTenant, secretName, cfg.Namespace)
 	_, err = clientset.StorageV1().StorageClasses().Create(ctx, storageClass, metav1.CreateOptions{})
 	require.NoError(t, err, "creating storage class")
+	if path, err := framework.DumpStorageClassYAML(cfg.ArtifactsDir, artifactPrefix, storageClass); err != nil {
+		t.Logf("warning: failed to dump storage class artifact: %v", err)
+	} else if path != "" {
+		t.Logf("wrote storage class artifact to %s", path)
+	}
 	cleanupUnlessFailed(t, fmt.Sprintf("storage class %s", storageClassName), func() {
 		_ = clientset.StorageV1().StorageClasses().Delete(context.Background(), storageClassName, metav1.DeleteOptions{})
 	})
