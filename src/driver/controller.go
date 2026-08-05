@@ -76,7 +76,7 @@ func (d *QuobyteDriver) CreateVolume(
 	whoAmIReq := &quobyte.WhoAmIRequest{}
 	userInfo, err := quobyteClient.WhoAmI(whoAmIReq)
 	if err != nil {
-		return nil, fmt.Errorf("unable to resolve user/group via Quobyte API")
+		return nil, fmt.Errorf("unable to resolve user/group via Quobyte API: %s", err)
 	}
 	volRequest.RootUserId = userInfo.UserName
 	volRequest.RootGroupId = userInfo.PrimaryGroup
