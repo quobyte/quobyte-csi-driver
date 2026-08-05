@@ -13,6 +13,82 @@ KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
+# --- Required tools (see kind-tests/README.md "Requirements") -------------------
+# docker and go are foundational (version/daemon management is out of scope for this
+# script) so we only check for them. kind/helm/kubectl are simple standalone binaries,
+# so if they're missing we install them automatically.
+
+require_docker_running() {
+  if ! command -v docker &>/dev/null; then
+    die "docker is required but was not found. Install Docker: https://docs.docker.com/engine/install/"
+  fi
+  if ! docker info &>/dev/null; then
+    die "docker is installed but the docker service does not appear to be running. Start it and re-run."
+  fi
+}
+
+require_go() {
+  if ! command -v go &>/dev/null; then
+    die "go is required but was not found in PATH. Install Go: https://go.dev/doc/install"
+  fi
+}
+
+install_kind_if_missing() {
+  if command -v kind &>/dev/null; then
+    return
+  fi
+  # kind may already be installed under $(go env GOPATH)/bin, just not on PATH yet.
+  export PATH="$(go env GOPATH)/bin:${PATH}"
+  if command -v kind &>/dev/null; then
+    return
+  fi
+  echo "kind not found, installing via 'go install sigs.k8s.io/kind@latest' ..."
+  go install sigs.k8s.io/kind@latest || die "Failed installing kind"
+  command -v kind &>/dev/null || die "kind was installed but is not on PATH (expected $(go env GOPATH)/bin)"
+  echo "Installed kind: $(kind version)"
+}
+
+install_helm_if_missing() {
+  if command -v helm &>/dev/null; then
+    return
+  fi
+  echo "helm not found, installing via the official get-helm-3 script ..."
+  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash \
+    || die "Failed installing helm"
+  command -v helm &>/dev/null || die "helm installation did not succeed"
+  echo "Installed helm: $(helm version --short)"
+}
+
+install_kubectl_if_missing() {
+  if command -v kubectl &>/dev/null; then
+    return
+  fi
+  echo "kubectl not found, installing latest stable release ..."
+  local os arch kubectl_version tmp
+  os="$(uname | tr '[:upper:]' '[:lower:]')"
+  case "$(uname -m)" in
+    x86_64) arch="amd64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *) die "Unsupported architecture $(uname -m) for automatic kubectl install. Install kubectl manually: https://kubernetes.io/docs/tasks/tools/#kubectl" ;;
+  esac
+  kubectl_version="$(curl -Ls https://dl.k8s.io/release/stable.txt)" || die "Failed determining latest kubectl version"
+  tmp="$(mktemp)"
+  curl -Lo "$tmp" "https://dl.k8s.io/release/${kubectl_version}/bin/${os}/${arch}/kubectl" \
+    || die "Failed downloading kubectl"
+  chmod +x "$tmp"
+  sudo install -m 0755 "$tmp" /usr/local/bin/kubectl || die "Failed installing kubectl to /usr/local/bin/kubectl"
+  rm -f "$tmp"
+  command -v kubectl &>/dev/null || die "kubectl was installed but is not on PATH"
+  echo "Installed kubectl: $kubectl_version"
+}
+
+echo "*** Checking required tools (docker, go, kind, helm, kubectl) ***"
+require_docker_running
+require_go
+install_kind_if_missing
+install_helm_if_missing
+install_kubectl_if_missing
+
 MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
@@ -316,6 +392,57 @@ undeploy_csi_driver_and_client() {
   helm uninstall quobyte-client -n kube-system || true
 }
 
+# Dumps cluster/driver/client state into debug_dir for a failed test, before
+# undeploy_csi_driver_and_client tears anything down. Best-effort: individual
+# collection steps are allowed to fail without aborting the dump.
+dump_debug_info() {
+  local test_name="$1"
+  local debug_dir="$2"
+  echo "Dumping debug information for failed test '$test_name' to $debug_dir"
+
+  {
+    echo "test_dir=${test_dir}"
+    echo "values_file=${values_file}"
+    echo "QUOBYTE_API_URL=${QUOBYTE_API_URL}"
+    echo "QUOBYTE_TENANT=${QUOBYTE_TENANT}"
+    echo "QUOBYTE_REGISTRY=${QUOBYTE_REGISTRY}"
+    echo "ENABLE_ACCESS_KEY_MOUNTS=${ENABLE_ACCESS_KEY_MOUNTS}"
+    echo "CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME}"
+  } > "${debug_dir}/test-env.txt"
+
+  kubectl get pods --all-namespaces -o wide > "${debug_dir}/pods.txt" 2>&1
+  kubectl describe pods --all-namespaces > "${debug_dir}/pods-describe.txt" 2>&1
+  kubectl get events --all-namespaces --sort-by='.lastTimestamp' > "${debug_dir}/events.txt" 2>&1
+  kubectl get pvc,pv,storageclass,secret --all-namespaces -o wide > "${debug_dir}/storage.txt" 2>&1
+  kubectl get csidriver -o yaml > "${debug_dir}/csidriver.yaml" 2>&1
+  helm list --all-namespaces > "${debug_dir}/helm-releases.txt" 2>&1
+
+  # The Go e2e test's own PVC/Pod/Secret live in the "quobyte" namespace (NAMESPACE
+  # passed to go test). Events/describe/logs scoped to just that namespace are the
+  # most directly relevant signal for why the test pod itself failed to schedule,
+  # mount, or run -- pulled out separately from the all-namespaces dump above since
+  # that gets noisy with kube-system/kind-system events.
+  echo "Collecting events/pod state for the quobyte namespace (where the e2e test pod runs)"
+  kubectl get events -n quobyte --sort-by='.lastTimestamp' > "${debug_dir}/events-quobyte-namespace.txt" 2>&1
+  kubectl -n quobyte describe pods > "${debug_dir}/pods-describe-quobyte-namespace.txt" 2>&1
+  local test_pod
+  for test_pod in $(kubectl -n quobyte get po -o name 2>/dev/null); do
+    kubectl -n quobyte logs "${test_pod#pod/}" --all-containers > "${debug_dir}/${test_pod#pod/}.log" 2>&1
+  done
+
+  echo "Collecting Quobyte CSI driver logs via log_collector.sh"
+  ( cd "$debug_dir" && DRIVER_NAMESPACE="quobyte" bash "${CSI_CHART_TEMPLATES_DIR}log_collector.sh" ) \
+    || echo "log_collector.sh failed, continuing"
+
+  echo "Collecting Quobyte client logs"
+  local client_pod
+  for client_pod in $(kubectl -n kube-system get po -l role=client -o name 2>/dev/null); do
+    kubectl -n kube-system logs "${client_pod#pod/}" > "${debug_dir}/${client_pod#pod/}.log" 2>&1
+  done
+
+  echo "Debug information for '$test_name' saved to $debug_dir"
+}
+
 echo ""
 # Each subdirectory of kind-tests/e2e-tests is a self-contained Go test package with
 # its own "env" file (QUOBYTE_REGISTRY, ENABLE_ACCESS_KEY_MOUNTS, CSI_PROVISIONER_NAME,
@@ -324,13 +451,16 @@ echo ""
 # variables), deploy quobyte-client and quobyte-csi-driver using that environment and
 # values.yaml, run just that package's tests, then tear down the driver/client and
 # remove the environment (unset those variables) before moving on to the next test.
-go_e2e_tests_failed=0
+# On failure, everything (cluster, driver, client, and the test's own resources) is
+# left running for live debugging instead of continuing to the next test -- see
+# cleanupUnlessFailed in the Go tests, which skips deleting its own resources when
+# the test failed.
 go_e2e_tests_found=0
 
 for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   test_name="$(basename "$test_dir")"
   env_file="${test_dir}env"
-  values_file="${CSI_CHART_TEMPLATES_DIR}values.yaml"
+  values_file="${test_dir}values.yaml"
   if [[ ! -f "$env_file" ]]; then
     continue
   fi
@@ -346,11 +476,27 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   deploy_csi_driver "$values_file"
 
   echo "Running Go e2e test '$test_name'"
+  debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}"
+  mkdir -p "$debug_dir"
   ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="quobyte" \
-    go test "./${test_name}/..." -v -timeout 20m )
-  if [[ "$?" -ne 0 ]]; then
-    echo "Go e2e test '$test_name' failed"
-    go_e2e_tests_failed=1
+    go test "./${test_name}/..." -v -timeout 20m ) 2>&1 | tee "${debug_dir}/go-test-output.log"
+  test_status=${PIPESTATUS[0]}
+  if [[ "$test_status" -ne 0 ]]; then
+    dump_debug_info "$test_name" "$debug_dir"
+    echo ""
+    echo "Go e2e test '$test_name' FAILED."
+    echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
+    echo "quobyte-client, and this test's Secret/StorageClass/PVC/Pod are all still"
+    echo "running -- inspect them live, e.g.:"
+    echo ""
+    echo "  export KUBECONFIG=$KUBECONFIG"
+    echo "  kubectl -n quobyte get pods,pvc,secret,storageclass"
+    echo ""
+    echo "A best-effort debug snapshot (pod/events/driver+client logs) was also saved to"
+    echo "$debug_dir"
+    echo ""
+    echo "Run 'kind-tests/cleanup' when done to tear everything down."
+    die "Stopping after first failed Go e2e test ('$test_name')."
   fi
 
   echo "Removing quobyte-csi-driver/quobyte-client deployed for '$test_name'"
@@ -365,7 +511,4 @@ done
 
 if [[ "$go_e2e_tests_found" -eq 0 ]]; then
   die "No test directory with an 'env' file was found under ${GO_E2E_TESTS_DIR}"
-fi
-if [[ "$go_e2e_tests_failed" -ne 0 ]]; then
-  die 'One or more Go e2e tests failed'
 fi

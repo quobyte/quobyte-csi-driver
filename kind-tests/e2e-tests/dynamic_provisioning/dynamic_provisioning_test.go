@@ -12,6 +12,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// cleanupUnlessFailed registers fn to run during t.Cleanup, but skips it if the
+// test has already failed -- leaving the Secret/StorageClass/PVC/Pod (and the
+// CSI driver/client run_test deployed for this test) in the cluster so a failure
+// can be debugged live with kubectl against the still-running KUBECONFIG cluster,
+// instead of everything being torn down immediately.
+func cleanupUnlessFailed(t *testing.T, description string, fn func()) {
+	t.Cleanup(func() {
+		if t.Failed() {
+			t.Logf("test failed; leaving %s in place for debugging", description)
+			return
+		}
+		fn()
+	})
+}
+
 // TestDynamicProvisioningCreatesVolumeAndIsWritable exercises the basic
 // dynamic-provisioning flow against a cluster set up by kind-tests/run_test.
 // Every k8s resource involved -- Secret, StorageClass, PVC, Pod -- is
@@ -43,29 +58,30 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	podName := fmt.Sprintf("e2e-dynprov-pod-%d", suffix)
 	const mountPath = "/mnt/test"
 
-	// Registered in dependency order (secret -> storage class -> pvc -> pod)
-	// so t.Cleanup, which runs LIFO, tears down pod -> pvc -> storage class
-	// -> secret: the pod is removed before its volume, and the secret the
-	// CSI driver needs to delete the underlying Quobyte volume outlives the
-	// PVC deletion that triggers it.
+	// Registered in dependency order (secret -> storage class -> pvc -> pod) so
+	// t.Cleanup, which runs LIFO, tears down pod -> pvc -> storage class -> secret
+	// on success: the pod is removed before its volume, and the secret the CSI
+	// driver needs to delete the underlying Quobyte volume outlives the PVC
+	// deletion that triggers it. On failure, cleanupUnlessFailed skips all of this
+	// so the resources stay live for debugging (see run_test).
 	secret := framework.NewSecret(secretName, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword)
 	_, err = clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	require.NoError(t, err, "creating secret")
-	t.Cleanup(func() {
+	cleanupUnlessFailed(t, fmt.Sprintf("secret %s/%s", cfg.Namespace, secretName), func() {
 		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secretName, metav1.DeleteOptions{})
 	})
 
 	storageClass := framework.NewStorageClass(storageClassName, cfg.CSIProvisionerName, cfg.QuobyteTenant, secretName, cfg.Namespace)
 	_, err = clientset.StorageV1().StorageClasses().Create(ctx, storageClass, metav1.CreateOptions{})
 	require.NoError(t, err, "creating storage class")
-	t.Cleanup(func() {
+	cleanupUnlessFailed(t, fmt.Sprintf("storage class %s", storageClassName), func() {
 		_ = clientset.StorageV1().StorageClasses().Delete(context.Background(), storageClassName, metav1.DeleteOptions{})
 	})
 
 	pvc := framework.NewPVC(pvcName, cfg.Namespace, storageClassName, "1Gi")
 	_, err = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	require.NoError(t, err, "creating pvc")
-	t.Cleanup(func() {
+	cleanupUnlessFailed(t, fmt.Sprintf("pvc %s/%s", cfg.Namespace, pvcName), func() {
 		_ = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
 	})
 
@@ -75,7 +91,7 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	pod := framework.NewPod(podName, cfg.Namespace, pvcName, mountPath)
 	_, err = clientset.CoreV1().Pods(cfg.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	require.NoError(t, err, "creating pod")
-	t.Cleanup(func() {
+	cleanupUnlessFailed(t, fmt.Sprintf("pod %s/%s", cfg.Namespace, podName), func() {
 		_ = clientset.CoreV1().Pods(cfg.Namespace).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	})
 
