@@ -8,8 +8,7 @@ import (
 
 // NewSecret builds the Quobyte API credentials Secret referenced by a
 // StorageClass's provisioner/controller-expand/node-publish secret
-// parameters, mirroring
-// kind-tests/test-configs/local_cluster/k8s_quobyte_secret.yaml.
+// parameters.
 func NewSecret(name, namespace, user, password string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

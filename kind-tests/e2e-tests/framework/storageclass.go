@@ -7,11 +7,9 @@ import (
 )
 
 // NewStorageClass builds a StorageClass object referencing the given secret
-// for provisioning/expansion/mounting, mirroring
-// kind-tests/test-configs/local_cluster/k8s_storage_class.yaml but expressed
-// as a typed object so the test can generate a fresh, uniquely-named
-// StorageClass per run instead of depending on one being pre-applied to the
-// cluster.
+// for provisioning/expansion/mounting, expressed as a typed object so the
+// test can generate a fresh, uniquely-named StorageClass per run instead of
+// depending on one being pre-applied to the cluster.
 func NewStorageClass(name, provisioner, tenant, secretName, secretNamespace string) *storagev1.StorageClass {
 	allowVolumeExpansion := true
 	reclaimPolicy := corev1.PersistentVolumeReclaimDelete

@@ -1,7 +1,7 @@
-QUOBYTE_API_URL=http://venkat.corp.quobyte.com:2915
+QUOBYTE_API_URL=http://venkat.corp.quobyte.com:2103
 QUOBYTE_API_USER=admin
 QUOBYTE_API_PASSWORD=quobyte
 QUOBYTE_TENANT="My Tenant"
 CSI_PROVISIONER_NAME=csi.quobyte.com
-QUOBYTE_REGISTRY=venkat.corp.quobyte.com:2922
+QUOBYTE_REGISTRY=venkat.corp.quobyte.com:2110
 ENABLE_ACCESS_KEY_MOUNTS=false

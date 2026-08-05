@@ -3,25 +3,29 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`run_test` provisions the kind cluster, deploys the CSI driver (built from source) via the
-[`quobyte-csi`](./quobyte-k8s-resources/helm/quobyte-csi) helm chart, and deploys the Quobyte
-client via the [`quobyte-client`](./quobyte-k8s-resources/helm/quobyte-client) helm chart --
-`quobyte.registry` and `quobyte.enableAccessKeys` come from the `QUOBYTE_REGISTRY` (required) and
-`ENABLE_ACCESS_KEY_MOUNTS` (optional, defaults to `false`) environment variables, passed to `helm
-install` as `--set` overrides. It then runs tests in one of two modes:
+`run_test` provisions the kind cluster, then runs each self-contained Go test package under
+[`e2e-tests/`](./e2e-tests). Every subdirectory of `e2e-tests/` (e.g.
+[`e2e-tests/dynamic_provisioning/`](./e2e-tests/dynamic_provisioning)) that contains an `env` file
+is treated as its own test: for each one found, `run_test`
 
-- **Legacy (default)**: applies the `k8s_*.yaml` manifests in `TEST_CASE_DIR`
-  (StorageClass, Secret) and, if a `k8s_storage_class.yaml` is present, runs the upstream
-  sig-storage "external storage" ginkgo suite via [`kind-tests/e2e`](./e2e). Results need manual
-  verification.
-- **Go e2e suite** (`RUN_GO_E2E_TESTS=true`): each subdirectory of [`e2e-tests/`](./e2e-tests)
-  (e.g. `e2e-tests/dynamic_provisioning/`) is a self-contained Go test package with its own `env`
-  file. For each one found, `run_test` deploys its environment (exports the file's variables),
-  runs just that package's tests, then removes the environment (unsets those variables) before
-  moving to the next. Tests build their own Secret/StorageClass/PVC/Pod in Go (uniquely named per
-  run), write/read a file through the pod's Quobyte mount, and talk directly to the Quobyte API to
-  confirm the backing volume was actually created -- so results are asserted by `go test`, not
-  eyeballed.
+1. **Deploys the environment** -- exports the variables in that directory's `env` file
+   (`QUOBYTE_REGISTRY`, `ENABLE_ACCESS_KEY_MOUNTS`, `CSI_PROVISIONER_NAME`,
+   `QUOBYTE_API_URL`/`QUOBYTE_API_USER`/`QUOBYTE_API_PASSWORD`/`QUOBYTE_TENANT`).
+2. Deploys the Quobyte client via the [`quobyte-client`](./quobyte-k8s-resources/helm/quobyte-client)
+   helm chart using `QUOBYTE_REGISTRY`/`ENABLE_ACCESS_KEY_MOUNTS`, and the CSI driver (built from
+   source) via the [`quobyte-csi`](./quobyte-k8s-resources/helm/quobyte-csi) helm chart using that
+   same directory's `values.yaml` and `CSI_PROVISIONER_NAME`.
+3. **Runs the test** -- `go test ./<name>/...` for just that package.
+4. Tears down both helm releases.
+5. **Removes the environment** -- unsets the `env` file's variables before moving to the next test
+   directory.
+
+Tests build their own Secret/StorageClass/PVC/Pod in Go (uniquely named per run), write/read a file
+through the pod's Quobyte mount, and talk directly to the Quobyte API to confirm the backing volume
+was actually created -- so results are asserted by `go test`, not eyeballed.
+
+There is no other supported flow: the old YAML-driven `test-configs/` setup and the upstream
+sig-storage ginkgo suite it drove are no longer used.
 
 ## Requirements
 
@@ -34,60 +38,47 @@ install` as `--set` overrides. It then runs tests in one of two modes:
 
 4. Installed `kubectl`
 
-5. Quobyte API endpoint and registry endpoint
+5. Installed `go`
+
+6. Quobyte API endpoint and registry endpoint
 
 ## Run tests
 
-1. Setup your test following [test example](./test-configs/)
+Run from the project root (`quobyte-csi-driver`):
 
-2. Run your test with command (from project root - quobyte-csi-driver)
+```bash
+kind-tests/cleanup
+kind-tests/run_test
+```
 
-    ```bash
-    kind-tests/cleanup; \
-    QUOBYTE_REGISTRY=<host>:<port> ENABLE_ACCESS_KEY_MOUNTS=false \
-    TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
-    ```
-  
-    or
+No Quobyte API credentials, registry endpoint, or driver `values.yaml` need to be passed on the
+command line -- each test directory under `e2e-tests/` carries everything it needs:
 
-    You can also run `kind-tests/run_test` without `TEST_CASE_DIR` to provision a kubernetes cluster
-    . Thereafter, you could `export KUBECONFIG=...` as instructed by script output and install
-    csi driver, execute tests manually.
+- `env` -- `QUOBYTE_REGISTRY`, `ENABLE_ACCESS_KEY_MOUNTS`, `CSI_PROVISIONER_NAME`,
+  `QUOBYTE_API_URL`, `QUOBYTE_API_USER`, `QUOBYTE_API_PASSWORD`, `QUOBYTE_TENANT`
+- `values.yaml` -- Helm values for the `quobyte-csi` chart (`quobyte.dev.csiImage`/
+  `quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are overridden by `run_test`
+  with the locally built images)
+- one or more `_test.go` files
 
-    or
+Add a new test scenario by adding a new `e2e-tests/<name>/` directory with its own `env`,
+`values.yaml`, and `_test.go` file.
 
-    You can run with `TEST_CASE_DIR` that contains only CSI driver values.yaml to deploy the driver
-    (note that some defined values such as CSI image/pod killer images are overridden)
+To iterate on one test directly against an already-running cluster without rerunning all of
+`run_test` (cluster creation, image build, etc.):
 
-3. To run the Go e2e suite instead of the legacy flow, set `RUN_GO_E2E_TESTS=true`:
-
-    ```bash
-    kind-tests/cleanup
-    QUOBYTE_REGISTRY=<host>:<port> RUN_GO_E2E_TESTS=true \
-    TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
-    ```
-
-   No Quobyte API credentials need to be passed on the command line -- each test directory under
-   `e2e-tests/` (e.g. [`e2e-tests/dynamic_provisioning/`](./e2e-tests/dynamic_provisioning)) carries
-   its own `env` file with the `QUOBYTE_API_URL`/`QUOBYTE_API_USER`/`QUOBYTE_API_PASSWORD`/
-   `QUOBYTE_TENANT`/`CSI_PROVISIONER_NAME` values for that scenario. Add a new test by adding a new
-   `e2e-tests/<name>/` directory with its own `_test.go` file and `env` file.
-
-   To iterate on one test directly against an already-running cluster without rerunning all of
-   `run_test`:
-
-    ```bash
-    cd kind-tests/e2e-tests
-    set -a; source dynamic_provisioning/env; set +a
-    KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte \
-    go test ./dynamic_provisioning/... -v -timeout 20m
-    ```
+```bash
+cd kind-tests/e2e-tests
+set -a; source dynamic_provisioning/env; set +a
+KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte \
+go test ./dynamic_provisioning/... -v -timeout 20m
+```
 
 ## Cleanup
 
 * To destroy `kind` cluster and other resources, run the following command
   (from project root: quobyte-csi-driver)
-  
+
   ```bash
   kind-tests/cleanup
   ```
