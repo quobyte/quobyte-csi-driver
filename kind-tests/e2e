@@ -11,7 +11,10 @@ E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
 TESTS_LOGS_PATH='/tmp/csi-driver-e2e.log'
 
-KUBERNETES_SRC_DIR="${KUBERNETES_SRC_DIR:-/home/venkat/kubernetes}"
+# Cache directory for the prebuilt kubernetes-test tarball (e2e.test + a matching
+# ginkgo binary), keyed by K8S_VERSION so switching kind/cluster versions doesn't
+# require deleting anything by hand.
+KUBE_TEST_TOOLS_DIR="${KUBE_TEST_TOOLS_DIR:-/tmp/kube-test-tools}"
 
 die() {
     echo "Error: $1" >&2
@@ -20,16 +23,32 @@ die() {
 
 git submodule update --remote || die "Cannot update submodule dependencies"
 
-if [[ ! -d ${KUBERNETES_SRC_DIR} ]]; then
-git clone https://github.com/kubernetes/kubernetes.git $KUBERNETES_SRC_DIR \
- || die "Cannot clone kubernetes to compile e2e tests"
-fi
+# Fetch the official prebuilt e2e.test + ginkgo binaries for this exact cluster
+# version instead of cloning kubernetes/kubernetes and building them from source
+# (https://dl.k8s.io/${K8S_VERSION}/kubernetes-test-<os>-<arch>.tar.gz is the same
+# artifact kubetest2/Kubernetes CI use). Much faster than a full source clone + make.
+os="$(uname | tr '[:upper:]' '[:lower:]')"
+case "$(uname -m)" in
+  x86_64) arch="amd64" ;;
+  aarch64|arm64) arch="arm64" ;;
+  *) die "Unsupported architecture $(uname -m) for the kubernetes-test tarball" ;;
+esac
 
-cd $KUBERNETES_SRC_DIR
-git fetch --tags
-git checkout tags/$K8S_VERSION || die "Kubernetes version tag $K8S_VERSION is not found"
-make WHAT=test/e2e/e2e.test  || die "Cannot make e2e tests"
-go install github.com/onsi/ginkgo/v2/ginkgo@latest
+KUBE_TEST_VERSION_DIR="${KUBE_TEST_TOOLS_DIR}/${K8S_VERSION}"
+E2E_TEST_BIN="${KUBE_TEST_VERSION_DIR}/kubernetes/test/bin/e2e.test"
+GINKGO_BIN="${KUBE_TEST_VERSION_DIR}/kubernetes/test/bin/ginkgo"
+
+if [[ ! -x "$E2E_TEST_BIN" || ! -x "$GINKGO_BIN" ]]; then
+  echo "Downloading kubernetes-test tarball for ${K8S_VERSION} (${os}/${arch})"
+  mkdir -p "$KUBE_TEST_VERSION_DIR"
+  tarball="${KUBE_TEST_VERSION_DIR}/kubernetes-test-${os}-${arch}.tar.gz"
+  curl -Lo "$tarball" "https://dl.k8s.io/${K8S_VERSION}/kubernetes-test-${os}-${arch}.tar.gz" \
+    || die "Cannot download kubernetes-test tarball for ${K8S_VERSION}. Is that a released Kubernetes version?"
+  tar -xzf "$tarball" -C "$KUBE_TEST_VERSION_DIR" kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo \
+    || die "Cannot extract e2e.test/ginkgo from kubernetes-test tarball"
+  rm -f "$tarball"
+  [[ -x "$E2E_TEST_BIN" && -x "$GINKGO_BIN" ]] || die "e2e.test/ginkgo missing from kubernetes-test tarball after extraction"
+fi
 
 cd $TEST_RUN_DIR
 cd /tmp
@@ -71,6 +90,6 @@ echo -e "\e[33mNote:\e[0m If tests are stuck, you need to check kind version and
          base image compatibility. See ./run_test kindest/node:v1.... hash and kindest version\n \
          hash (kind requires exact hash specified in kind release). https://github.com/kubernetes-sigs/kind/releases"
 
-ginkgo -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
+"$GINKGO_BIN" -nodes=$NODES -focus='External.Storage.*csi.quobyte.com.*' \
 -skip='\[Disruptive\]' \
-$KUBERNETES_SRC_DIR/_output/local/go/bin/e2e.test -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
+"$E2E_TEST_BIN" -- -storage.testdriver="$E2E_TEST_CONFIG_PATH" -kubeconfig="${KUBECONFIG}" 2>&1 | tee "$TESTS_LOGS_PATH"
