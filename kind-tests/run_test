@@ -527,7 +527,7 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}"
   mkdir -p "$debug_dir"
   ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="quobyte" \
-    go test "./${test_name}/..." -v -timeout 20m ) 2>&1 | tee "${debug_dir}/go-test-output.log"
+    go test "./${test_name}/..." -v -timeout 20m -count="${GO_TEST_COUNT:-1}" ) 2>&1 | tee "${debug_dir}/go-test-output.log"
   test_status=${PIPESTATUS[0]}
   if [[ "$test_status" -ne 0 ]]; then
     dump_debug_info "$test_name" "$debug_dir"
