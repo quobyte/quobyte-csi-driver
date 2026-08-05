@@ -443,6 +443,54 @@ dump_debug_info() {
   echo "Debug information for '$test_name' saved to $debug_dir"
 }
 
+# If ${test_dir}k8s_storage_class.yaml exists, runs the upstream Kubernetes e2e
+# (sig-storage "external storage") suite via kind-tests/e2e against the exact same
+# quobyte-csi-driver/quobyte-client deployment the Go test in $test_dir just passed
+# against -- applying that directory's own k8s_quobyte_secret.yaml/k8s_storage_class.yaml
+# (not the Go test's dynamically-named, already-deleted ones) so the upstream suite has
+# a StorageClass to provision against. Returns non-zero on failure; caller decides what
+# to do (the debug snapshot/cleanup-skip behavior lives in the caller, same as for the
+# Go test, so both failure paths look the same to the user).
+run_upstream_k8s_e2e_if_configured() {
+  local test_name="$1"
+  local test_dir="$2"
+  local values_file="$3"
+  local debug_dir="$4"
+
+  local storage_class_file="${test_dir}k8s_storage_class.yaml"
+  if [[ ! -f "$storage_class_file" ]]; then
+    return 0
+  fi
+
+  echo ""
+  echo "Running upstream Kubernetes e2e (external-storage) suite for '$test_name' against the same setup"
+
+  local secret_file="${test_dir}k8s_quobyte_secret.yaml"
+  if [[ -f "$secret_file" ]]; then
+    kubectl apply -f "$secret_file" || die "Failed applying $secret_file"
+  fi
+  kubectl apply -f "$storage_class_file" || die "Failed applying $storage_class_file"
+
+  local snapshot_class_file="${test_dir}k8s_volume-snapshot-class.yaml"
+  local enable_snapshots='false'
+  if grep -E "enableSnapshots:.*true" "$values_file" &> /dev/null; then
+    enable_snapshots='true'
+  fi
+
+  STORAGE_CLASS="$storage_class_file" KUBECONFIG="$KUBECONFIG" \
+   SNAPSHOT_CLASS="$snapshot_class_file" \
+   CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$enable_snapshots" \
+   kind-tests/e2e 2>&1 | tee "${debug_dir}/k8s-e2e-output.log"
+  local status=${PIPESTATUS[0]}
+
+  kubectl delete -f "$storage_class_file" --ignore-not-found
+  if [[ -f "$secret_file" ]]; then
+    kubectl delete -f "$secret_file" --ignore-not-found
+  fi
+
+  return "$status"
+}
+
 echo ""
 # Each subdirectory of kind-tests/e2e-tests is a self-contained Go test package with
 # its own "env" file (QUOBYTE_REGISTRY, ENABLE_ACCESS_KEY_MOUNTS, CSI_PROVISIONER_NAME,
@@ -460,7 +508,7 @@ go_e2e_tests_found=0
 for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   test_name="$(basename "$test_dir")"
   env_file="${test_dir}env"
-  values_file="${test_dir}values.yaml"
+  values_file="${CSI_CHART_TEMPLATES_DIR}values.yaml"
   if [[ ! -f "$env_file" ]]; then
     continue
   fi
