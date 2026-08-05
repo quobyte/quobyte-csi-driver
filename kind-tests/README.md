@@ -3,11 +3,15 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`run_test` provisions the kind cluster and deploys the CSI driver (built from source) and the
-Quobyte client. It then runs tests in one of two modes:
+`run_test` provisions the kind cluster, deploys the CSI driver (built from source) via the
+[`quobyte-csi`](./quobyte-k8s-resources/helm/quobyte-csi) helm chart, and deploys the Quobyte
+client via the [`quobyte-client`](./quobyte-k8s-resources/helm/quobyte-client) helm chart --
+`quobyte.registry` and `quobyte.enableAccessKeys` come from the `QUOBYTE_REGISTRY` (required) and
+`ENABLE_ACCESS_KEY_MOUNTS` (optional, defaults to `false`) environment variables, passed to `helm
+install` as `--set` overrides. It then runs tests in one of two modes:
 
-- **Legacy (default)**: applies the `k8s_*.yaml` manifests in `TEST_CASE_DIR` (StorageClass,
-  Secret, Quobyte client) and, if a `k8s_storage_class.yaml` is present, runs the upstream
+- **Legacy (default)**: applies the `k8s_*.yaml` manifests in `TEST_CASE_DIR`
+  (StorageClass, Secret) and, if a `k8s_storage_class.yaml` is present, runs the upstream
   sig-storage "external storage" ginkgo suite via [`kind-tests/e2e`](./e2e). Results need manual
   verification.
 - **Go e2e suite** (`RUN_GO_E2E_TESTS=true`): runs the self-contained suite in
@@ -36,7 +40,9 @@ Quobyte client. It then runs tests in one of two modes:
 2. Run your test with command (from project root - quobyte-csi-driver)
 
     ```bash
-    kind-tests/cleanup; TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
+    kind-tests/cleanup; \
+    QUOBYTE_REGISTRY=<host>:<port> ENABLE_ACCESS_KEY_MOUNTS=false \
+    TEST_CASE_DIR="<absolute-path-to-your-test-case-dir>" kind-tests/run_test
     ```
   
     or

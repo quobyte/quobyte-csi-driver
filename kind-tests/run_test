@@ -10,10 +10,15 @@ CODE_BASE_DIR="$(pwd)"
 KIND_DIR="$(pwd)/kind-tests"
 POD_KILLER_DIR="${KIND_DIR}/quobyte-csi-pod-killer"
 CSI_CHART_TEMPLATES_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-csi/"
+CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
 TEST_CASE_DIR="${TEST_CASE_DIR:-}"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
+# Quobyte registry endpoint and access-key mount feature flag for the quobyte-client helm
+# chart. QUOBYTE_REGISTRY is required; ENABLE_ACCESS_KEY_MOUNTS defaults to false.
+QUOBYTE_REGISTRY="${QUOBYTE_REGISTRY:-}"
+ENABLE_ACCESS_KEY_MOUNTS="${ENABLE_ACCESS_KEY_MOUNTS:-false}"
 CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
 CSI_DRIVER_VERSION="$(git rev-parse --short HEAD)"
@@ -266,6 +271,17 @@ fi
 
 echo "Deploying k8s resources (k8s_<...>.yaml) files in test dir $TEST_CASE_DIR"
 for file in ${TEST_CASE_DIR}/k8s_*.yaml ; do kubectl apply -f "$file"; done
+
+if [[ -z "$QUOBYTE_REGISTRY" ]]; then
+  die "QUOBYTE_REGISTRY must be set to install the quobyte-client helm chart"
+fi
+
+echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
+helm install quobyte-client "${CLIENT_CHART_DIR}" --namespace kube-system \
+ --set quobyte.registry="$QUOBYTE_REGISTRY" \
+ --set-string quobyte.enableAccessKeys="$ENABLE_ACCESS_KEY_MOUNTS" \
+ --set-string nodeSelector.quobyte_client="true" \
+ || die 'Failed installing quobyte-client helm chart'
 
 sleep 30s
 
