@@ -372,12 +372,14 @@ deploy_csi_driver() {
         quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
         quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
         quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
-        quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME"
+        quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME \
+        quobyte.apiURL=$QUOBYTE_API_URL"
   helm install quobyte-csi-driver ${CSI_CHART_TEMPLATES_DIR} -f "$values_file" \
    --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
    --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
    --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
    --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME" \
+   --set quobyte.apiURL="$QUOBYTE_API_URL" \
    || die 'Failed installing quobyte-csi-driver helm chart'
 
   sleep 1m
