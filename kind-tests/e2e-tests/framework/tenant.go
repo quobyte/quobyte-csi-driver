@@ -29,18 +29,27 @@ func EnsureTenant(client *quobyte.QuobyteClient, tenantName, quobyteUser string)
 	if len(usersResp.UserConfiguration) == 0 {
 		return fmt.Errorf("user %q not found", quobyteUser)
 	}
-	existing := usersResp.UserConfiguration[0].AdminOfTenantId
+	user := usersResp.UserConfiguration[0]
 
-	for _, adminOfTenantID := range existing {
+	for _, adminOfTenantID := range user.AdminOfTenantId {
 		if adminOfTenantID == tenantID {
 			return nil
 		}
 	}
 
-	if _, err := client.UpdateUser(&quobyte.UpdateUserRequest{
-		UserName:        quobyteUser,
-		AdminOfTenantId: append(existing, tenantID),
-	}); err != nil {
+	updateReq := &quobyte.UpdateUserRequest{
+		UserName:         quobyteUser,
+		AdminOfTenantId:  append(user.AdminOfTenantId, tenantID),
+		Email:            user.Email,
+		PrimaryGroup:     user.PrimaryGroup,
+		MemberOfGroup:    user.Group,
+		MemberOfTenantId: user.MemberOfTenantId,
+	}
+	if len(user.Role) > 0 {
+		updateReq.Role = *user.Role[0]
+	}
+
+	if _, err := client.UpdateUser(updateReq); err != nil {
 		return fmt.Errorf("granting user %q access to tenant %q: %w", quobyteUser, tenantName, err)
 	}
 
