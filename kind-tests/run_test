@@ -13,6 +13,40 @@ KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
+print_help() {
+  cat <<EOF
+Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+
+Builds the Quobyte CSI driver + pod-killer from source, spins up a local kind cluster,
+deploys the Quobyte client and CSI driver into it, then runs every self-contained Go e2e
+test package under kind-tests/e2e-tests/ against it. See kind-tests/README.md for details.
+
+Arguments:
+  QUOBYTE_API_URL       Quobyte API endpoint, e.g. http://host:7860 (required)
+  QUOBYTE_REGISTRY      Quobyte client image registry, e.g. host:5000 (required)
+  QUOBYTE_API_USER      Quobyte API user (optional, default: admin)
+  QUOBYTE_API_PASSWORD  Quobyte API password (optional, default: quobyte)
+
+Other environment variables honored:
+  CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
+  GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
+
+Examples:
+  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+
+  # overriding the admin/quobyte user/password defaults:
+  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 myuser mypass
+
+Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
+automatically if missing (see kind-tests/README.md "Requirements").
+EOF
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  print_help
+  exit 0
+fi
+
 # --- Quobyte API endpoint / registry (positional args) ---------------------------
 QUOBYTE_API_URL="$1"
 QUOBYTE_REGISTRY="$2"
