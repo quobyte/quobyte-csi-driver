@@ -30,18 +30,37 @@ For every (test package, environment file) combination found, `run_test`:
    that environment's values file and `--set` overrides.
 3. Creates a randomized namespace for the test's own resources and **runs the test** --
    `go test ./<name>/...` for just that package.
-4. Tears down both helm releases and the namespace.
+4. Tears down the namespace and both helm releases.
 5. **Removes the environment** -- unsets that `env` file's variables, so nothing leaks into the
    next environment, and moves on to the next combination.
 
 A test package with several environment files therefore goes through the whole deploy/run/undeploy
 cycle once per file, each time against a freshly deployed driver.
 
+Every run ends with a summary of each combination, named `<test package>/<env file>`:
+
+```
+==== Test summary ====
+TEST                              RESULT
+dynamic_provisioning/access_keys  PASS
+dynamic_provisioning/default      PASS
+external_storage/access_keys      NOT RUN
+external_storage/default          FAIL
+
+2 passed, 1 failed, 1 not run
+Debug output of the failed run(s) is under kind-csi-testing/debug/<test>/<environment>/
+```
+
 On failure `run_test` stops right there without cleaning up: the cluster, the driver, the client
 and the test's own resources are all left running for live debugging (the Go tests use
-`framework.CleanupUnlessFailed`, which skips their own teardown when the test failed). A
-best-effort debug snapshot -- pods, events, driver and client logs, plus a copy of the
-Secret/StorageClass the test applied -- is written to
+`framework.CleanupUnlessFailed`, which skips their own teardown when the test failed), and the
+combinations after it are reported as `NOT RUN`. Set `CONTINUE_ON_FAILURE=true` to run the whole
+matrix instead and get a complete table -- the failed combination is then torn down like any
+other, so only its debug snapshot survives. Either way `run_test` exits non-zero if anything
+failed.
+
+For every failed combination a best-effort debug snapshot -- pods, events, driver and client
+logs, plus a copy of the Secret/StorageClass the test applied -- is written to
 `kind-csi-testing/debug/<test>/<env file>/`.
 
 ## Environment files

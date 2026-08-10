@@ -42,6 +42,11 @@ Other environment variables honored:
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
                         file may raise this -- the upstream suites need much longer.
+  CONTINUE_ON_FAILURE   Set to 'true' to run the whole matrix and report every result.
+                        Unset (default), the run stops at the first failing test with the
+                        cluster, driver and that test's resources left live for debugging.
+
+Every run ends with a summary table of each test/environment combination and its result.
 
 Examples:
   kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
@@ -577,10 +582,11 @@ resolve_values_file() {
 # again. A test package with several env files goes through this once per env file,
 # each time against a freshly deployed driver.
 #
-# On failure, everything (cluster, driver, client, and the test's own k8s/Quobyte
-# resources) is left in place for live debugging instead of continuing with the next
-# env file -- see framework.CleanupUnlessFailed, which the Go tests use to skip their
-# own cleanup when they failed.
+# Returns non-zero if the test failed; the caller decides whether to stop there or carry
+# on with the next combination (CONTINUE_ON_FAILURE). When stopping, everything (cluster,
+# driver, client, and the test's own k8s/Quobyte resources) is deliberately left in place
+# for live debugging -- see framework.CleanupUnlessFailed, which the Go tests use to skip
+# their own cleanup when they failed.
 #
 #   $1 tests_root  directory holding the test packages (a test set)
 #   $2 test_name   package directory name within tests_root
@@ -639,28 +645,41 @@ run_go_test_for_env() {
     dump_debug_info "$test_name" "$debug_dir" "$test_namespace" "$env_file" "$values_file"
     echo ""
     echo "Go e2e test '${test_name}' [${variant}] FAILED."
-    echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
-    echo "quobyte-client, and this test's Secret/StorageClass/PVC/Pod are all still"
-    echo "running -- inspect them live, e.g.:"
-    echo ""
-    echo "  export KUBECONFIG=$KUBECONFIG"
-    echo "  kubectl -n $test_namespace get pods,pvc,secret,storageclass"
-    echo ""
-    echo "A best-effort debug snapshot (pod/events/driver+client logs) was also saved to"
+    echo "A best-effort debug snapshot (pod/events/driver+client logs) was saved to"
     echo "$debug_dir"
+    if [[ "$CONTINUE_ON_FAILURE" != 'true' ]]; then
+      echo ""
+      echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
+      echo "quobyte-client, and this test's Secret/StorageClass/PVC/Pod are all still"
+      echo "running -- inspect them live, e.g.:"
+      echo ""
+      echo "  export KUBECONFIG=$KUBECONFIG"
+      echo "  kubectl -n $test_namespace get pods,pvc,secret,storageclass"
+      echo ""
+      echo "Run 'kind-tests/cleanup' when done to tear everything down, or re-run with"
+      echo "CONTINUE_ON_FAILURE=true to run the whole matrix instead of stopping here."
+      return 1
+    fi
     echo ""
-    echo "Run 'kind-tests/cleanup' when done to tear everything down."
-    die "Stopping after first failed Go e2e test ('${test_name}' [${variant}])."
+    echo "CONTINUE_ON_FAILURE=true: tearing this environment down and continuing with the"
+    echo "next test. Only the debug snapshot above survives -- the test's own resources go"
+    echo "away with the namespace below."
   fi
+
+  # Before the driver, not after: a failed test leaves its PVCs behind (it skips its own
+  # cleanup), and deleting a namespace holding PVCs once the provisioner is gone leaves it
+  # stuck in Terminating forever. On the success path the namespace is empty by now anyway.
+  echo "Removing test namespace $test_namespace"
+  kubectl delete ns "$test_namespace" --ignore-not-found --timeout=5m \
+    || echo "warning: namespace $test_namespace was not fully deleted, continuing"
 
   echo "Removing quobyte-csi-driver/quobyte-client deployed for '${test_name}' [${variant}]"
   undeploy_csi_driver_and_client
 
-  echo "Removing test namespace $test_namespace"
-  kubectl delete ns "$test_namespace" --ignore-not-found
-
   echo "Removing environment for Go e2e test '${test_name}' [${variant}]"
   unset_env_file "$env_file"
+
+  return "$test_status"
 }
 
 echo ""
@@ -682,11 +701,21 @@ echo ""
 # file -- the same physical endpoints/driver apply to every test in a run. An env file
 # holds only what varies per deployment: ENABLE_ACCESS_KEY_MOUNTS, and optionally
 # ENABLE_SNAPSHOTS, QUOBYTE_TENANT, CSI_VALUES_FILE and CSI_HELM_SET.
-go_e2e_tests_found=0
+# The whole matrix is discovered before anything is deployed, so the summary printed at the
+# end can also name the combinations a stopped run never got to. The three arrays are
+# index-aligned:
+#   planned_tests  "<tests_root>|<test_name>|<env_file>" -- what run_go_test_for_env needs
+#   planned_names  "<test_name>/<env file>"              -- how a combination is named in
+#                                                          the summary
+#   test_results   PASS / FAIL / NOT RUN
+declare -a planned_tests=()
+declare -a planned_names=()
+declare -a test_results=()
 
-# Runs a whole test set: every subdirectory holding an "env" directory is a test package,
-# and every file in that directory is one environment to run the package against.
-run_test_set() {
+# Collects every (test package, environment file) combination of a test set: every
+# subdirectory holding an "env" directory is a test package, and every file in that
+# directory is one environment to run the package against.
+collect_test_set() {
   local tests_root="$1"
   local test_dir test_name env_file
   for test_dir in "${tests_root}"/*/; do
@@ -696,16 +725,72 @@ run_test_set() {
     fi
     for env_file in "${test_dir}env"/*; do
       [[ -f "$env_file" ]] || continue
-      go_e2e_tests_found=1
-      run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"
+      planned_tests+=("${tests_root}|${test_name}|${env_file}")
+      planned_names+=("${test_name}/$(basename "$env_file")")
+      test_results+=('NOT RUN')
     done
   done
 }
 
-run_test_set "$GO_E2E_SANITY_TESTS_DIR"
-run_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
+collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
+collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
 
-if [[ "$go_e2e_tests_found" -eq 0 ]]; then
+if [[ "${#planned_tests[@]}" -eq 0 ]]; then
   die "No runnable test found: no test directory with an 'env' directory under \
 ${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
+fi
+
+# Prints the result of every planned combination. Wired to EXIT below so it shows up at the
+# end of the run whether that run finished the matrix, stopped at the first failure, or was
+# aborted by a die() somewhere in between.
+summary_printed=0
+print_test_summary() {
+  [[ "$summary_printed" -eq 1 ]] && return
+  summary_printed=1
+
+  local i width=4 passed=0 failed=0 not_run=0
+  for i in "${!planned_names[@]}"; do
+    [[ "${#planned_names[i]}" -gt "$width" ]] && width="${#planned_names[i]}"
+  done
+
+  echo ""
+  echo "==== Test summary ===="
+  printf "%-${width}s  %s\n" 'TEST' 'RESULT'
+  for i in "${!planned_names[@]}"; do
+    printf "%-${width}s  %s\n" "${planned_names[i]}" "${test_results[i]}"
+    case "${test_results[i]}" in
+      PASS) passed=$((passed + 1)) ;;
+      FAIL) failed=$((failed + 1)) ;;
+      *)    not_run=$((not_run + 1)) ;;
+    esac
+  done
+  echo ""
+  echo "${passed} passed, ${failed} failed, ${not_run} not run"
+  if [[ "$failed" -gt 0 ]]; then
+    echo "Debug output of the failed run(s) is under ${TEST_CLUSTER_DIR}/debug/<test>/<environment>/"
+  fi
+}
+trap print_test_summary EXIT
+
+any_failed=0
+for i in "${!planned_tests[@]}"; do
+  IFS='|' read -r tests_root test_name env_file <<< "${planned_tests[i]}"
+  # Recorded as failed up front and only cleared on success, so a combination the run
+  # aborts in the middle of (a failed helm install, say) is reported as a failure rather
+  # than as one that never ran.
+  test_results[i]='FAIL'
+  if run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"; then
+    test_results[i]='PASS'
+  else
+    any_failed=1
+    if [[ "$CONTINUE_ON_FAILURE" != 'true' ]]; then
+      print_test_summary
+      die "Stopping after first failed Go e2e test ('${planned_names[i]}')."
+    fi
+  fi
+done
+
+if [[ "$any_failed" -ne 0 ]]; then
+  print_test_summary
+  die "Some Go e2e tests failed."
 fi
