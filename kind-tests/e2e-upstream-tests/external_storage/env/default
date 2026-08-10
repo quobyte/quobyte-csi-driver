@@ -1,0 +1,8 @@
+# Default driver setup for the upstream suite: the StorageClass secret carries the
+# user/password of the Quobyte user the test creates for this run.
+# Snapshot specs need the driver deployed with quobyte.enableSnapshots=true and a
+# VolumeSnapshotClass to hand to the suite, so they stay off here.
+ENABLE_ACCESS_KEY_MOUNTS=false
+ENABLE_SNAPSHOTS=false
+# The upstream suite is hundreds of ginkgo specs, far beyond run_test's 20m default.
+GO_TEST_TIMEOUT=180m

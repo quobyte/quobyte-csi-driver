@@ -23,6 +23,25 @@ func NewSecret(name, namespace, user, password string) *corev1.Secret {
 	}
 }
 
+// NewAccessKeySecret builds the same Secret as NewSecret, but holding Quobyte
+// access key credentials instead of a user/password pair. Required instead of
+// NewSecret when the driver runs with access key mounts enabled -- the node
+// plugin refuses to mount without accessKeyId/accessKeySecret in the mount
+// secret (see src/driver/node.go).
+func NewAccessKeySecret(name, namespace, accessKeyID, accessKeySecret string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretType("kubernetes.io/quobyte"),
+		Data: map[string][]byte{
+			"accessKeyId":     []byte(accessKeyID),
+			"accessKeySecret": []byte(accessKeySecret),
+		},
+	}
+}
+
 // NewPVC builds a PersistentVolumeClaim object mirroring
 // kind-tests/quobyte-k8s-resources/usage-examples/01_getting_started/04-testpvc.yaml,
 // parameterized by name/namespace/storageClass/size.

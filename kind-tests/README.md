@@ -3,33 +3,115 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`run_test` provisions the kind cluster, then runs each self-contained Go test package under
-[`e2e-tests/`](./e2e-tests). Every subdirectory of `e2e-tests/` (e.g.
-[`e2e-tests/dynamic_provisioning/`](./e2e-tests/dynamic_provisioning)) that contains an `env` file
-is treated as its own test: for each one found, `run_test`
+`run_test` provisions the kind cluster, builds the CSI driver and pod killer from source, and
+then runs **two sets** of self-contained Go test packages against it, redeploying the Quobyte
+client and CSI driver for each one:
 
-1. **Deploys the environment** -- exports the variables in that directory's `env` file
-   (`ENABLE_ACCESS_KEY_MOUNTS` and any test-specific overrides like `QUOBYTE_TENANT`). The
-   Quobyte API endpoint/client registry (`QUOBYTE_API_URL`/`QUOBYTE_API_USER`/
-   `QUOBYTE_API_PASSWORD`/`QUOBYTE_REGISTRY`) and `CSI_PROVISIONER_NAME` are not part of
-   the per-test `env` file -- they're script-level config set by `run_test` itself (see
-   Requirements below), since they're the same physical endpoints/driver for every test
-   directory in a run.
+| Test set | What a test does |
+| --- | --- |
+| [`e2e-sanity-tests/`](./e2e-sanity-tests) | Quobyte's own checks of the driver. |
+| [`e2e-upstream-tests/`](./e2e-upstream-tests) | Sets up what an upstream Kubernetes suite needs via the Quobyte API, runs the suite, then removes that setup again. |
+
+Both are laid out the same way: a test package carries an `env` **directory**, every file
+in it is one driver setup, and the package is run once per file.
+
+Both sets share the [`framework/`](./framework) package and one Go module rooted at
+`kind-tests/` (`github.com/quobyte/quobyte-csi-driver/kind-tests`).
+
+## How a test is run
+
+For every (test package, environment file) combination found, `run_test`:
+
+1. **Deploys the environment** -- exports the variables of that `env` file (see
+   [Environment files](#environment-files)).
 2. Deploys the Quobyte client via the [`quobyte-client`](./quobyte-k8s-resources/helm/quobyte-client)
    helm chart using `QUOBYTE_REGISTRY`/`ENABLE_ACCESS_KEY_MOUNTS`, and the CSI driver (built from
-   source) via the [`quobyte-csi`](./quobyte-k8s-resources/helm/quobyte-csi) helm chart using that
-   same directory's `values.yaml` and `CSI_PROVISIONER_NAME`.
-3. **Runs the test** -- `go test ./<name>/...` for just that package.
-4. Tears down both helm releases.
-5. **Removes the environment** -- unsets the `env` file's variables before moving to the next test
-   directory.
+   source) via the [`quobyte-csi`](./quobyte-k8s-resources/helm/quobyte-csi) helm chart using
+   that environment's values file and `--set` overrides.
+3. Creates a randomized namespace for the test's own resources and **runs the test** --
+   `go test ./<name>/...` for just that package.
+4. Tears down both helm releases and the namespace.
+5. **Removes the environment** -- unsets that `env` file's variables, so nothing leaks into the
+   next environment, and moves on to the next combination.
 
-Tests build their own Secret/StorageClass/PVC/Pod in Go (uniquely named per run), write/read a file
-through the pod's Quobyte mount, and talk directly to the Quobyte API to confirm the backing volume
-was actually created -- so results are asserted by `go test`, not eyeballed.
+A test package with several environment files therefore goes through the whole deploy/run/undeploy
+cycle once per file, each time against a freshly deployed driver.
 
-There is no other supported flow: the old YAML-driven `test-configs/` setup and the upstream
-sig-storage ginkgo suite it drove are no longer used.
+On failure `run_test` stops right there without cleaning up: the cluster, the driver, the client
+and the test's own resources are all left running for live debugging (the Go tests use
+`framework.CleanupUnlessFailed`, which skips their own teardown when the test failed). A
+best-effort debug snapshot -- pods, events, driver and client logs, plus a copy of the
+Secret/StorageClass the test applied -- is written to
+`kind-csi-testing/debug/<test>/<env file>/`.
+
+## Environment files
+
+An `env` file holds only what varies per driver deployment. The Quobyte API endpoint and client
+registry (`QUOBYTE_API_URL`/`QUOBYTE_API_USER`/`QUOBYTE_API_PASSWORD`/`QUOBYTE_REGISTRY`) and
+`CSI_PROVISIONER_NAME` are *not* part of it -- they are script-level config set by `run_test`
+itself (see [Requirements](#requirements)), since they are the same physical endpoints and driver
+for every test in a run.
+
+| Variable | Required | Meaning |
+| --- | --- | --- |
+| `ENABLE_ACCESS_KEY_MOUNTS` | yes | Deploy the Quobyte client with access key contexts. Tests read it to decide whether their Secret carries `user`/`password` or `accessKeyId`/`accessKeySecret`. |
+| `CSI_HELM_SET` | no | Space-separated `key=value` pairs appended as `--set` to the `quobyte-csi` helm install, e.g. `"quobyte.enableAccessKeyMounts=true"`. |
+| `CSI_VALUES_FILE` | no | A values file for the `quobyte-csi` chart, absolute or relative to the test directory. Defaults to the chart's own `values.yaml`. |
+| `ENABLE_SNAPSHOTS` | no | Passed to the upstream suite; snapshot tests additionally need the driver deployed with `quobyte.enableSnapshots=true`. |
+| `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `run_test` generates. |
+| `GO_TEST_TIMEOUT` | no | `-timeout` for this test's `go test` run (`run_test` default: `20m`). |
+
+`quobyte.dev.csiImage`/`quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are always
+overridden by `run_test` with the locally built images, whichever values file is used.
+
+## The sanity tests
+
+Each subdirectory of [`e2e-sanity-tests/`](./e2e-sanity-tests) with an `env/` directory is one
+test package:
+
+```
+e2e-sanity-tests/dynamic_provisioning/
+  dynamic_provisioning_test.go
+  env/
+    default        # ENABLE_ACCESS_KEY_MOUNTS=false
+    access_keys    # ENABLE_ACCESS_KEY_MOUNTS=true + quobyte.enableAccessKeyMounts=true
+```
+
+These tests build their own Secret/StorageClass/PVC/Pod in Go (uniquely named per run), write and
+read a file through the pod's Quobyte mount, and talk directly to the Quobyte API to confirm the
+backing volume was actually created -- so results are asserted by `go test`, not eyeballed.
+
+Add a scenario either by adding a file to an existing `env/` directory (same test, another driver
+setup) or by adding a new `e2e-sanity-tests/<name>/` directory with its own `env/` and `_test.go`
+files.
+
+## The upstream tests
+
+Each subdirectory of [`e2e-upstream-tests/`](./e2e-upstream-tests) with an `env/` directory is one
+test package that drives an upstream Kubernetes suite, and is run once per environment just like a
+sanity test:
+
+```
+e2e-upstream-tests/external_storage/
+  external_storage_test.go
+  env/
+    default        # user/password mounts, no snapshots
+    access_keys    # ENABLE_ACCESS_KEY_MOUNTS=true + quobyte.enableAccessKeyMounts=true
+```
+
+The suite itself is not ours -- `kind-tests/e2e` downloads the released `e2e.test`/`ginkgo`
+binaries matching the cluster version and runs the sig-storage "external storage" tests -- and it
+only knows how to create PVCs from a StorageClass. So the test brackets it:
+
+1. **setup**: create the tenant and a dedicated Quobyte user for this run through the Quobyte Go
+   API (`framework.EnsureTenant`, `framework.CreateUser`), then the k8s Secret holding that user's
+   credentials -- an access key of that user (`framework.CreateAccessKey`) where the environment
+   mounts with access keys.
+2. **run**: write the StorageClass to `$ARTIFACTS_DIR` and hand it to `kind-tests/e2e` via
+   `framework.RunUpstreamE2E`, which passes it to `e2e.test` as `StorageClass: FromFile`. Ginkgo's
+   output is streamed into the test's output.
+3. **cleanup**: delete the Secret, the access key, the user and the tenant again. The suite cleans
+   up its own namespaces, PVCs and StorageClass copies.
 
 ## Requirements
 
@@ -64,38 +146,33 @@ kind-tests/run_test http://host:port host:port myuser mypassword
 
 `run_test` requires the Quobyte API endpoint and client registry as its first two
 arguments (see Requirements above) -- it `die`s immediately with a usage message if
-either is missing. The API user/password are optional, defaulting to `admin`/`quobyte`.
-No driver `values.yaml` needs to be passed on the command line -- each test directory
-under `e2e-tests/` carries everything else it needs:
-
-- `env` -- `ENABLE_ACCESS_KEY_MOUNTS` and any test-specific overrides (e.g.
-  `QUOBYTE_TENANT` to pin a pre-existing tenant instead of `run_test`'s generated per-run
-  name)
-- `values.yaml` -- Helm values for the `quobyte-csi` chart (`quobyte.dev.csiImage`/
-  `quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are overridden by `run_test`
-  with the locally built images)
-- one or more `_test.go` files
-
-Add a new test scenario by adding a new `e2e-tests/<name>/` directory with its own `env`,
-`values.yaml`, and `_test.go` file.
-
-Before deleting the Secret/StorageClass it creates, each test writes a standalone,
-`kubectl apply`-able copy of them to `$ARTIFACTS_DIR` (if set), named
-`<TestName>-<suffix>-secret.yaml` / `-storageclass.yaml`. `run_test` points this at
-`${debug_dir}/artifacts` for each test run and uses the dumped StorageClass/Secret to run
-the upstream Kubernetes e2e (external-storage) suite against the exact same setup, after
-the Go test's own cleanup has already deleted the live objects.
+either is missing. It also requires a clean git working tree, so commit your changes
+before running it.
 
 To iterate on one test directly against an already-running cluster without rerunning all of
 `run_test` (cluster creation, image build, etc.):
 
 ```bash
-cd kind-tests/e2e-tests
-set -a; source dynamic_provisioning/env; set +a
-KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte \
+cd kind-tests/e2e-sanity-tests
+set -a; source dynamic_provisioning/env/default; set +a
+KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
 QUOBYTE_API_URL=http://host:port QUOBYTE_API_USER=admin QUOBYTE_API_PASSWORD=secret \
 CSI_PROVISIONER_NAME=csi.quobyte.com \
 go test ./dynamic_provisioning/... -v -timeout 20m
+```
+
+The same works for the upstream tests, which additionally need to know where the suite script
+and the checkout are:
+
+```bash
+cd kind-tests/e2e-upstream-tests
+set -a; source external_storage/env/default; set +a
+KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
+QUOBYTE_API_URL=http://host:port QUOBYTE_API_USER=admin QUOBYTE_API_PASSWORD=secret \
+CSI_PROVISIONER_NAME=csi.quobyte.com ARTIFACTS_DIR=/tmp/e2e-artifacts \
+UPSTREAM_E2E_SCRIPT="$(git rev-parse --show-toplevel)/kind-tests/e2e" \
+REPO_ROOT="$(git rev-parse --show-toplevel)" \
+go test ./external_storage/... -v -timeout "$GO_TEST_TIMEOUT"
 ```
 
 ## Cleanup

@@ -7,25 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quobyte/quobyte-csi-driver/e2e-tests/framework"
+	"github.com/quobyte/quobyte-csi-driver/kind-tests/framework"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// cleanupUnlessFailed registers fn to run during t.Cleanup, but skips it if the
-// test has already failed -- leaving the Secret/StorageClass/PVC/Pod (and the
-// CSI driver/client run_test deployed for this test) in the cluster so a failure
-// can be debugged live with kubectl against the still-running KUBECONFIG cluster,
-// instead of everything being torn down immediately.
-func cleanupUnlessFailed(t *testing.T, description string, fn func()) {
-	t.Cleanup(func() {
-		if t.Failed() {
-			t.Logf("test failed; leaving %s in place for debugging", description)
-			return
-		}
-		fn()
-	})
-}
 
 // TestDynamicProvisioningCreatesVolumeAndIsWritable exercises the basic
 // dynamic-provisioning flow against a cluster set up by kind-tests/run_test.
@@ -33,7 +19,11 @@ func cleanupUnlessFailed(t *testing.T, description string, fn func()) {
 // generated in Go and uniquely named per run, so the test is fully
 // self-contained: it doesn't depend on any pre-applied test-config manifest.
 //
-//   - create a Secret holding the Quobyte API credentials
+// It runs once per file in this directory's env/, i.e. once per driver setup
+// run_test deploys (see kind-tests/run_test), which is why the credentials it
+// puts into its Secret depend on cfg.EnableAccessKeyMounts.
+//
+//   - create a Secret holding the Quobyte credentials
 //   - create a StorageClass referencing that secret
 //   - create a PVC against that StorageClass and wait for it to bind
 //   - create a pod mounting that PVC and wait for it to run
@@ -51,8 +41,8 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 
 	quobyteClient := framework.NewQuobyteClient(cfg)
 
-	require.NoError(t, framework.EnsureTenant(quobyteClient, cfg.QuobyteTenant, cfg.QuobyteAPIUser),
-		"ensuring tenant %q exists and %q has access to it", cfg.QuobyteTenant, cfg.QuobyteAPIUser)
+	tenantID, err := framework.EnsureTenant(quobyteClient, cfg.QuobyteTenant, cfg.QuobyteAPIUser)
+	require.NoError(t, err, "ensuring tenant %q exists and %q has access to it", cfg.QuobyteTenant, cfg.QuobyteAPIUser)
 
 	suffix := time.Now().UnixNano()
 	secretName := fmt.Sprintf("e2e-dynprov-secret-%d", suffix)
@@ -64,19 +54,43 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	podName := fmt.Sprintf("e2e-dynprov-pod-%d", suffix)
 	const mountPath = "/mnt/test"
 
-	// Shared prefix for artifact files dumped below -- lets run_test find
-	// and re-apply this run's Secret/StorageClass after the test's own
-	// cleanup has deleted them (e.g. to run the upstream k8s e2e suite
-	// against the exact same setup).
+	// Shared prefix for the artifact copies of the Secret/StorageClass dumped
+	// below, so what this run actually applied is still inspectable in
+	// $ARTIFACTS_DIR after the test's own cleanup deleted the live objects.
 	artifactPrefix := fmt.Sprintf("%s-%d", t.Name(), suffix)
 
-	// Registered in dependency order (secret -> storage class -> pvc -> pod) so
-	// t.Cleanup, which runs LIFO, tears down pod -> pvc -> storage class -> secret
-	// on success: the pod is removed before its volume, and the secret the CSI
-	// driver needs to delete the underlying Quobyte volume outlives the PVC
-	// deletion that triggers it. On failure, cleanupUnlessFailed skips all of this
+	// Everything below is registered for cleanup in dependency order (secret ->
+	// storage class -> pvc -> pod) so t.Cleanup, which runs LIFO, tears down
+	// pod -> pvc -> storage class -> secret on success: the pod is removed before
+	// its volume, and the secret the CSI driver needs to delete the underlying
+	// Quobyte volume outlives the PVC deletion that triggers it. Deleting a k8s
+	// object only marks it for deletion, so each step also waits for its resource
+	// to actually be gone -- otherwise the steps overlap and that order is only
+	// nominal. A wait that times out is reported as a warning and the remaining
+	// steps still run. On failure, framework.CleanupUnlessFailed skips all of this
 	// so the resources stay live for debugging (see run_test).
-	secret := framework.NewSecret(secretName, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword)
+	//
+	// Which credentials go into the Secret is decided by the environment the driver
+	// was deployed with: with access key mounts enabled the node plugin requires
+	// accessKeyId/accessKeySecret in the mount secret (src/driver/node.go), and the
+	// same pair doubles as management API credentials for the provisioner
+	// (src/driver/quobyte_api_client_factory.go).
+	var secret *corev1.Secret
+	if cfg.EnableAccessKeyMounts {
+		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, cfg.QuobyteAPIUser)
+		require.NoError(t, err, "creating a Quobyte access key for user %q", cfg.QuobyteAPIUser)
+		// Registered before everything below, so LIFO cleanup revokes the key only
+		// after the PVC is gone -- the driver needs these credentials to delete the
+		// backing Quobyte volume.
+		framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte access key %s", credentials.AccessKeyId), func() {
+			if err := framework.DeleteAccessKey(quobyteClient, cfg.QuobyteAPIUser, credentials.AccessKeyId); err != nil {
+				t.Logf("warning: %v", err)
+			}
+		})
+		secret = framework.NewAccessKeySecret(secretName, cfg.Namespace, credentials.AccessKeyId, credentials.SecretAccessKey)
+	} else {
+		secret = framework.NewSecret(secretName, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword)
+	}
 	_, err = clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	require.NoError(t, err, "creating secret")
 	if path, err := framework.DumpSecretYAML(cfg.ArtifactsDir, artifactPrefix, secret); err != nil {
@@ -84,8 +98,12 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	} else if path != "" {
 		t.Logf("wrote secret artifact to %s", path)
 	}
-	cleanupUnlessFailed(t, fmt.Sprintf("secret %s/%s", cfg.Namespace, secretName), func() {
-		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secretName, metav1.DeleteOptions{})
+	framework.CleanupUnlessFailed(t, fmt.Sprintf("secret %s/%s", cfg.Namespace, secretName), func() {
+		cleanupCtx := context.Background()
+		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(cleanupCtx, secretName, metav1.DeleteOptions{})
+		if err := framework.WaitForSecretDeleted(cleanupCtx, clientset, cfg.Namespace, secretName, time.Minute); err != nil {
+			t.Logf("warning: %v", err)
+		}
 	})
 
 	storageClass := framework.NewStorageClass(storageClassName, cfg.CSIProvisionerName, cfg.QuobyteTenant, secretName, cfg.Namespace)
@@ -96,25 +114,53 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	} else if path != "" {
 		t.Logf("wrote storage class artifact to %s", path)
 	}
-	cleanupUnlessFailed(t, fmt.Sprintf("storage class %s", storageClassName), func() {
-		_ = clientset.StorageV1().StorageClasses().Delete(context.Background(), storageClassName, metav1.DeleteOptions{})
+	framework.CleanupUnlessFailed(t, fmt.Sprintf("storage class %s", storageClassName), func() {
+		cleanupCtx := context.Background()
+		_ = clientset.StorageV1().StorageClasses().Delete(cleanupCtx, storageClassName, metav1.DeleteOptions{})
+		if err := framework.WaitForStorageClassDeleted(cleanupCtx, clientset, storageClassName, time.Minute); err != nil {
+			t.Logf("warning: %v", err)
+		}
 	})
+
+	// Filled in once the PVC binds, below. The cleanup registered here reads it at
+	// teardown time, by when the PVC either bound (and there is a PV whose deletion
+	// has to complete) or never did (and there is nothing to wait for).
+	var boundPVName string
 
 	pvc := framework.NewPVC(pvcName, cfg.Namespace, storageClassName, "1Gi")
 	_, err = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	require.NoError(t, err, "creating pvc")
-	cleanupUnlessFailed(t, fmt.Sprintf("pvc %s/%s", cfg.Namespace, pvcName), func() {
-		_ = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
+	framework.CleanupUnlessFailed(t, fmt.Sprintf("pvc %s/%s", cfg.Namespace, pvcName), func() {
+		cleanupCtx := context.Background()
+		_ = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Delete(cleanupCtx, pvcName, metav1.DeleteOptions{})
+		if err := framework.WaitForPVCDeleted(cleanupCtx, clientset, cfg.Namespace, pvcName, 2*time.Minute); err != nil {
+			t.Logf("warning: %v", err)
+		}
+		// The PV going away is what shows the driver finished deleting the backing
+		// Quobyte volume. It has to happen before the remaining cleanup steps take
+		// away the credentials the driver needs for exactly that.
+		if boundPVName != "" {
+			if err := framework.WaitForPVDeleted(cleanupCtx, clientset, boundPVName, 3*time.Minute); err != nil {
+				t.Logf("warning: %v", err)
+			}
+		}
 	})
 
 	boundPVC, err := framework.WaitForPVCBound(ctx, clientset, cfg.Namespace, pvcName, 3*time.Minute)
 	require.NoError(t, err, "waiting for pvc to bind")
+	boundPVName = boundPVC.Spec.VolumeName
 
 	pod := framework.NewPod(podName, cfg.Namespace, pvcName, mountPath)
 	_, err = clientset.CoreV1().Pods(cfg.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	require.NoError(t, err, "creating pod")
-	cleanupUnlessFailed(t, fmt.Sprintf("pod %s/%s", cfg.Namespace, podName), func() {
-		_ = clientset.CoreV1().Pods(cfg.Namespace).Delete(context.Background(), podName, metav1.DeleteOptions{})
+	framework.CleanupUnlessFailed(t, fmt.Sprintf("pod %s/%s", cfg.Namespace, podName), func() {
+		cleanupCtx := context.Background()
+		_ = clientset.CoreV1().Pods(cfg.Namespace).Delete(cleanupCtx, podName, metav1.DeleteOptions{})
+		// The pod has to be gone, not just terminating, before the next cleanup
+		// step tears out the volume it still has mounted.
+		if err := framework.WaitForPodDeleted(cleanupCtx, clientset, cfg.Namespace, podName, 2*time.Minute); err != nil {
+			t.Logf("warning: %v", err)
+		}
 	})
 
 	_, err = framework.WaitForPodRunning(ctx, clientset, cfg.Namespace, podName, 2*time.Minute)

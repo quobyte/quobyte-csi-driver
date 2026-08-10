@@ -1,4 +1,4 @@
-module github.com/quobyte/quobyte-csi-driver/e2e-tests
+module github.com/quobyte/quobyte-csi-driver/kind-tests
 
 go 1.26.0
 

@@ -69,7 +69,7 @@ SnapshotClass:
   FromFile: $SNAPSHOT_CLASS
 DriverInfo:
   Name: $CSI_PROVISIONER_NAME
-  # Add  new capabilites from here (sample for v1.18.5)
+  # Add  new capabilities from here (sample for v1.18.5)
   # https://github.com/kubernetes/kubernetes/blob/e6503f8d8f769ace2f338794c914a96fc335df0f/test/e2e/storage/testsuites/testdriver.go#L137
   Capabilities:
     persistence: true

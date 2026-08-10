@@ -1,0 +1,4 @@
+# Default driver setup: volumes are mounted with the Quobyte API user/password the
+# test puts into its Secret (framework.NewSecret). Everything else comes from the
+# quobyte-csi chart's own values.yaml.
+ENABLE_ACCESS_KEY_MOUNTS=false

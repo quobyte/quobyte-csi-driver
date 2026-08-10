@@ -6,7 +6,9 @@ KIND_DIR="$(pwd)/kind-tests"
 POD_KILLER_DIR="${KIND_DIR}/quobyte-csi-pod-killer"
 CSI_CHART_TEMPLATES_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-csi/"
 CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
-GO_E2E_TESTS_DIR="${KIND_DIR}/e2e-tests"
+GO_E2E_SANITY_TESTS_DIR="${KIND_DIR}/e2e-sanity-tests"
+GO_E2E_UPSTREAM_TESTS_DIR="${KIND_DIR}/e2e-upstream-tests"
+UPSTREAM_E2E_SCRIPT="${KIND_DIR}/e2e"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
 KUBECONFIG='/tmp/quobyte-k8s-config'
@@ -18,8 +20,16 @@ print_help() {
 Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
 
 Builds the Quobyte CSI driver + pod-killer from source, spins up a local kind cluster,
-deploys the Quobyte client and CSI driver into it, then runs every self-contained Go e2e
-test package under kind-tests/e2e-tests/ against it. See kind-tests/README.md for details.
+then runs two sets of self-contained Go e2e test packages against it. Every file in a
+test's "env" directory is one driver setup, and the test is run once per file, with the
+Quobyte client and CSI driver redeployed for each:
+
+  kind-tests/e2e-sanity-tests/    Quobyte's own driver checks.
+  kind-tests/e2e-upstream-tests/  Upstream Kubernetes sig-storage suites. The test creates
+                                  what the suite needs via the Quobyte API, runs it and
+                                  cleans up afterwards.
+
+See kind-tests/README.md for details.
 
 Arguments:
   QUOBYTE_API_URL       Quobyte API endpoint, e.g. http://host:7860 (required)
@@ -30,6 +40,8 @@ Arguments:
 Other environment variables honored:
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
+  GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
+                        file may raise this -- the upstream suites need much longer.
 
 Examples:
   kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
@@ -140,9 +152,9 @@ install_kind_if_missing
 install_helm_if_missing
 install_kubectl_if_missing
 
-MOUNT_WITH_ACCESS_KEYS=${MOUNT_WITH_ACCESS_KEYS:-n}
 # Same physical driver for every test directory in a run, so this is script-level config
-# rather than something duplicated into each test's "env" file.
+# rather than something duplicated into each test's "env" file. Access key mounts, in
+# contrast, are per-environment (ENABLE_ACCESS_KEY_MOUNTS in a test's "env" file).
 export CSI_PROVISIONER_NAME="${CSI_PROVISIONER_NAME:-csi.quobyte.com}"
 CONTAINER_URL_BASE="dummy.quobyte.com/quobyte-csi-driver"
 # do not tag version as latest - that would trigger pull always from registry
@@ -334,8 +346,8 @@ kubectl config set-context --current --namespace=quobyte
 
 echo "To access the test cluster you should export KUBECONFIG=$KUBECONFIG env varialbe"
 
-if [[ ! -d "$GO_E2E_TESTS_DIR" ]]; then
-  die "No Go e2e tests found: ${GO_E2E_TESTS_DIR} does not exist"
+if [[ ! -d "$GO_E2E_SANITY_TESTS_DIR" && ! -d "$GO_E2E_UPSTREAM_TESTS_DIR" ]]; then
+  die "No Go e2e tests found: neither ${GO_E2E_SANITY_TESTS_DIR} nor ${GO_E2E_UPSTREAM_TESTS_DIR} exists"
 fi
 
 verify_namespace_has_no_crashing_pods() {
@@ -381,12 +393,15 @@ function check_snapshots_resources_exists() {
   fi
 }
 
-# Installs the external-snapshotter CRDs/controller if the given values.yaml enables
-# snapshots. Idempotent across multiple test directories (only installs once).
+# Installs the external-snapshotter CRDs/controller if the currently applied environment
+# enables snapshots, either through its values.yaml or through a CSI_HELM_SET override.
+# Idempotent across environments (only installs once) -- unlike the helm releases, these
+# resources are cluster-scoped and survive the undeploy between two test runs.
 snapshot_crds_installed=0
 deploy_snapshot_resources_if_needed() {
   local values_file="$1"
-  if ! grep -E "enableSnapshots:.*true" "$values_file" &> /dev/null; then
+  if ! grep -E "enableSnapshots:.*true" "$values_file" &> /dev/null \
+     && [[ "$CSI_HELM_SET" != *"enableSnapshots=true"* ]]; then
     return
   fi
   if [[ "$snapshot_crds_installed" -eq 1 ]]; then
@@ -412,25 +427,37 @@ deploy_quobyte_client() {
 }
 
 # Deploys quobyte-csi-driver from the given values.yaml, using CSI_PROVISIONER_NAME and
-# QUOBYTE_API_URL (both script-level config, see top of file).
+# QUOBYTE_API_URL (both script-level config, see top of file). Any "key=value" pairs in
+# CSI_HELM_SET (set by the per-test "env" file sourced by the caller) are appended as
+# additional --set overrides, which is how an env file switches on driver features such
+# as access key mounts without needing its own values.yaml.
 deploy_csi_driver() {
   local values_file="$1"
   if [[ ! -f "$values_file" ]]; then
     die "$values_file not found. Cannot setup Quobyte CSI Driver."
   fi
+
+  local -a env_overrides=()
+  local override
+  for override in ${CSI_HELM_SET}; do
+    env_overrides+=(--set "$override")
+  done
+
   echo ""
   echo "Deploying CSI Driver with $values_file with overrides \
         quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
         quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
         quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
         quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME \
-        quobyte.apiURL=$QUOBYTE_API_URL"
+        quobyte.apiURL=$QUOBYTE_API_URL \
+        ${CSI_HELM_SET}"
   helm install quobyte-csi-driver ${CSI_CHART_TEMPLATES_DIR} -f "$values_file" \
    --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
    --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
    --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
    --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME" \
    --set quobyte.apiURL="$QUOBYTE_API_URL" \
+   "${env_overrides[@]}" \
    || die 'Failed installing quobyte-csi-driver helm chart'
 
   sleep 1m
@@ -452,11 +479,14 @@ dump_debug_info() {
   local test_name="$1"
   local debug_dir="$2"
   local test_namespace="$3"
+  local env_file="$4"
+  local values_file="$5"
   echo "Dumping debug information for failed test '$test_name' to $debug_dir"
 
   {
-    echo "test_dir=${test_dir}"
+    echo "env_file=${env_file}"
     echo "values_file=${values_file}"
+    echo "CSI_HELM_SET=${CSI_HELM_SET}"
     echo "QUOBYTE_API_URL=${QUOBYTE_API_URL}"
     echo "QUOBYTE_TENANT=${QUOBYTE_TENANT}"
     echo "QUOBYTE_REGISTRY=${QUOBYTE_REGISTRY}"
@@ -498,86 +528,77 @@ dump_debug_info() {
   echo "Debug information for '$test_name' saved to $debug_dir"
 }
 
-# If a StorageClass artifact was dumped into artifacts_dir by the Go test (see
-# framework.DumpStorageClassYAML in kind-tests/e2e-tests), runs the upstream Kubernetes
-# e2e (sig-storage "external storage") suite via kind-tests/e2e against the exact same
-# quobyte-csi-driver/quobyte-client deployment the Go test in $test_dir just passed
-# against. The Go test's own successful cleanup has already deleted its Secret and
-# StorageClass from the cluster by the time this runs, so the dumped copies are
-# re-applied here, used for the upstream suite, then deleted again afterward. Returns
-# non-zero on failure; caller decides what to do (the debug snapshot/cleanup-skip
-# behavior lives in the caller, same as for the Go test, so both failure paths look the
-# same to the user).
-run_upstream_k8s_e2e_if_configured() {
-  local test_name="$1"
-  local artifacts_dir="$2"
-  local debug_dir="$3"
-
-  local storage_class_file
-  storage_class_file="$(ls "${artifacts_dir}"/*-storageclass.yaml 2>/dev/null | head -n1)"
-  if [[ -z "$storage_class_file" ]]; then
-    echo "No StorageClass artifact found in $artifacts_dir. Skipping upstream k8s e2e for '$test_name'."
-    return 0
-  fi
-
-  echo ""
-  echo "Running upstream Kubernetes e2e (external-storage) suite for '$test_name' against the same setup"
-
-  local secret_file
-  secret_file="$(ls "${artifacts_dir}"/*-secret.yaml 2>/dev/null | head -n1)"
-  if [[ -n "$secret_file" ]]; then
-    kubectl apply -f "$secret_file" || die "Failed applying $secret_file"
-  fi
-  kubectl apply -f "$storage_class_file" || die "Failed applying $storage_class_file"
-
-  local snapshot_class_file="${artifacts_dir}/k8s_volume-snapshot-class.yaml"
-  local enable_snapshots='false'
-
-  STORAGE_CLASS="$storage_class_file" KUBECONFIG="$KUBECONFIG" \
-   SNAPSHOT_CLASS="$snapshot_class_file" \
-   CSI_PROVISIONER_NAME="$CSI_PROVISIONER_NAME" ENABLE_SNAPSHOTS="$enable_snapshots" \
-   kind-tests/e2e 2>&1 | tee "${debug_dir}/k8s-e2e-output.log"
-  local status=${PIPESTATUS[0]}
-
-  kubectl delete -f "$storage_class_file" --ignore-not-found
-  if [[ -n "$secret_file" ]]; then
-    kubectl delete -f "$secret_file" --ignore-not-found
-  fi
-
-  return "$status"
-}
-
-echo ""
-# Each subdirectory of kind-tests/e2e-tests is a self-contained Go test package with
-# its own "env" file (ENABLE_ACCESS_KEY_MOUNTS and any test-specific overrides like
-# QUOBYTE_TENANT) and its own "values.yaml" for the CSI driver chart. The Quobyte API
-# endpoint/client registry (QUOBYTE_API_URL/USER/PASSWORD, QUOBYTE_REGISTRY) and
-# CSI_PROVISIONER_NAME are script-level config (see top of file), not part of any
-# per-test env file -- the same physical endpoints/driver apply to every test directory
-# in a run.
-# For each test directory found: deploy its environment (export the env file's
-# variables), deploy quobyte-client and quobyte-csi-driver using that environment and
-# values.yaml, run just that package's tests, then tear down the driver/client and
-# remove the environment (unset those variables) before moving on to the next test.
-# On failure, everything (cluster, driver, client, and the test's own resources) is
-# left running for live debugging instead of continuing to the next test -- see
-# cleanupUnlessFailed in the Go tests, which skips deleting its own resources when
-# the test failed.
-go_e2e_tests_found=0
-
-for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
-  test_name="$(basename "$test_dir")"
-  env_file="${test_dir}env"
-  values_file="${CSI_CHART_TEMPLATES_DIR}values.yaml"
-  if [[ ! -f "$env_file" ]]; then
-    continue
-  fi
-  go_e2e_tests_found=1
-
-  echo "Deploying environment for Go e2e test '$test_name' from $env_file"
+# Deploys an environment: every assignment in the given "env" file becomes an exported
+# variable, visible to the helm deployments and to the Go test run afterwards.
+apply_env_file() {
+  local env_file="$1"
   set -a
+  # shellcheck disable=SC1090
   source "$env_file"
   set +a
+}
+
+# Removes an environment, undoing apply_env_file. Needed because the same test package is
+# run once per env file: nothing from env file N may still be set when env file N+1 is
+# applied, or a variable only one of them defines would silently carry over.
+unset_env_file() {
+  local env_file="$1"
+  local line name
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # Strip leading whitespace, skip blank/comment lines, tolerate 'export FOO=bar'.
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    name="${line#export }"
+    name="${name%%=*}"
+    # Anything that isn't a plain variable name (a bare 'export FOO', a function, ...)
+    # is not something we set, so there is nothing to unset either.
+    [[ -z "$name" || "$name" == *[^A-Za-z0-9_]* ]] && continue
+    unset "$name"
+  done < "$env_file"
+}
+
+# The values.yaml the quobyte-csi chart is deployed with for the currently applied
+# environment: the chart's own by default, or the env file's CSI_VALUES_FILE (absolute,
+# or relative to the test directory).
+resolve_values_file() {
+  local test_dir="$1"
+  if [[ -z "$CSI_VALUES_FILE" ]]; then
+    echo "${CSI_CHART_TEMPLATES_DIR}values.yaml"
+  elif [[ "$CSI_VALUES_FILE" == /* ]]; then
+    echo "$CSI_VALUES_FILE"
+  else
+    echo "${test_dir}${CSI_VALUES_FILE}"
+  fi
+}
+
+# Runs one (test package, env file) combination end to end: deploy that environment,
+# deploy quobyte-client and quobyte-csi-driver with it, run just that package's tests
+# against the deployment, then tear the deployment down and remove the environment
+# again. A test package with several env files goes through this once per env file,
+# each time against a freshly deployed driver.
+#
+# On failure, everything (cluster, driver, client, and the test's own k8s/Quobyte
+# resources) is left in place for live debugging instead of continuing with the next
+# env file -- see framework.CleanupUnlessFailed, which the Go tests use to skip their
+# own cleanup when they failed.
+#
+#   $1 tests_root  directory holding the test packages (a test set)
+#   $2 test_name   package directory name within tests_root
+#   $3 env_file    the environment to deploy for this run
+#   $4 variant     label for this env file, used in the debug output path
+run_go_test_for_env() {
+  local tests_root="$1"
+  local test_name="$2"
+  local env_file="$3"
+  local variant="$4"
+  local test_dir="${tests_root}/${test_name}/"
+
+  echo ""
+  echo "Deploying environment for Go e2e test '${test_name}' [${variant}] from $env_file"
+  apply_env_file "$env_file"
+
+  local values_file
+  values_file="$(resolve_values_file "$test_dir")"
 
   deploy_snapshot_resources_if_needed "$values_file"
   deploy_quobyte_client
@@ -586,32 +607,38 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
   # Randomize the namespace the test's own Secret/StorageClass/PVC/Pod live in
   # (separate from the driver's fixed "quobyte" operating namespace set up above)
   # so each test run gets isolated, uniquely-named resources.
+  local test_suffix test_namespace storage_class_name quobyte_tenant
   test_suffix="$(date +%s)-${RANDOM}"
   test_namespace="quobyte-e2e-${test_suffix}"
   storage_class_name="quobyte-sc-${test_suffix}"
   # Generate a unique tenant name per run, unless the test's own "env" file already
-  # pins one (e.g. because it must run against a pre-existing tenant). Only the name
-  # is generated here -- actually creating the tenant + user and granting access to it
-  # is not done yet (TODO(venkat)), so this only helps once that exists, or for tests
-  # that create/expect their own tenant out of band.
+  # pins one (e.g. because it must run against a pre-existing tenant). Creating the
+  # tenant and granting the API user access to it is the test's own job -- see
+  # framework.EnsureTenant.
   quobyte_tenant="${QUOBYTE_TENANT:-quobyte-tenant-${test_suffix}}"
   echo "Creating test namespace $test_namespace"
   kubectl create ns "$test_namespace" || die "Failed creating namespace $test_namespace"
 
-  echo "Running Go e2e test '$test_name'"
-  debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}"
-  artifacts_dir="${debug_dir}/artifacts"
+  echo "Running Go e2e test '${test_name}' [${variant}]"
+  # Per env file, so the variants of one test package don't overwrite each other's logs.
+  local debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}/${variant}"
+  local artifacts_dir="${debug_dir}/artifacts"
   mkdir -p "$debug_dir" "$artifacts_dir"
-  ( cd "${GO_E2E_TESTS_DIR}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="$test_namespace" \
+  # UPSTREAM_E2E_SCRIPT/REPO_ROOT are passed to every test set; only tests that drive the
+  # upstream sig-storage suite themselves use them (see framework.RunUpstreamE2E).
+  ( cd "${tests_root}" && KUBECONFIG="$KUBECONFIG" NAMESPACE="$test_namespace" \
     STORAGE_CLASS_NAME="$storage_class_name" \
     QUOBYTE_TENANT="$quobyte_tenant" \
     ARTIFACTS_DIR="$artifacts_dir" \
-    go test "./${test_name}/..." -v -timeout 20m -count="${GO_TEST_COUNT:-1}" ) 2>&1 | tee "${debug_dir}/go-test-output.log"
-  test_status=${PIPESTATUS[0]}
+    UPSTREAM_E2E_SCRIPT="$UPSTREAM_E2E_SCRIPT" \
+    REPO_ROOT="$CODE_BASE_DIR" \
+    go test "./${test_name}/..." -v -timeout "${GO_TEST_TIMEOUT:-20m}" \
+      -count="${GO_TEST_COUNT:-1}" ) 2>&1 | tee "${debug_dir}/go-test-output.log"
+  local test_status=${PIPESTATUS[0]}
   if [[ "$test_status" -ne 0 ]]; then
-    dump_debug_info "$test_name" "$debug_dir" "$test_namespace"
+    dump_debug_info "$test_name" "$debug_dir" "$test_namespace" "$env_file" "$values_file"
     echo ""
-    echo "Go e2e test '$test_name' FAILED."
+    echo "Go e2e test '${test_name}' [${variant}] FAILED."
     echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
     echo "quobyte-client, and this test's Secret/StorageClass/PVC/Pod are all still"
     echo "running -- inspect them live, e.g.:"
@@ -623,23 +650,62 @@ for test_dir in "${GO_E2E_TESTS_DIR}"/*/; do
     echo "$debug_dir"
     echo ""
     echo "Run 'kind-tests/cleanup' when done to tear everything down."
-    die "Stopping after first failed Go e2e test ('$test_name')."
+    die "Stopping after first failed Go e2e test ('${test_name}' [${variant}])."
   fi
-  run_upstream_k8s_e2e_if_configured "$test_name" "$artifacts_dir" "$debug_dir"
 
-  echo "Removing quobyte-csi-driver/quobyte-client deployed for '$test_name'"
+  echo "Removing quobyte-csi-driver/quobyte-client deployed for '${test_name}' [${variant}]"
   undeploy_csi_driver_and_client
 
   echo "Removing test namespace $test_namespace"
   kubectl delete ns "$test_namespace" --ignore-not-found
 
-  echo "Removing environment for Go e2e test '$test_name'"
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" || "$line" == \#* ]] && continue
-    unset "${line%%=*}"
-  done < "$env_file"
-done
+  echo "Removing environment for Go e2e test '${test_name}' [${variant}]"
+  unset_env_file "$env_file"
+}
+
+echo ""
+# Two test sets are run, in order, both built out of self-contained Go test packages that
+# share kind-tests/framework, and both laid out the same way: a package carries an "env"
+# DIRECTORY, every file in it is one environment to deploy the driver with, and the package
+# is run once per environment. What differs is what the packages do:
+#
+#   kind-tests/e2e-sanity-tests/<name>/   Quobyte's own checks of the driver.
+#
+#   kind-tests/e2e-upstream-tests/<name>/ Runs the upstream Kubernetes sig-storage
+#                                         "external storage" suite: the test sets up what
+#                                         the suite needs via the Quobyte API, runs the
+#                                         suite (kind-tests/e2e, see framework.RunUpstreamE2E)
+#                                         and cleans that setup up afterwards.
+#
+# The Quobyte API endpoint/client registry (QUOBYTE_API_URL/USER/PASSWORD, QUOBYTE_REGISTRY)
+# and CSI_PROVISIONER_NAME are script-level config (see top of file), not part of any env
+# file -- the same physical endpoints/driver apply to every test in a run. An env file
+# holds only what varies per deployment: ENABLE_ACCESS_KEY_MOUNTS, and optionally
+# ENABLE_SNAPSHOTS, QUOBYTE_TENANT, CSI_VALUES_FILE and CSI_HELM_SET.
+go_e2e_tests_found=0
+
+# Runs a whole test set: every subdirectory holding an "env" directory is a test package,
+# and every file in that directory is one environment to run the package against.
+run_test_set() {
+  local tests_root="$1"
+  local test_dir test_name env_file
+  for test_dir in "${tests_root}"/*/; do
+    test_name="$(basename "$test_dir")"
+    if [[ ! -d "${test_dir}env" ]]; then
+      continue
+    fi
+    for env_file in "${test_dir}env"/*; do
+      [[ -f "$env_file" ]] || continue
+      go_e2e_tests_found=1
+      run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"
+    done
+  done
+}
+
+run_test_set "$GO_E2E_SANITY_TESTS_DIR"
+run_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
 
 if [[ "$go_e2e_tests_found" -eq 0 ]]; then
-  die "No test directory with an 'env' file was found under ${GO_E2E_TESTS_DIR}"
+  die "No runnable test found: no test directory with an 'env' directory under \
+${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
 fi
