@@ -51,6 +51,23 @@ external_storage/default          FAIL
 Debug output of the failed run(s) is under kind-csi-testing/debug/<test>/<environment>/
 ```
 
+Those names are also how you select what to run. `TESTS` takes a space-separated list of them,
+glob patterns included, and `run_test --list` prints the available ones without touching
+anything:
+
+```bash
+kind-tests/run_test --list
+
+# re-run just the one that failed
+TESTS='dynamic_provisioning/default' kind-tests/run_test http://host:port host:port
+
+# or every environment of one test package
+TESTS='external_storage/*' kind-tests/run_test http://host:port host:port
+```
+
+The selection is resolved before the kind cluster is built, so a name that matches nothing fails
+immediately instead of after the cluster is up.
+
 On failure `run_test` stops right there without cleaning up: the cluster, the driver, the client
 and the test's own resources are all left running for live debugging (the Go tests use
 `framework.CleanupUnlessFailed`, which skips their own teardown when the test failed), and the

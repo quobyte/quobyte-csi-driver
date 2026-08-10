@@ -15,9 +15,48 @@ KUBECONFIG='/tmp/quobyte-k8s-config'
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
+# --- The test matrix -------------------------------------------------------------
+# Discovered up front, before anything is built or deployed, so that --list and a bad
+# TESTS pattern are answered immediately instead of after a cluster has been created,
+# and so the summary at the end of the run can also name the combinations a stopped run
+# never got to. The arrays are index-aligned:
+#   all_tests   "<tests_root>|<test_name>|<env_file>" -- what run_go_test_for_env needs
+#   all_names   "<test_name>/<env file>"              -- how a combination is named, both
+#                                                        in the summary and in TESTS
+declare -a all_tests=()
+declare -a all_names=()
+
+# Collects every (test package, environment file) combination of a test set: every
+# subdirectory holding an "env" directory is a test package, and every file in that
+# directory is one environment to run the package against.
+collect_test_set() {
+  local tests_root="$1"
+  local test_dir test_name env_file
+  for test_dir in "${tests_root}"/*/; do
+    test_name="$(basename "$test_dir")"
+    if [[ ! -d "${test_dir}env" ]]; then
+      continue
+    fi
+    for env_file in "${test_dir}env"/*; do
+      [[ -f "$env_file" ]] || continue
+      all_tests+=("${tests_root}|${test_name}|${env_file}")
+      all_names+=("${test_name}/$(basename "$env_file")")
+    done
+  done
+}
+
+collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
+collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
+
+if [[ "${#all_tests[@]}" -eq 0 ]]; then
+  die "No runnable test found: no test directory with an 'env' directory under \
+${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
+fi
+
 print_help() {
   cat <<EOF
 Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+       $0 --list
 
 Builds the Quobyte CSI driver + pod-killer from source, spins up a local kind cluster,
 then runs two sets of self-contained Go e2e test packages against it. Every file in a
@@ -37,7 +76,16 @@ Arguments:
   QUOBYTE_API_USER      Quobyte API user (optional, default: admin)
   QUOBYTE_API_PASSWORD  Quobyte API password (optional, default: quobyte)
 
+Options:
+  -l, --list            Print the name of every test/environment combination this
+                        checkout would run, then exit. These are the names the summary
+                        table shows and TESTS selects on.
+
 Other environment variables honored:
+  TESTS                 Space-separated list of the combinations to run, using the names
+                        from --list; glob patterns are allowed. Unset, everything runs.
+                        Checked before the cluster is built, so a name that matches
+                        nothing fails immediately.
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
@@ -54,6 +102,15 @@ Examples:
   # overriding the admin/quobyte user/password defaults:
   kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 myuser mypass
 
+  # re-running just one combination from the summary table:
+  kind-tests/run_test --list
+  TESTS='dynamic_provisioning/default' \\
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+
+  # or every environment of one test package:
+  TESTS='external_storage/*' \\
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+
 Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
 automatically if missing (see kind-tests/README.md "Requirements").
 EOF
@@ -61,6 +118,13 @@ EOF
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   print_help
+  exit 0
+fi
+
+# Names every combination this checkout would run, in run order -- the same names the
+# summary prints and TESTS selects on. Needs no arguments and touches nothing.
+if [[ "$1" == "-l" || "$1" == "--list" ]]; then
+  printf '%s\n' "${all_names[@]}"
   exit 0
 fi
 
@@ -75,6 +139,47 @@ if [[ -z "$QUOBYTE_API_URL" || -z "$QUOBYTE_REGISTRY" ]]; then
   QUOBYTE_API_URL and QUOBYTE_REGISTRY are required. QUOBYTE_API_USER/QUOBYTE_API_PASSWORD
   are optional, defaulting to 'admin'/'quobyte' if not given.
   Example: kind-tests/run_test http://host:port host:port"
+fi
+
+# --- Test selection --------------------------------------------------------------
+# TESTS picks which of the discovered combinations to run, as a space-separated list of
+# summary names ("dynamic_provisioning/default"), optionally with glob patterns
+# ("external_storage/*"). Unset, everything runs. Resolved here, before the cluster is
+# built, so a name that matches nothing fails immediately.
+#   planned_tests/planned_names  the selected subset of all_tests/all_names
+#   test_results                 PASS / FAIL / NOT RUN per planned combination
+declare -a planned_tests=()
+declare -a planned_names=()
+declare -a test_results=()
+
+test_selected() {
+  local name="$1" pattern
+  [[ -z "$TESTS" ]] && return 0
+  for pattern in $TESTS; do
+    # Unquoted on purpose: TESTS entries are patterns, not literal strings.
+    # shellcheck disable=SC2053
+    [[ "$name" == $pattern ]] && return 0
+  done
+  return 1
+}
+
+for i in "${!all_tests[@]}"; do
+  if test_selected "${all_names[i]}"; then
+    planned_tests+=("${all_tests[i]}")
+    planned_names+=("${all_names[i]}")
+    test_results+=('NOT RUN')
+  fi
+done
+
+if [[ "${#planned_tests[@]}" -eq 0 ]]; then
+  die "TESTS='${TESTS}' selected none of the available tests:
+$(printf '  %s\n' "${all_names[@]}")
+Run '$0 --list' to see them, and use those names (glob patterns allowed) in TESTS."
+fi
+
+if [[ -n "$TESTS" ]]; then
+  echo "TESTS='${TESTS}' selected ${#planned_tests[@]} of ${#all_tests[@]} tests:"
+  printf '  %s\n' "${planned_names[@]}"
 fi
 
 # Exported so every helm/kubectl call and the Go e2e tests (framework.LoadConfig reads
@@ -701,44 +806,8 @@ echo ""
 # file -- the same physical endpoints/driver apply to every test in a run. An env file
 # holds only what varies per deployment: ENABLE_ACCESS_KEY_MOUNTS, and optionally
 # ENABLE_SNAPSHOTS, QUOBYTE_TENANT, CSI_VALUES_FILE and CSI_HELM_SET.
-# The whole matrix is discovered before anything is deployed, so the summary printed at the
-# end can also name the combinations a stopped run never got to. The three arrays are
-# index-aligned:
-#   planned_tests  "<tests_root>|<test_name>|<env_file>" -- what run_go_test_for_env needs
-#   planned_names  "<test_name>/<env file>"              -- how a combination is named in
-#                                                          the summary
-#   test_results   PASS / FAIL / NOT RUN
-declare -a planned_tests=()
-declare -a planned_names=()
-declare -a test_results=()
-
-# Collects every (test package, environment file) combination of a test set: every
-# subdirectory holding an "env" directory is a test package, and every file in that
-# directory is one environment to run the package against.
-collect_test_set() {
-  local tests_root="$1"
-  local test_dir test_name env_file
-  for test_dir in "${tests_root}"/*/; do
-    test_name="$(basename "$test_dir")"
-    if [[ ! -d "${test_dir}env" ]]; then
-      continue
-    fi
-    for env_file in "${test_dir}env"/*; do
-      [[ -f "$env_file" ]] || continue
-      planned_tests+=("${tests_root}|${test_name}|${env_file}")
-      planned_names+=("${test_name}/$(basename "$env_file")")
-      test_results+=('NOT RUN')
-    done
-  done
-}
-
-collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
-collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
-
-if [[ "${#planned_tests[@]}" -eq 0 ]]; then
-  die "No runnable test found: no test directory with an 'env' directory under \
-${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
-fi
+#
+# Which of them actually run was decided by TESTS up at "Test selection".
 
 # Prints the result of every planned combination. Wired to EXIT below so it shows up at the
 # end of the run whether that run finished the matrix, stopped at the first failure, or was
@@ -766,6 +835,9 @@ print_test_summary() {
   done
   echo ""
   echo "${passed} passed, ${failed} failed, ${not_run} not run"
+  if [[ -n "$TESTS" ]]; then
+    echo "(TESTS='${TESTS}' selected ${#planned_names[@]} of ${#all_names[@]} available tests)"
+  fi
   if [[ "$failed" -gt 0 ]]; then
     echo "Debug output of the failed run(s) is under ${TEST_CLUSTER_DIR}/debug/<test>/<environment>/"
   fi
