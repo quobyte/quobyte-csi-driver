@@ -13,11 +13,19 @@ const SharedVolumeNameParameter = "sharedVolumeName"
 
 // StorageClassOptions describes the StorageClass a test builds for itself.
 type StorageClassOptions struct {
-	Name            string
-	Provisioner     string
-	Tenant          string
+	Name        string
+	Provisioner string
+	Tenant      string
+	// SecretName/SecretNamespace hold the Quobyte management API credentials, used to
+	// provision and to expand volumes.
 	SecretName      string
 	SecretNamespace string
+	// MountSecretName/MountSecretNamespace optionally point the node-publish secret at
+	// a second Secret holding file system access credentials, splitting API access from
+	// data access across two Secrets (as in the local_cluster_accesskeys_2 example).
+	// Empty means the API Secret above is used for mounting too.
+	MountSecretName      string
+	MountSecretNamespace string
 	// SharedVolumeName, when set, adds the sharedVolumeName parameter, so every PVC
 	// against this StorageClass is provisioned as a subdirectory of that one Quobyte
 	// volume. Empty means a volume per PVC.
@@ -32,6 +40,12 @@ func NewStorageClass(opts StorageClassOptions) *storagev1.StorageClass {
 	allowVolumeExpansion := true
 	reclaimPolicy := corev1.PersistentVolumeReclaimDelete
 
+	// Mounting falls back to the API secret unless a separate one was given.
+	mountSecretName, mountSecretNamespace := opts.MountSecretName, opts.MountSecretNamespace
+	if mountSecretName == "" {
+		mountSecretName, mountSecretNamespace = opts.SecretName, opts.SecretNamespace
+	}
+
 	parameters := map[string]string{
 		"quobyteTenant": opts.Tenant,
 		// Ignored by the driver for shared volumes, where the quota would apply to a
@@ -42,8 +56,8 @@ func NewStorageClass(opts StorageClassOptions) *storagev1.StorageClass {
 		"csi.storage.k8s.io/provisioner-secret-namespace":       opts.SecretNamespace,
 		"csi.storage.k8s.io/controller-expand-secret-name":      opts.SecretName,
 		"csi.storage.k8s.io/controller-expand-secret-namespace": opts.SecretNamespace,
-		"csi.storage.k8s.io/node-publish-secret-name":           opts.SecretName,
-		"csi.storage.k8s.io/node-publish-secret-namespace":      opts.SecretNamespace,
+		"csi.storage.k8s.io/node-publish-secret-name":           mountSecretName,
+		"csi.storage.k8s.io/node-publish-secret-namespace":      mountSecretNamespace,
 	}
 	if opts.SharedVolumeName != "" {
 		parameters[SharedVolumeNameParameter] = opts.SharedVolumeName

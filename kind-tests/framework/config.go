@@ -33,6 +33,13 @@ type Config struct {
 	// accessKeyId/accessKeySecret instead of user/password (see
 	// src/driver/node.go).
 	EnableAccessKeyMounts bool
+	// UseSeparateMountSecret mirrors USE_SEPARATE_MOUNT_SECRET: split the driver's two
+	// uses of a Secret across two of them, the way
+	// kind-tests/test-configs/local_cluster_accesskeys_2 did on master -- a management
+	// access key for provisioning/expansion, and a separate data access key that the
+	// node-publish secret carries for mounting. Only meaningful together with
+	// EnableAccessKeyMounts.
+	UseSeparateMountSecret bool
 	// EnableSnapshots mirrors the ENABLE_SNAPSHOTS setting of the "env" file and
 	// is passed on to the upstream Kubernetes e2e suite (see RunUpstreamE2E).
 	EnableSnapshots bool
@@ -60,8 +67,9 @@ type SharedVolumeOptions struct {
 	// test setup, rather than leaving the driver to create it on the first
 	// provisioning request.
 	PreCreateSharedVolume bool
-	// Name of the shared volume. Not read from the environment -- the test fills it
-	// in with a name unique to the run, the same way it names its StorageClass.
+	// Name optionally pins the shared volume's name via SHARED_VOLUME_NAME. Not
+	// required -- if unset, the test generates a name unique to the run, the same
+	// way it names its StorageClass.
 	Name string
 }
 
@@ -81,14 +89,16 @@ func LoadConfig(t *testing.T) Config {
 		StorageClassName:   os.Getenv("STORAGE_CLASS_NAME"),
 		ArtifactsDir:       os.Getenv("ARTIFACTS_DIR"),
 
-		EnableAccessKeyMounts: boolEnv("ENABLE_ACCESS_KEY_MOUNTS"),
-		EnableSnapshots:       boolEnv("ENABLE_SNAPSHOTS"),
-		UpstreamE2EScript:     os.Getenv("UPSTREAM_E2E_SCRIPT"),
-		RepoRoot:              os.Getenv("REPO_ROOT"),
+		EnableAccessKeyMounts:  boolEnv("ENABLE_ACCESS_KEY_MOUNTS"),
+		UseSeparateMountSecret: boolEnv("USE_SEPARATE_MOUNT_SECRET"),
+
+		EnableSnapshots:   boolEnv("ENABLE_SNAPSHOTS"),
+		UpstreamE2EScript: os.Getenv("UPSTREAM_E2E_SCRIPT"),
+		RepoRoot:          os.Getenv("REPO_ROOT"),
 		SharedVolumeOptions: SharedVolumeOptions{
 			EnableSharedVolume:    boolEnv("USE_SHARED_VOLUME"),
 			PreCreateSharedVolume: boolEnv("PRE_CREATE_SHARED_VOLUME"),
-			Name: os.Getenv("SHARED_VOLUME_NAME"),
+			Name:                  os.Getenv("SHARED_VOLUME_NAME"),
 		},
 	}
 
@@ -111,6 +121,13 @@ func LoadConfig(t *testing.T) Config {
 	// "env" file meant to say, so say so rather than silently ignoring it.
 	if cfg.SharedVolumeOptions.PreCreateSharedVolume && !cfg.SharedVolumeOptions.EnableSharedVolume {
 		t.Fatal("PRE_CREATE_SHARED_VOLUME is set without USE_SHARED_VOLUME: the pre-created volume would not be used")
+	}
+
+	// A separate mount secret exists to carry file system access keys. Without access
+	// key mounts the node plugin wants the user/password the API secret already has, so
+	// splitting them would test nothing.
+	if cfg.UseSeparateMountSecret && !cfg.EnableAccessKeyMounts {
+		t.Fatal("USE_SEPARATE_MOUNT_SECRET is set without ENABLE_ACCESS_KEY_MOUNTS: a separate mount secret only makes sense for access key mounts")
 	}
 
 	return cfg

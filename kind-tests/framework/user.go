@@ -15,7 +15,7 @@ func CreateUser(client *quobyte.QuobyteClient, userName, primaryGroup, password 
 	_, err := client.CreateUser(&quobyte.CreateUserRequest{
 		UserName:         userName,
 		Password:         password,
-		Role: userRole,
+		Role:             userRole,
 		AdminOfTenantId:  adminOfTenantIDs,
 		MemberOfTenantId: adminOfTenantIDs,
 		PrimaryGroup:     primaryGroup,

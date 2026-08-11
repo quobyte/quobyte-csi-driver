@@ -97,7 +97,9 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	// (src/driver/quobyte_api_client_factory.go).
 	var secret *corev1.Secret
 	if cfg.EnableAccessKeyMounts {
-		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, cfg.QuobyteAPIUser)
+		// One key for both uses: this test's Secret is the provisioner secret and the
+		// mount secret at once.
+		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, cfg.QuobyteAPIUser, framework.GeneralAccessKey)
 		require.NoError(t, err, "creating a Quobyte access key for user %q", cfg.QuobyteAPIUser)
 		// Registered before everything below, so LIFO cleanup revokes the key only
 		// after the PVC is gone -- the driver needs these credentials to delete the

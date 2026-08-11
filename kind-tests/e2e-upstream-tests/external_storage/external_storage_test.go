@@ -112,41 +112,64 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 	})
 
 	// --- setup: Kubernetes side ----------------------------------------------
-	// The StorageClass pins this Secret by name and namespace, so it has to exist in
-	// the cluster for as long as the suite runs, even though the StorageClass itself
-	// is only handed over as a file.
-	//
-	// Which of the user's credentials go into it depends on the environment the driver
-	// was deployed with: with access key mounts enabled the node plugin requires
-	// accessKeyId/accessKeySecret in the mount secret (src/driver/node.go), and the same
-	// pair doubles as management API credentials for the provisioner
-	// (src/driver/quobyte_api_client_factory.go) -- which the user above is entitled to
-	// use, being an admin of the tenant the suite provisions in.
-	var secret *corev1.Secret
-	if cfg.EnableAccessKeyMounts {
-		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, testUser)
-		require.NoError(t, err, "creating a Quobyte access key for user %q", testUser)
-		// Registered before the Secret, so LIFO cleanup revokes the key only after the
-		// suite (and its own volume cleanup) is done with it.
+	// applySecret creates a Secret, dumps a copy of it next to the other artifacts and
+	// registers its removal. The StorageClass pins its Secrets by name and namespace, so
+	// they have to exist in the cluster for as long as the suite runs, even though the
+	// StorageClass itself is only handed over as a file.
+	applySecret := func(secret *corev1.Secret, purpose string) {
+		_, err := clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
+		require.NoError(t, err, "creating %s secret", purpose)
+		if path, err := framework.DumpSecretYAML(cfg.ArtifactsDir, fmt.Sprintf("%s-%s", t.Name(), purpose), secret); err != nil {
+			t.Logf("warning: failed to dump %s secret artifact: %v", purpose, err)
+		} else if path != "" {
+			t.Logf("wrote %s secret artifact to %s", purpose, path)
+		}
+		framework.CleanupUnlessFailed(t, fmt.Sprintf("%s secret %s/%s", purpose, cfg.Namespace, secret.Name), func() {
+			_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secret.Name, metav1.DeleteOptions{})
+		})
+	}
+
+	// newAccessKeySecret creates an access key of the given type for the test's user and
+	// wraps it in a Secret. Registered for revocation before the Secret that carries it,
+	// so LIFO cleanup revokes the key only after the suite (and its own volume cleanup)
+	// is done with it.
+	newAccessKeySecret := func(name string, keyType quobyteApi.AccessKeyType) *corev1.Secret {
+		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, testUser, keyType)
+		require.NoError(t, err, "creating a Quobyte %s for user %q", keyType, testUser)
 		framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte access key %s", credentials.AccessKeyId), func() {
 			if err := framework.DeleteAccessKey(quobyteClient, testUser, credentials.AccessKeyId); err != nil {
 				t.Logf("warning: %v", err)
 			}
 		})
-		secret = framework.NewAccessKeySecret(secretName, cfg.Namespace, credentials.AccessKeyId, credentials.SecretAccessKey)
-	} else {
-		secret = framework.NewSecret(secretName, cfg.Namespace, testUser, testUserPassword)
+		return framework.NewAccessKeySecret(name, cfg.Namespace, credentials.AccessKeyId, credentials.SecretAccessKey)
 	}
-	_, err = clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
-	require.NoError(t, err, "creating secret")
-	if path, err := framework.DumpSecretYAML(cfg.ArtifactsDir, t.Name(), secret); err != nil {
-		t.Logf("warning: failed to dump secret artifact: %v", err)
-	} else if path != "" {
-		t.Logf("wrote secret artifact to %s", path)
+
+	// The driver puts a Secret to two different uses: management API credentials for
+	// provisioning and expansion (src/driver/quobyte_api_client_factory.go), and file
+	// system credentials for mounting (src/driver/node.go). Which credentials that is,
+	// and whether one Secret covers both, is what the environment decides:
+	//
+	//   plain                     one Secret, the user's user/password
+	//   access key mounts         one Secret, a general access key serving both uses
+	//   + separate mount secret   two Secrets, a management access key for the API and a
+	//                             data access key for mounting -- the setup
+	//                             kind-tests/test-configs/local_cluster_accesskeys_2
+	//                             described on master
+	//
+	// The user created above is entitled to all of it, being an admin of the tenant the
+	// suite provisions in.
+	mountSecretName := ""
+	switch {
+	case cfg.EnableAccessKeyMounts && cfg.UseSeparateMountSecret:
+		applySecret(newAccessKeySecret(secretName, framework.ManagementAccessKey), "api")
+
+		mountSecretName = fmt.Sprintf("e2e-upstream-mount-secret-%d", suffix)
+		applySecret(newAccessKeySecret(mountSecretName, framework.DataAccessKey), "mount")
+	case cfg.EnableAccessKeyMounts:
+		applySecret(newAccessKeySecret(secretName, framework.GeneralAccessKey), "api-and-mount")
+	default:
+		applySecret(framework.NewSecret(secretName, cfg.Namespace, testUser, testUserPassword), "api-and-mount")
 	}
-	framework.CleanupUnlessFailed(t, fmt.Sprintf("secret %s/%s", cfg.Namespace, secretName), func() {
-		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secretName, metav1.DeleteOptions{})
-	})
 
 	if sharedVolume.EnableSharedVolume && sharedVolume.Name == "" {
 		sharedVolume.Name = fmt.Sprintf("shared-%d", suffix)
@@ -166,12 +189,16 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 	}
 
 	storageClass := framework.NewStorageClass(framework.StorageClassOptions{
-		Name:             storageClassName,
-		Provisioner:      cfg.CSIProvisionerName,
-		Tenant:           cfg.QuobyteTenant,
-		SecretName:       secretName,
-		SecretNamespace:  cfg.Namespace,
-		SharedVolumeName: sharedVolume.Name,
+		Name:            storageClassName,
+		Provisioner:     cfg.CSIProvisionerName,
+		Tenant:          cfg.QuobyteTenant,
+		SecretName:      secretName,
+		SecretNamespace: cfg.Namespace,
+		// Empty unless the environment asked for a separate mount secret, in which case
+		// node-publish points at it while provisioning/expansion keep the API secret.
+		MountSecretName:      mountSecretName,
+		MountSecretNamespace: cfg.Namespace,
+		SharedVolumeName:     sharedVolume.Name,
 	})
 	storageClassFile, err := framework.DumpStorageClassYAML(cfg.ArtifactsDir, t.Name(), storageClass)
 	require.NoError(t, err, "writing the StorageClass the upstream suite runs against")

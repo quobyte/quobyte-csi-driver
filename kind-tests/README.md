@@ -94,6 +94,7 @@ for every test in a run.
 | `CSI_HELM_SET` | no | Space-separated `key=value` pairs appended as `--set` to the `quobyte-csi` helm install, e.g. `"quobyte.enableAccessKeyMounts=true"`. |
 | `CSI_VALUES_FILE` | no | A values file for the `quobyte-csi` chart, absolute or relative to the test directory. Defaults to the chart's own `values.yaml`. |
 | `ENABLE_SNAPSHOTS` | no | Passed to the upstream suite; snapshot tests additionally need the driver deployed with `quobyte.enableSnapshots=true`. |
+| `USE_SEPARATE_MOUNT_SECRET` | no | Split the driver's two uses of a Secret across two: a Quobyte management access key for provisioning/expansion, and a separate data access key that the node-publish secret carries for mounting. Requires `ENABLE_ACCESS_KEY_MOUNTS`. |
 | `USE_SHARED_VOLUME` | no | Provision through a Quobyte shared volume: the test adds a `sharedVolumeName` parameter to its StorageClass, so every PVC becomes a subdirectory of that one volume instead of a volume of its own. The test names the volume itself, uniquely per run. |
 | `PRE_CREATE_SHARED_VOLUME` | no | With `USE_SHARED_VOLUME`, have the test create that volume through the Quobyte API during setup (`framework.CreateSharedVolume`) and delete it again afterwards, instead of leaving the driver to create it on the first provisioning request. Setting it without `USE_SHARED_VOLUME` fails the test. |
 | `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `run_test` generates. |
@@ -144,7 +145,8 @@ only knows how to create PVCs from a StorageClass. So the test brackets it:
 1. **setup**: create the tenant and a dedicated Quobyte user for this run through the Quobyte Go
    API (`framework.EnsureTenant`, `framework.CreateUser`), then the k8s Secret holding that user's
    credentials -- an access key of that user (`framework.CreateAccessKey`) where the environment
-   mounts with access keys.
+   mounts with access keys, or two Secrets with a management and a data access key where it asks
+   for a separate mount secret.
 2. **run**: write the StorageClass to `$ARTIFACTS_DIR` and hand it to `kind-tests/e2e` via
    `framework.RunUpstreamE2E`, which passes it to `e2e.test` as `StorageClass: FromFile`. Ginkgo's
    output is streamed into the test's output.
