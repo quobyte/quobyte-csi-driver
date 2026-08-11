@@ -293,6 +293,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 			req.TaskType = quobyte.TaskType_DELETE_FILES_IN_VOLUMES
 			req.DeleteFilesSettings = quobyte.DeleteFilesSettings{}
 			req.DeleteFilesSettings.DirectoryPath = "/" + volumeIdParts[2]
+			req.DeleteFilesSettings.RunAsUser = true
 			_, err = quobyteClient.CreateTask(req)
 			if err != nil {
 				return nil, fmt.Errorf("could not delete subdirectory of the shared volume due to %s", err)
