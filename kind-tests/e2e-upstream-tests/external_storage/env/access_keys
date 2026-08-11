@@ -5,3 +5,4 @@
 # accessKeyId/accessKeySecret in the mount secret -- see src/driver/node.go.
 ENABLE_ACCESS_KEY_MOUNTS=true
 CSI_HELM_SET="quobyte.enableAccessKeyMounts=true"
+GO_TEST_TIMEOUT=20m

@@ -94,6 +94,8 @@ for every test in a run.
 | `CSI_HELM_SET` | no | Space-separated `key=value` pairs appended as `--set` to the `quobyte-csi` helm install, e.g. `"quobyte.enableAccessKeyMounts=true"`. |
 | `CSI_VALUES_FILE` | no | A values file for the `quobyte-csi` chart, absolute or relative to the test directory. Defaults to the chart's own `values.yaml`. |
 | `ENABLE_SNAPSHOTS` | no | Passed to the upstream suite; snapshot tests additionally need the driver deployed with `quobyte.enableSnapshots=true`. |
+| `USE_SHARED_VOLUME` | no | Provision through a Quobyte shared volume: the test adds a `sharedVolumeName` parameter to its StorageClass, so every PVC becomes a subdirectory of that one volume instead of a volume of its own. The test names the volume itself, uniquely per run. |
+| `PRE_CREATE_SHARED_VOLUME` | no | With `USE_SHARED_VOLUME`, have the test create that volume through the Quobyte API during setup (`framework.CreateSharedVolume`) and delete it again afterwards, instead of leaving the driver to create it on the first provisioning request. Setting it without `USE_SHARED_VOLUME` fails the test. |
 | `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `run_test` generates. |
 | `GO_TEST_TIMEOUT` | no | `-timeout` for this test's `go test` run (`run_test` default: `20m`). |
 

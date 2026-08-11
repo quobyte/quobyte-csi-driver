@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	quobyteApi "github.com/quobyte/api/v4/quobyte"
 	"github.com/quobyte/quobyte-csi-driver/kind-tests/framework"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -68,6 +69,21 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 				t.Logf("warning: %v", err)
 			}
 		})
+		// Registered right after the tenant, so LIFO cleanup runs it right before the
+		// tenant is deleted -- a tenant that still holds volumes cannot be deleted. The
+		// suite deletes its own PVCs, but the driver erases the volumes behind them and
+		// erasing only schedules the erasure, so whatever is still listed here is
+		// deleted outright. Inside this branch on purpose: emptying a tenant this run
+		// did not create would be destructive.
+		framework.CleanupUnlessFailed(t, fmt.Sprintf("the volumes of quobyte tenant %s", cfg.QuobyteTenant), func() {
+			deleted, err := framework.DeleteVolumesInTenant(quobyteClient, tenantID)
+			if deleted > 0 {
+				t.Logf("deleted %d volume(s) still left in tenant %s", deleted, cfg.QuobyteTenant)
+			}
+			if err != nil {
+				t.Logf("warning: %v", err)
+			}
+		})
 	}
 
 	primaryGroup := "root"
@@ -75,9 +91,19 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 		primaryGroup = testUser
 	}
 
+	role := quobyteApi.UserRole_UNPRIVILEGED_USER
+	// With a shared volume every PVC the suite creates becomes a subdirectory of this
+	// one Quobyte volume instead of a volume of its own. The driver creates it on the
+	// first provisioning request unless the environment asks the test to pre-create it.
+	sharedVolume := cfg.SharedVolumeOptions
+	if sharedVolume.EnableSharedVolume {
+		// Should be able to start delete files task
+		role = quobyteApi.UserRole_FILESYSTEM_ADMIN
+	}
+
 	// The suite provisions through a user of its own rather than the cluster admin,
 	// which is also what proves a plain tenant admin is enough to drive the driver.
-	require.NoError(t, framework.CreateUser(quobyteClient, testUser, primaryGroup, testUserPassword, []string{tenantID}),
+	require.NoError(t, framework.CreateUser(quobyteClient, testUser, primaryGroup, testUserPassword, role, []string{tenantID}),
 		"creating quobyte user %q as admin of tenant %s", testUser, tenantID)
 	framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte user %s", testUser), func() {
 		if err := framework.DeleteUser(quobyteClient, testUser); err != nil {
@@ -122,7 +148,31 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 		_ = clientset.CoreV1().Secrets(cfg.Namespace).Delete(context.Background(), secretName, metav1.DeleteOptions{})
 	})
 
-	storageClass := framework.NewStorageClass(storageClassName, cfg.CSIProvisionerName, cfg.QuobyteTenant, secretName, cfg.Namespace)
+	if sharedVolume.EnableSharedVolume && sharedVolume.Name == "" {
+		sharedVolume.Name = fmt.Sprintf("shared-%d", suffix)
+	}
+	if sharedVolume.PreCreateSharedVolume {
+		sharedVolumeUUID, err := framework.CreateSharedVolume(quobyteClient, sharedVolume.Name, tenantID)
+		require.NoError(t, err, "pre-creating shared volume %q", sharedVolume.Name)
+		t.Logf("pre-created shared volume %s (%s)", sharedVolume.Name, sharedVolumeUUID)
+		// The suite's own PVCs are subdirectories of this volume, so it can only go once
+		// the suite has finished and removed them -- which it has by the time any cleanup
+		// runs.
+		framework.CleanupUnlessFailed(t, fmt.Sprintf("shared volume %s", sharedVolume.Name), func() {
+			if err := framework.DeleteVolume(quobyteClient, sharedVolumeUUID); err != nil {
+				t.Logf("warning: %v", err)
+			}
+		})
+	}
+
+	storageClass := framework.NewStorageClass(framework.StorageClassOptions{
+		Name:             storageClassName,
+		Provisioner:      cfg.CSIProvisionerName,
+		Tenant:           cfg.QuobyteTenant,
+		SecretName:       secretName,
+		SecretNamespace:  cfg.Namespace,
+		SharedVolumeName: sharedVolume.Name,
+	})
 	storageClassFile, err := framework.DumpStorageClassYAML(cfg.ArtifactsDir, t.Name(), storageClass)
 	require.NoError(t, err, "writing the StorageClass the upstream suite runs against")
 	t.Logf("wrote storage class artifact to %s", storageClassFile)

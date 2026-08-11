@@ -1,0 +1,5 @@
+# One of the PV create triggers the shared volume create, other k8s requests use the existing
+# the existing shared volume
+USE_SHARED_VOLUME=true
+PRE_CREATE_SHARED_VOLUME=false
+CSI_HELM_SET="quobyte.useDeleteFilesTaskForSharedVolumeCleanup=true"

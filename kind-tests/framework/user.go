@@ -10,10 +10,12 @@ import (
 // admin of every tenant in adminOfTenantIDs -- enough for that user's
 // credentials to be handed to the CSI driver in a Secret and used to provision
 // volumes in those tenants.
-func CreateUser(client *quobyte.QuobyteClient, userName, primaryGroup, password string, adminOfTenantIDs []string) error {
+func CreateUser(client *quobyte.QuobyteClient, userName, primaryGroup, password string,
+	userRole quobyte.UserRole, adminOfTenantIDs []string) error {
 	_, err := client.CreateUser(&quobyte.CreateUserRequest{
 		UserName:         userName,
 		Password:         password,
+		Role: userRole,
 		AdminOfTenantId:  adminOfTenantIDs,
 		MemberOfTenantId: adminOfTenantIDs,
 		PrimaryGroup:     primaryGroup,

@@ -4,5 +4,4 @@
 # VolumeSnapshotClass to hand to the suite, so they stay off here.
 ENABLE_ACCESS_KEY_MOUNTS=false
 ENABLE_SNAPSHOTS=false
-# The upstream suite is hundreds of ginkgo specs, far beyond run_test's 20m default.
-GO_TEST_TIMEOUT=180m
+GO_TEST_TIMEOUT=20m

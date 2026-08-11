@@ -43,6 +43,26 @@ type Config struct {
 	// RepoRoot is the quobyte-csi-driver checkout UpstreamE2EScript must run
 	// from. Set by run_test alongside UpstreamE2EScript.
 	RepoRoot string
+	// SharedVolumeOptions mirrors the shared volume settings of the "env" file.
+	SharedVolumeOptions SharedVolumeOptions
+}
+
+// SharedVolumeOptions describes whether the test provisions through a Quobyte shared
+// volume: one volume that every PVC becomes a subdirectory of, instead of a volume per
+// PVC. The driver switches to that mode purely on the StorageClass carrying a
+// "sharedVolumeName" parameter -- see src/driver/controller.go.
+type SharedVolumeOptions struct {
+	// EnableSharedVolume mirrors USE_SHARED_VOLUME: put "sharedVolumeName" into the
+	// StorageClass the test builds.
+	EnableSharedVolume bool
+	// Only used if the the EnableSharedVolume is set to true. Mirrors
+	// PRE_CREATE_SHARED_VOLUME: create that volume through the Quobyte API during
+	// test setup, rather than leaving the driver to create it on the first
+	// provisioning request.
+	PreCreateSharedVolume bool
+	// Name of the shared volume. Not read from the environment -- the test fills it
+	// in with a name unique to the run, the same way it names its StorageClass.
+	Name string
 }
 
 // LoadConfig reads the required environment variables and fails the test
@@ -65,6 +85,11 @@ func LoadConfig(t *testing.T) Config {
 		EnableSnapshots:       boolEnv("ENABLE_SNAPSHOTS"),
 		UpstreamE2EScript:     os.Getenv("UPSTREAM_E2E_SCRIPT"),
 		RepoRoot:              os.Getenv("REPO_ROOT"),
+		SharedVolumeOptions: SharedVolumeOptions{
+			EnableSharedVolume:    boolEnv("USE_SHARED_VOLUME"),
+			PreCreateSharedVolume: boolEnv("PRE_CREATE_SHARED_VOLUME"),
+			Name: os.Getenv("SHARED_VOLUME_NAME"),
+		},
 	}
 
 	required := map[string]string{
@@ -80,6 +105,12 @@ func LoadConfig(t *testing.T) Config {
 		if value == "" {
 			t.Fatalf("required environment variable %s is not set", name)
 		}
+	}
+
+	// Pre-creating a shared volume nothing then provisions through is never what an
+	// "env" file meant to say, so say so rather than silently ignoring it.
+	if cfg.SharedVolumeOptions.PreCreateSharedVolume && !cfg.SharedVolumeOptions.EnableSharedVolume {
+		t.Fatal("PRE_CREATE_SHARED_VOLUME is set without USE_SHARED_VOLUME: the pre-created volume would not be used")
 	}
 
 	return cfg

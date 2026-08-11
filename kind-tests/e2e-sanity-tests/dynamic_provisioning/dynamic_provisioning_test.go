@@ -54,6 +54,26 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	podName := fmt.Sprintf("e2e-dynprov-pod-%d", suffix)
 	const mountPath = "/mnt/test"
 
+	// With a shared volume the PVC becomes a subdirectory of this one Quobyte volume
+	// instead of a volume of its own. The driver creates it on the first provisioning
+	// request unless the environment asks the test to pre-create it.
+	sharedVolume := cfg.SharedVolumeOptions
+	if sharedVolume.EnableSharedVolume && sharedVolume.Name == "" {
+		sharedVolume.Name = fmt.Sprintf("e2e-dynprov-shared-%d", suffix)
+	}
+	if sharedVolume.PreCreateSharedVolume {
+		sharedVolumeUUID, err := framework.CreateSharedVolume(quobyteClient, sharedVolume.Name, tenantID)
+		require.NoError(t, err, "pre-creating shared volume %q", sharedVolume.Name)
+		t.Logf("pre-created shared volume %s (%s)", sharedVolume.Name, sharedVolumeUUID)
+		// Registered before everything below, so LIFO cleanup removes the shared volume
+		// last -- after the PVC, and with it the subdirectory inside this volume, is gone.
+		framework.CleanupUnlessFailed(t, fmt.Sprintf("shared volume %s", sharedVolume.Name), func() {
+			if err := framework.DeleteVolume(quobyteClient, sharedVolumeUUID); err != nil {
+				t.Logf("warning: %v", err)
+			}
+		})
+	}
+
 	// Shared prefix for the artifact copies of the Secret/StorageClass dumped
 	// below, so what this run actually applied is still inspectable in
 	// $ARTIFACTS_DIR after the test's own cleanup deleted the live objects.
@@ -106,7 +126,14 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 		}
 	})
 
-	storageClass := framework.NewStorageClass(storageClassName, cfg.CSIProvisionerName, cfg.QuobyteTenant, secretName, cfg.Namespace)
+	storageClass := framework.NewStorageClass(framework.StorageClassOptions{
+		Name:             storageClassName,
+		Provisioner:      cfg.CSIProvisionerName,
+		Tenant:           cfg.QuobyteTenant,
+		SecretName:       secretName,
+		SecretNamespace:  cfg.Namespace,
+		SharedVolumeName: sharedVolume.Name,
+	})
 	_, err = clientset.StorageV1().StorageClasses().Create(ctx, storageClass, metav1.CreateOptions{})
 	require.NoError(t, err, "creating storage class")
 	if path, err := framework.DumpStorageClassYAML(cfg.ArtifactsDir, artifactPrefix, storageClass); err != nil {
@@ -122,10 +149,25 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 		}
 	})
 
-	// Filled in once the PVC binds, below. The cleanup registered here reads it at
-	// teardown time, by when the PVC either bound (and there is a PV whose deletion
-	// has to complete) or never did (and there is nothing to wait for).
+	// Both filled in below, once the PVC binds and its PV is inspected. The cleanups
+	// registered here read them at teardown time, by when the PVC either bound (and
+	// there is a PV and a Quobyte volume to deal with) or never did (and there is
+	// nothing to do).
 	var boundPVName string
+	var quobyteVolumeUUID string
+
+	// Registered before the PVC, so LIFO cleanup runs this right after the PVC and its
+	// PV are gone. The driver erases the volume behind the PV, and erasing only
+	// schedules the erasure, so the volume is deleted outright here to leave the tenant
+	// empty. A volume the driver already removed is not an error.
+	framework.CleanupUnlessFailed(t, "the Quobyte volume backing the test PVC", func() {
+		if quobyteVolumeUUID == "" {
+			return
+		}
+		if err := framework.DeleteVolume(quobyteClient, quobyteVolumeUUID); err != nil {
+			t.Logf("warning: %v", err)
+		}
+	})
 
 	pvc := framework.NewPVC(pvcName, cfg.Namespace, storageClassName, "1Gi")
 	_, err = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
@@ -182,20 +224,38 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	require.NoError(t, err, "fetching bound PV")
 	require.NotNil(t, pv.Spec.CSI, "bound PV has no CSI volume source")
 
-	tenantUUID, volumeUUID, err := splitVolumeHandle(pv.Spec.CSI.VolumeHandle)
+	tenantUUID, volumeUUID, subDir, err := splitVolumeHandle(pv.Spec.CSI.VolumeHandle)
 	require.NoError(t, err, "parsing PV volume handle")
+	if sharedVolume.Name != "" {
+		// Provisioning through a shared volume means the PVC is a subdirectory of it,
+		// which the handle spells out as a third part.
+		require.NotEmpty(t, subDir,
+			"PV %s was provisioned through shared volume %q but its handle %q names no subdirectory",
+			pv.Name, sharedVolume.Name, pv.Spec.CSI.VolumeHandle)
+	} else {
+		// Hands the volume to the cleanup registered before the PVC, above. Not done
+		// for a shared volume: there the volume is not the test's to delete -- it
+		// outlives the PVC and belongs either to the driver or to the pre-create
+		// cleanup registered above.
+		quobyteVolumeUUID = volumeUUID
+	}
 
 	gotUUID, err := quobyteClient.GetVolumeUUID(volumeUUID, tenantUUID)
 	require.NoError(t, err, "volume referenced by PV %s not found in Quobyte", pv.Name)
 	require.Equal(t, volumeUUID, gotUUID, "Quobyte API returned a different UUID than the PV volume handle")
 }
 
-// splitVolumeHandle parses a CSI VolumeHandle of the form "tenantUUID|volumeUUID"
-// (see VOLUME_HANDLE_PART_SEPARATOR in src/driver/controller.go) into its parts.
-func splitVolumeHandle(handle string) (tenantUUID, volumeUUID string, err error) {
+// splitVolumeHandle parses a CSI VolumeHandle of the form "tenantUUID|volumeUUID", or
+// "tenantUUID|volumeUUID|subDir" when the volume was provisioned as a subdirectory of a
+// shared volume (see VOLUME_HANDLE_PART_SEPARATOR in src/driver/controller.go). subDir is
+// empty for the two-part form.
+func splitVolumeHandle(handle string) (tenantUUID, volumeUUID, subDir string, err error) {
 	parts := strings.Split(handle, "|")
 	if len(parts) < 2 {
-		return "", "", fmt.Errorf("unexpected volume handle format %q", handle)
+		return "", "", "", fmt.Errorf("unexpected volume handle format %q", handle)
 	}
-	return parts[0], parts[1], nil
+	if len(parts) > 2 {
+		subDir = parts[2]
+	}
+	return parts[0], parts[1], subDir, nil
 }
