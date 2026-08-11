@@ -6,3 +6,4 @@
 * Subdirectory
 * Snapshot tests
 * Access key negative tests
+* Pre-provisioned volume tests
