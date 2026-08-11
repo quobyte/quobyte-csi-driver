@@ -51,12 +51,16 @@ external_storage/default          FAIL
 Debug output of the failed run(s) is under kind-csi-testing/debug/<test>/<environment>/
 ```
 
-Those names are also how you select what to run. `TESTS` takes a space-separated list of them,
-glob patterns included, and `run_test --list` prints the available ones without touching
-anything:
+Those names are also how you select what to run. `--sanity` / `--upstream` narrow the run to one
+test set, `TESTS` takes a space-separated list of combination names with glob patterns included,
+and `run_test --list` prints the available ones without touching anything:
 
 ```bash
 kind-tests/run_test --list
+kind-tests/run_test --sanity --list      # just the sanity set
+
+# only the sanity tests, skipping the long upstream suites
+kind-tests/run_test --sanity http://host:port host:port
 
 # re-run just the one that failed
 TESTS='dynamic_provisioning/default' kind-tests/run_test http://host:port host:port

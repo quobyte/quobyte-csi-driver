@@ -45,18 +45,10 @@ collect_test_set() {
   done
 }
 
-collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
-collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
-
-if [[ "${#all_tests[@]}" -eq 0 ]]; then
-  die "No runnable test found: no test directory with an 'env' directory under \
-${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
-fi
-
 print_help() {
   cat <<EOF
-Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
-       $0 --list
+Usage: $0 [--sanity|--upstream] <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+       $0 [--sanity|--upstream] --list
 
 Builds the Quobyte CSI driver + pod-killer from source, spins up a local kind cluster,
 then runs two sets of self-contained Go e2e test packages against it. Every file in a
@@ -77,9 +69,12 @@ Arguments:
   QUOBYTE_API_PASSWORD  Quobyte API password (optional, default: quobyte)
 
 Options:
-  -l, --list            Print the name of every test/environment combination this
-                        checkout would run, then exit. These are the names the summary
-                        table shows and TESTS selects on.
+      --sanity          Run only the kind-tests/e2e-sanity-tests set.
+      --upstream        Run only the kind-tests/e2e-upstream-tests set.
+                        Without either, both sets run.
+  -l, --list            Print the name of every test/environment combination this run
+                        would cover, then exit. These are the names the summary table
+                        shows and TESTS selects on. Honors --sanity/--upstream.
 
 Other environment variables honored:
   TESTS                 Space-separated list of the combinations to run, using the names
@@ -102,6 +97,9 @@ Examples:
   # overriding the admin/quobyte user/password defaults:
   kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 myuser mypass
 
+  # only the sanity tests, skipping the long upstream suites:
+  kind-tests/run_test --sanity http://quobyte-api.example.com:7860 registry.example.com:5000
+
   # re-running just one combination from the summary table:
   kind-tests/run_test --list
   TESTS='dynamic_provisioning/default' \\
@@ -116,14 +114,49 @@ automatically if missing (see kind-tests/README.md "Requirements").
 EOF
 }
 
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-  print_help
-  exit 0
+# --- Options ---------------------------------------------------------------------
+# Consumed before the positional arguments below, in any order and any combination
+# ('--sanity --list' lists just the sanity combinations).
+list_tests=0
+test_set='all'
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -h|--help) print_help; exit 0 ;;
+    -l|--list) list_tests=1 ;;
+    --sanity)   test_set='sanity' ;;
+    --upstream) test_set='upstream' ;;
+    *) die "Unknown option '$1'. See '$0 --help'." ;;
+  esac
+  shift
+done
+
+# Discovery is restricted to the selected test set, so everything downstream -- the
+# --list output, TESTS, the run itself and the final summary -- sees only those.
+if [[ "$test_set" == 'all' ]]; then
+  collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
+  collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
+elif [[ "$test_set" == 'upstream' ]]; then
+  collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
+elif [[ "$test_set" == 'sanity' ]]; then
+  collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
+else
+  die "Unknown test set ${test_set} selected"
 fi
 
-# Names every combination this checkout would run, in run order -- the same names the
+echo "Collected test set ${test_set}"
+
+if [[ "${#all_tests[@]}" -eq 0 ]]; then
+  scanned="${GO_E2E_SANITY_TESTS_DIR} or ${GO_E2E_UPSTREAM_TESTS_DIR}"
+  case "$test_set" in
+    sanity)   scanned="$GO_E2E_SANITY_TESTS_DIR" ;;
+    upstream) scanned="$GO_E2E_UPSTREAM_TESTS_DIR" ;;
+  esac
+  die "No runnable test found: no test directory with an 'env' directory under ${scanned}"
+fi
+
+# Names every combination this run would cover, in run order -- the same names the
 # summary prints and TESTS selects on. Needs no arguments and touches nothing.
-if [[ "$1" == "-l" || "$1" == "--list" ]]; then
+if [[ "$list_tests" -eq 1 ]]; then
   printf '%s\n' "${all_names[@]}"
   exit 0
 fi
