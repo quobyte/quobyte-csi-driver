@@ -12,8 +12,27 @@ UPSTREAM_E2E_SCRIPT="${KIND_DIR}/e2e"
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
 KUBECONFIG='/tmp/quobyte-k8s-config'
+# Wall clock of the whole run, reported by the summary at the end. Taken from bash's own
+# SECONDS counter (seconds since this shell started) rather than a timestamp, so nothing
+# has to be subtracted later.
+run_started_at="$SECONDS"
 
 die() { echo "$*" 1>&2 ; exit 1; }
+
+# Renders a number of seconds the way the summary prints them: "45s", "7m03s", "1h02m03s".
+format_duration() {
+  local total="$1" hours minutes seconds
+  hours=$((total / 3600))
+  minutes=$(((total % 3600) / 60))
+  seconds=$((total % 60))
+  if [[ "$hours" -gt 0 ]]; then
+    printf '%dh%02dm%02ds' "$hours" "$minutes" "$seconds"
+  elif [[ "$minutes" -gt 0 ]]; then
+    printf '%dm%02ds' "$minutes" "$seconds"
+  else
+    printf '%ds' "$seconds"
+  fi
+}
 
 # --- The test matrix -------------------------------------------------------------
 # Discovered up front, before anything is built or deployed, so that --list and a bad
@@ -89,7 +108,8 @@ Other environment variables honored:
                         Unset (default), the run stops at the first failing test with the
                         cluster, driver and that test's resources left live for debugging.
 
-Every run ends with a summary table of each test/environment combination and its result.
+Every run ends with a summary table of each test/environment combination, its result and how
+long it took, followed by the wall clock of the whole run.
 
 Examples:
   kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
@@ -181,9 +201,15 @@ fi
 # built, so a name that matches nothing fails immediately.
 #   planned_tests/planned_names  the selected subset of all_tests/all_names
 #   test_results                 PASS / FAIL / NOT RUN per planned combination
+#   test_durations               seconds that combination took, empty until it has run
 declare -a planned_tests=()
 declare -a planned_names=()
 declare -a test_results=()
+declare -a test_durations=()
+# Seconds spent building the images and the kind cluster, i.e. everything before the first
+# combination starts. Stays empty if the run never gets that far, which is what tells the
+# summary not to claim a setup time it does not have.
+setup_seconds=''
 
 test_selected() {
   local name="$1" pattern
@@ -201,6 +227,7 @@ for i in "${!all_tests[@]}"; do
     planned_tests+=("${all_tests[i]}")
     planned_names+=("${all_names[i]}")
     test_results+=('NOT RUN')
+    test_durations+=('')
   fi
 done
 
@@ -850,16 +877,20 @@ print_test_summary() {
   [[ "$summary_printed" -eq 1 ]] && return
   summary_printed=1
 
-  local i width=4 passed=0 failed=0 not_run=0
+  local i width=4 passed=0 failed=0 not_run=0 duration
   for i in "${!planned_names[@]}"; do
     [[ "${#planned_names[i]}" -gt "$width" ]] && width="${#planned_names[i]}"
   done
 
   echo ""
   echo "==== Test summary ===="
-  printf "%-${width}s  %s\n" 'TEST' 'RESULT'
+  printf "%-${width}s  %-7s  %s\n" 'TEST' 'RESULT' 'DURATION'
   for i in "${!planned_names[@]}"; do
-    printf "%-${width}s  %s\n" "${planned_names[i]}" "${test_results[i]}"
+    # A combination that never ran has no duration to show, and neither has the one a
+    # stopped run was in the middle of -- the loop below records it only once it returns.
+    duration='-'
+    [[ -n "${test_durations[i]}" ]] && duration="$(format_duration "${test_durations[i]}")"
+    printf "%-${width}s  %-7s  %s\n" "${planned_names[i]}" "${test_results[i]}" "$duration"
     case "${test_results[i]}" in
       PASS) passed=$((passed + 1)) ;;
       FAIL) failed=$((failed + 1)) ;;
@@ -868,6 +899,16 @@ print_test_summary() {
   done
   echo ""
   echo "${passed} passed, ${failed} failed, ${not_run} not run"
+
+  # Total wall clock, and how much of it went on the kind cluster and the images rather than
+  # on the tests -- with a driver redeployed per combination, that split is worth seeing.
+  local elapsed
+  elapsed="$(format_duration $((SECONDS - run_started_at)))"
+  if [[ -n "$setup_seconds" ]]; then
+    echo "${elapsed} elapsed, of which $(format_duration "$setup_seconds") building the images and the kind cluster"
+  else
+    echo "${elapsed} elapsed, all of it before the first test started"
+  fi
   if [[ -n "$TESTS" ]]; then
     echo "(TESTS='${TESTS}' selected ${#planned_names[@]} of ${#all_names[@]} available tests)"
   fi
@@ -877,6 +918,9 @@ print_test_summary() {
 }
 trap print_test_summary EXIT
 
+setup_seconds=$((SECONDS - run_started_at))
+echo "Cluster and images ready after $(format_duration "$setup_seconds"), starting ${#planned_tests[@]} test run(s)"
+
 any_failed=0
 for i in "${!planned_tests[@]}"; do
   IFS='|' read -r tests_root test_name env_file <<< "${planned_tests[i]}"
@@ -884,7 +928,14 @@ for i in "${!planned_tests[@]}"; do
   # aborts in the middle of (a failed helm install, say) is reported as a failure rather
   # than as one that never ran.
   test_results[i]='FAIL'
-  if run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"; then
+  test_started_at="$SECONDS"
+  # Deliberately not an 'if': the duration has to be recorded whichever way this went, and
+  # the failure path below leaves the loop without coming back here.
+  run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"
+  test_status=$?
+  test_durations[i]=$((SECONDS - test_started_at))
+  echo "Test '${planned_names[i]}' took $(format_duration "${test_durations[i]}")"
+  if [[ "$test_status" -eq 0 ]]; then
     test_results[i]='PASS'
   else
     any_failed=1

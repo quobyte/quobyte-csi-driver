@@ -41,15 +41,20 @@ Every run ends with a summary of each combination, named `<test package>/<env fi
 
 ```
 ==== Test summary ====
-TEST                              RESULT
-dynamic_provisioning/access_keys  PASS
-dynamic_provisioning/default      PASS
-external_storage/access_keys      NOT RUN
-external_storage/default          FAIL
+TEST                              RESULT   DURATION
+dynamic_provisioning/access_keys  PASS     8m12s
+dynamic_provisioning/default      PASS     7m48s
+external_storage/access_keys      NOT RUN  -
+external_storage/default          FAIL     21m05s
 
 2 passed, 1 failed, 1 not run
+1h15m30s elapsed, of which 18m20s building the images and the kind cluster
 Debug output of the failed run(s) is under kind-csi-testing/debug/<test>/<environment>/
 ```
+
+A combination's duration is the whole deploy/run/undeploy cycle, not just `go test`, so it
+includes the client and driver helm installs done for it. `NOT RUN` combinations show `-`,
+as does the one a stopped run was in the middle of.
 
 Those names are also how you select what to run. `--sanity` / `--upstream` narrow the run to one
 test set, `TESTS` takes a space-separated list of combination names with glob patterns included,
