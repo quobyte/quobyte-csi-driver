@@ -38,13 +38,23 @@ func EnsureTenant(client *quobyte.QuobyteClient, tenantName, quobyteUser string)
 		}
 	}
 
+	// An update replaces the user's tenant mappings wholesale, so the ones it already has
+	// have to be sent along -- including any naming a tenant that no longer exists, which
+	// the API rejects with "tenant not found". Tests create and delete tenants of their own
+	// all the time and nothing prunes the mappings they leave behind on a shared user, so
+	// they are dropped here, at the one point every test's setup passes through.
+	existingTenants, err := existingTenantIDs(client)
+	if err != nil {
+		return "", err
+	}
+
 	updateReq := &quobyte.UpdateUserRequest{
 		UserName:         quobyteUser,
-		AdminOfTenantId:  append(user.AdminOfTenantId, tenantID),
+		AdminOfTenantId:  append(keepExistingTenants(user.AdminOfTenantId, existingTenants), tenantID),
 		Email:            user.Email,
 		PrimaryGroup:     user.PrimaryGroup,
 		MemberOfGroup:    user.Group,
-		MemberOfTenantId: user.MemberOfTenantId,
+		MemberOfTenantId: keepExistingTenants(user.MemberOfTenantId, existingTenants),
 	}
 	if len(user.Role) > 0 {
 		updateReq.Role = *user.Role[0]
@@ -55,6 +65,35 @@ func EnsureTenant(client *quobyte.QuobyteClient, tenantName, quobyteUser string)
 	}
 
 	return tenantID, nil
+}
+
+// existingTenantIDs returns the UUIDs of every tenant the installation currently has, as a
+// set to test membership against.
+func existingTenantIDs(client *quobyte.QuobyteClient) (map[string]bool, error) {
+	resp, err := client.GetTenant(&quobyte.GetTenantRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("listing tenants: %w", err)
+	}
+
+	tenantIDs := make(map[string]bool, len(resp.Tenant))
+	for _, tenant := range resp.Tenant {
+		tenantIDs[tenant.TenantId] = true
+	}
+
+	return tenantIDs, nil
+}
+
+// keepExistingTenants drops the IDs of tenants that are gone, so a user's stale mappings do
+// not travel back to the API in the next update.
+func keepExistingTenants(tenantIDs []string, existing map[string]bool) []string {
+	kept := make([]string, 0, len(tenantIDs))
+	for _, tenantID := range tenantIDs {
+		if existing[tenantID] {
+			kept = append(kept, tenantID)
+		}
+	}
+
+	return kept
 }
 
 // DeleteTenant removes the tenant named tenantName. Used by tests that created

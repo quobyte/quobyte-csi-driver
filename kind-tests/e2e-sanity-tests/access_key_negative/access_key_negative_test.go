@@ -46,14 +46,18 @@ func TestBadAccessKeyIsRejected(t *testing.T) {
 		require.NoError(t, err, "building kubernetes clientset")
 
 		// Provisioning is supposed to succeed in this case, so the tenant has to be there.
-		_, err = framework.EnsureTenant(framework.NewQuobyteClient(cfg), cfg.QuobyteTenant, cfg.QuobyteAPIUser)
+		quobyteClient := framework.NewQuobyteClient(cfg)
+		tenantID, err := framework.EnsureTenant(quobyteClient, cfg.QuobyteTenant, cfg.QuobyteAPIUser)
 		require.NoError(t, err, "ensuring tenant %q exists", cfg.QuobyteTenant)
 
 		names := newNames(t, "userpass")
 
-		// Valid credentials, wrong kind: enough to provision, not enough to mount.
+		// A user of this test's own rather than the environment's API user, which every
+		// other test shares -- see framework.CreateTestUser. Its user/password are valid
+		// credentials of the wrong kind: enough to provision, not enough to mount.
+		testUser := framework.CreateTestUser(t, cfg, quobyteClient, []string{tenantID})
 		framework.ApplySecret(t, ctx, clientset,
-			framework.NewSecret(names.secret, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword))
+			framework.NewSecret(names.secret, cfg.Namespace, testUser.Name, testUser.Password))
 		applyStorageClassAndClaim(t, ctx, clientset, cfg, names)
 
 		_, err = framework.WaitForPVCBound(ctx, clientset, cfg.Namespace, names.pvc, 3*time.Minute)

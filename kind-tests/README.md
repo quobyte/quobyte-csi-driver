@@ -130,6 +130,13 @@ These tests build their own Secret/StorageClass/PVC/Pod in Go (uniquely named pe
 read a file through the pod's Quobyte mount, and talk directly to the Quobyte API to confirm the
 backing volume was actually created -- so results are asserted by `go test`, not eyeballed.
 
+The credentials in that Secret belong to a Quobyte user each test creates for itself
+(`framework.CreateTestUser`), admin of that run's tenant and nothing else, exactly as the upstream
+test does. `QUOBYTE_API_USER`/`QUOBYTE_API_PASSWORD` are used only to set the run up -- creating
+tenants, users and access keys -- and are never handed to the driver: shared across tests, that
+user's tenant mappings go stale as tests delete the tenants they created, and the next test to
+update them is refused with "tenant not found".
+
 Add a scenario either by adding a file to an existing `env/` directory (same test, another driver
 setup) or by adding a new `e2e-sanity-tests/<name>/` directory with its own `env/` and `_test.go`
 files.

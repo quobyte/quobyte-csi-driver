@@ -43,6 +43,14 @@ up in names the rule that put it there and no other:
 The two cases of a run differ in nothing but their StorageClass, and the tenant is read back
 out of the bound PV's volume handle — the only place the driver's decision is visible.
 
+The credentials in the Secret are *not* the environment's API user. Every test creates a
+Quobyte user of its own (`framework.CreateTestUser`), admin of exactly the tenants above, and
+the Secret carries that user's password or an access key issued for it. Sharing the API user
+across tests interferes in two ways: granting it a tenant rewrites its tenant mappings, which
+go stale as tests delete their tenants, and an access key needs a user with a primary group,
+which an installation's API user need not have. That the user is only an unprivileged tenant
+admin is also what shows a tenant admin is enough to drive the driver.
+
 The test creates the last two and gives them back afterwards; `$QUOBYTE_TENANT` is left
 behind, as everywhere else in the sanity set. Tenant deletion happens while the volumes
 provisioned into them may still exist, so a `warning: deleting tenant ...` line in the output

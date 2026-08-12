@@ -24,7 +24,9 @@ func CreateSharedVolume(client *quobyte.QuobyteClient, name, tenantID string) (s
 }
 
 // CreateVolume creates a Quobyte volume owned by the API user this client is
-// authenticated as, and returns its UUID.
+// authenticated as, and returns its UUID. Where the volume has to be usable through the
+// credentials of the test's own user -- anything not world-writable -- use
+// CreateVolumeOwnedBy instead.
 //
 // Idempotent: a volume of that name already in the tenant is resolved and returned
 // instead, the same way the driver handles ENTITY_EXISTS_ALREADY.
@@ -36,11 +38,21 @@ func CreateVolume(client *quobyte.QuobyteClient, name, tenantID string, accessMo
 		return "", fmt.Errorf("resolving the Quobyte API user to own volume %q: %w", name, err)
 	}
 
+	return CreateVolumeOwnedBy(client, name, tenantID, accessMode, userInfo.UserName, userInfo.PrimaryGroup)
+}
+
+// CreateVolumeOwnedBy creates a Quobyte volume owned by the given user and group, and
+// returns its UUID. A test that pre-creates a volume and then mounts it through its own
+// user's credentials (framework.CreateTestUser) has to own it that way: the default access
+// mode of a volume, 700, admits nobody else.
+//
+// Idempotent in the same way as CreateVolume.
+func CreateVolumeOwnedBy(client *quobyte.QuobyteClient, name, tenantID string, accessMode int32, ownerUser, ownerGroup string) (string, error) {
 	createResp, err := client.CreateVolume(&quobyte.CreateVolumeRequest{
 		Name:        name,
 		TenantId:    tenantID,
-		RootUserId:  userInfo.UserName,
-		RootGroupId: userInfo.PrimaryGroup,
+		RootUserId:  ownerUser,
+		RootGroupId: ownerGroup,
 		AccessMode:  accessMode,
 	})
 	if err == nil {

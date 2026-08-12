@@ -77,11 +77,23 @@ func TestTenantSelection(t *testing.T) {
 		credentialsTenantID = ensureTestTenant(t, quobyteClient, cfg, fmt.Sprintf("e2e-nstenant-akey-%d", suffix))
 	}
 
-	// After the tenant above, never before: NewCredentialsSecret registers the revocation of
-	// the access key it creates, and LIFO cleanup then revokes the key before deleting the
-	// tenant it was issued in.
+	// The tenants those credentials have to be able to provision in: the access key's own
+	// first, since that is the one the API falls back to, then whichever others this
+	// environment has cases for. An access key is issued for a Quobyte user created for the
+	// run, and a user is only admin of the tenants it is given -- unlike the API user, which
+	// EnsureTenant makes an admin of every tenant here.
+	credentialTenantIDs := []string{}
+	for _, tenantID := range []string{credentialsTenantID, namespaceTenantID, storageClassTenantID} {
+		if tenantID != "" {
+			credentialTenantIDs = append(credentialTenantIDs, tenantID)
+		}
+	}
+
+	// After the tenants above, never before: NewCredentialsSecret registers the removal of
+	// the user and access key it creates, and LIFO cleanup then gets rid of those before the
+	// tenants they belong to.
 	framework.ApplySecret(t, ctx, clientset,
-		framework.NewCredentialsSecret(t, cfg, quobyteClient, secretName, credentialsTenantID))
+		framework.NewCredentialsSecret(t, cfg, quobyteClient, secretName, credentialTenantIDs...))
 
 	// --- no tenant in the StorageClass: whichever fallback this environment has ---
 	if fallbackTenantID, rule, defined := expectedFallbackTenant(cfg, namespaceTenantID, credentialsTenantID); defined {

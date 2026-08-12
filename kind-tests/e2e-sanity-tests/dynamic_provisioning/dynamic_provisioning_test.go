@@ -9,7 +9,6 @@ import (
 
 	"github.com/quobyte/quobyte-csi-driver/kind-tests/framework"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -94,25 +93,12 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	// was deployed with: with access key mounts enabled the node plugin requires
 	// accessKeyId/accessKeySecret in the mount secret (src/driver/node.go), and the
 	// same pair doubles as management API credentials for the provisioner
-	// (src/driver/quobyte_api_client_factory.go).
-	var secret *corev1.Secret
-	if cfg.EnableAccessKeyMounts {
-		// One key for both uses: this test's Secret is the provisioner secret and the
-		// mount secret at once.
-		credentials, err := framework.CreateAccessKey(quobyteClient, tenantID, cfg.QuobyteAPIUser, framework.GeneralAccessKey)
-		require.NoError(t, err, "creating a Quobyte access key for user %q", cfg.QuobyteAPIUser)
-		// Registered before everything below, so LIFO cleanup revokes the key only
-		// after the PVC is gone -- the driver needs these credentials to delete the
-		// backing Quobyte volume.
-		framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte access key %s", credentials.AccessKeyId), func() {
-			if err := framework.DeleteAccessKey(quobyteClient, cfg.QuobyteAPIUser, credentials.AccessKeyId); err != nil {
-				t.Logf("warning: %v", err)
-			}
-		})
-		secret = framework.NewAccessKeySecret(secretName, cfg.Namespace, credentials.AccessKeyId, credentials.SecretAccessKey)
-	} else {
-		secret = framework.NewSecret(secretName, cfg.Namespace, cfg.QuobyteAPIUser, cfg.QuobyteAPIPassword)
-	}
+	// (src/driver/quobyte_api_client_factory.go). Either way they belong to a Quobyte
+	// user created for this test alone, never the API user of the environment -- see
+	// framework.CreateTestUser. Registered for cleanup before everything below, so LIFO
+	// cleanup takes the credentials away only after the PVC is gone: the driver needs
+	// them to delete the backing Quobyte volume.
+	secret := framework.NewCredentialsSecret(t, cfg, quobyteClient, secretName, tenantID)
 	_, err = clientset.CoreV1().Secrets(cfg.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	require.NoError(t, err, "creating secret")
 	if path, err := framework.DumpSecretYAML(cfg.ArtifactsDir, artifactPrefix, secret); err != nil {

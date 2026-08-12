@@ -45,12 +45,19 @@ func TestPreProvisionedVolumeIsWritable(t *testing.T) {
 	pvcName := fmt.Sprintf("e2e-preprov-pvc-%d", suffix)
 	podName := fmt.Sprintf("e2e-preprov-pod-%d", suffix)
 
+	// --- the credentials, before the volume they have to own -------------------
+	// The user is this test's own (framework.CreateTestUser), and the volume below is
+	// created owned by it: with the default access mode of 700 nobody else could write to
+	// the mount, and the pod at the end of this test does.
+	testUser, secret := framework.NewCredentials(t, cfg, quobyteClient, secretName, tenantID)
+
 	// --- the volume, created before Kubernetes knows anything about it ---------
-	volumeUUID, err := framework.CreateVolume(quobyteClient, volumeName, tenantID, framework.DefaultVolumeAccessMode)
-	require.NoError(t, err, "creating quobyte volume %q", volumeName)
-	t.Logf("created quobyte volume %s (%s) in tenant %s", volumeName, volumeUUID, cfg.QuobyteTenant)
-	// Registered first, so LIFO cleanup removes it last -- after the pod, the claim and
-	// the PV that referenced it are gone.
+	volumeUUID, err := framework.CreateVolumeOwnedBy(quobyteClient, volumeName, tenantID,
+		framework.DefaultVolumeAccessMode, testUser.Name, testUser.PrimaryGroup)
+	require.NoError(t, err, "creating quobyte volume %q owned by %s", volumeName, testUser.Name)
+	t.Logf("created quobyte volume %s (%s) in tenant %s, owned by %s", volumeName, volumeUUID, cfg.QuobyteTenant, testUser.Name)
+	// Registered before the k8s resources below, so LIFO cleanup removes it after the pod,
+	// the claim and the PV that referenced it are gone -- and before the user owning it.
 	framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte volume %s", volumeName), func() {
 		if err := framework.DeleteVolume(quobyteClient, volumeUUID); err != nil {
 			t.Logf("warning: %v", err)
@@ -58,7 +65,6 @@ func TestPreProvisionedVolumeIsWritable(t *testing.T) {
 	})
 
 	// --- Kubernetes pointed at it ---------------------------------------------
-	secret := framework.NewCredentialsSecret(t, cfg, quobyteClient, secretName, tenantID)
 	framework.ApplySecret(t, ctx, clientset, secret)
 
 	// Tenant and volume by name rather than by UUID, which is what makes this readable in
