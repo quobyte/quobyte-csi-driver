@@ -7,9 +7,10 @@ K8S_VERSION="$(kubectl version | grep 'Server Version:' -m1 | cut -d":" -f2 | tr
 TEST_RUN_DIR=$(pwd)
 STORAGE_CLASS=${STORAGE_CLASS:-$(pwd)/quobyte-csi/example/StorageClass.yaml}
 SNAPSHOT_CLASS=${SNAPSHOT_CLASS:-''}
-E2E_TEST_CONFIG_PATH='/tmp/quobyte-csi-driver.yaml'
 CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME:-'csi.quobyte.com'}
-TESTS_LOGS_PATH='/tmp/csi-driver-e2e.log'
+E2E_RUN_DIR="${ARTIFACTS_DIR:-$(mktemp -d -t quobyte-csi-e2e-XXXXXX)}"
+E2E_TEST_CONFIG_PATH="${E2E_RUN_DIR}/quobyte-csi-driver.yaml"
+TESTS_LOGS_PATH="${E2E_RUN_DIR}/csi-driver-e2e.log"
 
 # Cache directory for the prebuilt kubernetes-test tarball (e2e.test + a matching
 # ginkgo binary), keyed by K8S_VERSION so switching kind/cluster versions doesn't
@@ -38,14 +39,27 @@ GINKGO_BIN="${KUBE_TEST_VERSION_DIR}/kubernetes/test/bin/ginkgo"
 
 if [[ ! -x "$E2E_TEST_BIN" || ! -x "$GINKGO_BIN" ]]; then
   echo "Downloading kubernetes-test tarball for ${K8S_VERSION} (${os}/${arch})"
-  mkdir -p "$KUBE_TEST_VERSION_DIR"
-  tarball="${KUBE_TEST_VERSION_DIR}/kubernetes-test-${os}-${arch}.tar.gz"
+  # Downloaded and extracted in a directory of this invocation's own, then moved into the
+  # cache in one rename. Parallel workers all reach this at once on a version nobody has
+  # cached yet, and downloading straight into the shared directory has them overwrite each
+  # other's half-written tarball and binaries.
+  mkdir -p "$KUBE_TEST_TOOLS_DIR"
+  staging="$(mktemp -d "${KUBE_TEST_TOOLS_DIR}/.staging-XXXXXX")" \
+    || die "Cannot create a staging directory under ${KUBE_TEST_TOOLS_DIR}"
+  tarball="${staging}/kubernetes-test-${os}-${arch}.tar.gz"
   curl -Lo "$tarball" "https://dl.k8s.io/${K8S_VERSION}/kubernetes-test-${os}-${arch}.tar.gz" \
     || die "Cannot download kubernetes-test tarball for ${K8S_VERSION}. Is that a released Kubernetes version?"
-  tar -xzf "$tarball" -C "$KUBE_TEST_VERSION_DIR" kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo \
+  tar -xzf "$tarball" -C "$staging" kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo \
     || die "Cannot extract e2e.test/ginkgo from kubernetes-test tarball"
   rm -f "$tarball"
-  [[ -x "$E2E_TEST_BIN" && -x "$GINKGO_BIN" ]] || die "e2e.test/ginkgo missing from kubernetes-test tarball after extraction"
+  [[ -x "${staging}/kubernetes/test/bin/e2e.test" && -x "${staging}/kubernetes/test/bin/ginkgo" ]] \
+    || die "e2e.test/ginkgo missing from kubernetes-test tarball after extraction"
+  mkdir -p "$KUBE_TEST_VERSION_DIR"
+  # Fails harmlessly if another worker got there first -- either way what is in the cache
+  # afterwards is one worker's complete extraction, never a mix of several.
+  mv "${staging}/kubernetes" "${KUBE_TEST_VERSION_DIR}/" 2>/dev/null
+  rm -rf "$staging"
+  [[ -x "$E2E_TEST_BIN" && -x "$GINKGO_BIN" ]] || die "e2e.test/ginkgo missing from ${KUBE_TEST_VERSION_DIR} after extraction"
 fi
 
 cd $TEST_RUN_DIR
