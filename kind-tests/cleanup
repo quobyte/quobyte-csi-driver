@@ -1,19 +1,49 @@
 #!/bin/bash
 
+# Removes what a kind-tests/run_test run leaves on this machine: the kind clusters it
+# created, the kubeconfigs they were written to, the node image it built, and its working
+# directory (with it, the debug output of that run).
+#
+# A run creates one cluster per parallel worker -- CLUSTER_NAME for the first, then
+# CLUSTER_NAME-2, -3 and so on -- and normally deletes them itself as each worker finishes.
+# What is left over is the cluster of a failed test, everything of a run that was
+# interrupted, and everything of a run with KEEP_CLUSTERS=true. So all of them are looked
+# for here, not just the first.
+
 CLUSTER_NAME='quobyte-csi-testing'
 TEST_CLUSTER_DIR='kind-tests/kind-csi-testing'
+KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
+NODE_IMAGE='quobyte/kind-node-testing:v0'
 
 echo ''
-echo 'deleting kind images from docker'
-docker rmi $(docker images -q | grep quobyte/kind-node-testing:v0)
-
-if [[ -z "$(kind get clusters | grep ${CLUSTER_NAME})" ]]; then
-  echo "Could not find cluster ${CLUSTER_NAME}"
-  exit 1
+echo "deleting kind clusters of ${CLUSTER_NAME}"
+# Anchored: this deletes clusters, so it may only ever match the names run_test itself
+# generates and nothing that merely starts the same way.
+mapfile -t clusters < <(kind get clusters 2>/dev/null | grep -E "^${CLUSTER_NAME}(-[0-9]+)?$")
+if [[ "${#clusters[@]}" -eq 0 ]]; then
+  echo "no cluster of ${CLUSTER_NAME} is running"
+else
+  for cluster in "${clusters[@]}"; do
+    echo "deleting kind cluster ${cluster}"
+    kind delete cluster --name "$cluster" \
+      || echo "warning: could not delete kind cluster ${cluster}"
+  done
 fi
 
 echo ''
-echo 'deleting kind cluster'
-kind delete cluster --name "$(kind get clusters | grep ${CLUSTER_NAME})"
+echo 'deleting the kubeconfigs of those clusters'
+rm -f "${KUBECONFIG_BASE}" "${KUBECONFIG_BASE}"-*
+
+echo ''
+echo "deleting the kind node image ${NODE_IMAGE}"
+if [[ -n "$(docker images -q "$NODE_IMAGE" 2>/dev/null)" ]]; then
+  docker rmi "$NODE_IMAGE" || echo "warning: could not delete image ${NODE_IMAGE}"
+else
+  echo "image ${NODE_IMAGE} is not present"
+fi
+
+echo ''
+echo "deleting ${TEST_CLUSTER_DIR} (the debug output of the last run goes with it)"
 rm -rf "${TEST_CLUSTER_DIR}"
+
 exit 0

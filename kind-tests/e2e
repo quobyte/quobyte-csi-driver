@@ -21,8 +21,6 @@ die() {
     exit 1
 }
 
-git submodule update --remote || die "Cannot update submodule dependencies"
-
 # Fetch the official prebuilt e2e.test + ginkgo binaries for this exact cluster
 # version instead of cloning kubernetes/kubernetes and building them from source
 # (https://dl.k8s.io/${K8S_VERSION}/kubernetes-test-<os>-<arch>.tar.gz is the same

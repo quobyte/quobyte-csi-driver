@@ -9,15 +9,50 @@ CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
 GO_E2E_SANITY_TESTS_DIR="${KIND_DIR}/e2e-sanity-tests"
 GO_E2E_UPSTREAM_TESTS_DIR="${KIND_DIR}/e2e-upstream-tests"
 UPSTREAM_E2E_SCRIPT="${KIND_DIR}/e2e"
-KIND_CLUSTER_NAME="quobyte-csi-testing"
 TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
-KUBECONFIG='/tmp/quobyte-k8s-config'
+# Everything a run produces lands here: a log per combination, a log per cluster, and the
+# debug snapshot of whatever failed.
+DEBUG_ROOT="${TEST_CLUSTER_DIR}/debug"
+# Base names of the per-worker kind clusters and their kubeconfigs. The first worker gets
+# these unchanged, so a sequential run is exactly what it always was -- same cluster name,
+# same kubeconfig path the README tells you to export -- and further workers get a
+# "-<worker>" suffix.
+KIND_CLUSTER_NAME="quobyte-csi-testing"
+KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
+# How many combinations run at once. One kind cluster cannot host two of them: the driver
+# and the client are deployed under fixed helm release names, and the client is a DaemonSet
+# owning a mount point per node. So a worker means a cluster of its own -- four containers
+# and a driver deployment each, which is what to weigh when raising this.
+PARALLEL_TESTS="${PARALLEL_TESTS:-5}"
+# Set to 'true' to keep every cluster a run created, the way this script always used to --
+# handy to go on poking at one with kubectl afterwards. Unset, a worker deletes its cluster
+# once it is done with it, so a green run of N workers does not leave N clusters behind. The
+# cluster of a test that failed is never deleted; that one is the point.
+KEEP_CLUSTERS="${KEEP_CLUSTERS:-false}"
 # Wall clock of the whole run, reported by the summary at the end. Taken from bash's own
 # SECONDS counter (seconds since this shell started) rather than a timestamp, so nothing
 # has to be subtracted later.
 run_started_at="$SECONDS"
 
 die() { echo "$*" 1>&2 ; exit 1; }
+
+# The kind cluster a worker runs its combinations in, and where its kubeconfig goes. Worker
+# 1 keeps the historical names (see KIND_CLUSTER_NAME above).
+cluster_name_for_worker() {
+  if [[ "$1" -eq 1 ]]; then
+    echo "$KIND_CLUSTER_NAME"
+  else
+    echo "${KIND_CLUSTER_NAME}-$1"
+  fi
+}
+
+kubeconfig_for_worker() {
+  if [[ "$1" -eq 1 ]]; then
+    echo "$KUBECONFIG_BASE"
+  else
+    echo "${KUBECONFIG_BASE}-$1"
+  fi
+}
 
 # Renders a number of seconds the way the summary prints them: "45s", "7m03s", "1h02m03s".
 format_duration() {
@@ -69,10 +104,10 @@ print_help() {
 Usage: $0 [--sanity|--upstream] <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
        $0 [--sanity|--upstream] --list
 
-Builds the Quobyte CSI driver + pod-killer from source, spins up a local kind cluster,
-then runs two sets of self-contained Go e2e test packages against it. Every file in a
-test's "env" directory is one driver setup, and the test is run once per file, with the
-Quobyte client and CSI driver redeployed for each:
+Builds the Quobyte CSI driver + pod-killer from source, spins up local kind clusters, then
+runs two sets of self-contained Go e2e test packages against them. Every file in a test's
+"env" directory is one driver setup, and the test is run once per file, with the Quobyte
+client and CSI driver redeployed for each:
 
   kind-tests/e2e-sanity-tests/    Quobyte's own driver checks.
   kind-tests/e2e-upstream-tests/  Upstream Kubernetes sig-storage suites. The test creates
@@ -100,13 +135,27 @@ Other environment variables honored:
                         from --list; glob patterns are allowed. Unset, everything runs.
                         Checked before the cluster is built, so a name that matches
                         nothing fails immediately.
+  PARALLEL_TESTS        How many combinations to run at once (default: 5). Each gets a kind
+                        cluster of its own -- two cannot share one, the driver and client
+                        are deployed under fixed helm release names -- so this many clusters
+                        of four containers are created. Set to 1 for the sequential run,
+                        which is also the only mode that streams test output to the terminal.
+  KEEP_CLUSTERS         Set to 'true' to keep every cluster a run created. Unset (default),
+                        a worker deletes its cluster when it is done with it -- except the
+                        one holding a failed test, which is always left up for debugging.
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
                         file may raise this -- the upstream suites need much longer.
   CONTINUE_ON_FAILURE   Set to 'true' to run the whole matrix and report every result.
-                        Unset (default), the run stops at the first failing test with the
-                        cluster, driver and that test's resources left live for debugging.
+                        Unset (default), the run stops at the first failing test with its
+                        cluster, driver and resources left live for debugging; workers that
+                        are mid-test finish it and then stop taking new work.
+
+The output of every combination is collected under kind-csi-testing/debug/<test>/<env file>/
+(run.log is the whole deploy/run/undeploy cycle, plus the debug snapshot of a failed one),
+and of every cluster under kind-csi-testing/debug/clusters/. Only progress lines go to the
+terminal while workers run in parallel.
 
 Every run ends with a summary table of each test/environment combination, its result and how
 long it took, followed by the wall clock of the whole run.
@@ -127,6 +176,10 @@ Examples:
 
   # or every environment of one test package:
   TESTS='external_storage/*' \\
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+
+  # one at a time, in a single cluster, with the output on the terminal:
+  PARALLEL_TESTS=1 \\
     kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
 
 Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
@@ -161,6 +214,10 @@ elif [[ "$test_set" == 'sanity' ]]; then
   collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
 else
   die "Unknown test set ${test_set} selected"
+fi
+
+if [[ ! "$PARALLEL_TESTS" =~ ^[1-9][0-9]*$ ]]; then
+  die "PARALLEL_TESTS must be a positive whole number, got '${PARALLEL_TESTS}'."
 fi
 
 echo "Collected test set ${test_set}"
@@ -242,8 +299,9 @@ if [[ -n "$TESTS" ]]; then
   printf '  %s\n' "${planned_names[@]}"
 fi
 
-# Exported so every helm/kubectl call and the Go e2e tests (framework.LoadConfig reads
-# these via os.Getenv) below can see them, the same way KUBECONFIG is exported.
+# Exported so every helm/kubectl call and the Go e2e tests (framework.LoadConfig reads these
+# via os.Getenv) below can see them. KUBECONFIG is not among them: it names one cluster, so
+# each worker exports its own (see run_worker).
 export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD
 
 # --- Required tools (see kind-tests/README.md "Requirements") -------------------
@@ -338,6 +396,9 @@ if [ ! -z "$(git status --porcelain)" ]; then
   exit 1
 fi
 
+echo "*** Updating git submodules ***"
+git submodule update --init --remote || die "Cannot update submodule dependencies"
+
 if [ ! -d "${POD_KILLER_DIR}" ]; then
   die "Pod killer code base does not exists in the path ${POD_KILLER_DIR}"
 fi
@@ -358,22 +419,10 @@ else
 fi
 
 cd $CODE_BASE_DIR
-if [[ -f "$KUBECONFIG" ]]; then
-  rm "$KUBECONFIG"
-fi
-
-# set kubeconfig so that kubectl in this context can with the kind cluster configuration
-export KUBECONFIG="${KUBECONFIG}"
-
-tee -a "$KUBECONFIG" <<END
-apiVersion: v1
-kind: Config
-preferences: {}
-END
 
 rm -rf "${TEST_CLUSTER_DIR}"
 
-mkdir -p "${TEST_CLUSTER_DIR}"
+mkdir -p "${TEST_CLUSTER_DIR}" "${DEBUG_ROOT}/clusters" "${DEBUG_ROOT}/results"
 
 echo "Running script from $(pwd)"
 
@@ -398,24 +447,19 @@ docker build -t 'quobyte/kind-node-testing:v0' -f "${TEST_CLUSTER_DIR}"/Dockerfi
 
 docker image ls | grep 'quobyte/kind-node-testing:v0'
 
-echo "Use the newly created image in the kind cluster configuration: * * * * * * * * *"
-tee -a "${TEST_CLUSTER_DIR}"/kind-config-testing.yaml <<END
-kind: Cluster
-name: ${KIND_CLUSTER_NAME}
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  image: quobyte/kind-node-testing:v0
-- role: worker
-  image: quobyte/kind-node-testing:v0
-- role: worker
-  image: quobyte/kind-node-testing:v0
-- role: worker
-  image: quobyte/kind-node-testing:v0
-END
+echo "Building local csi driver image"
+CONTAINER_URL_BASE=${CONTAINER_URL_BASE} LOCAL_IMAGE='true' \
+ DISABLE_VERSION_VALIDATION='true' ${CODE_BASE_DIR}/src/build.sh \
+ container ${CSI_DRIVER_VERSION}
 
-echo  "Creating cluster with kind: * * * * * * * * * * * * * * * * * * * * * * *"
-kind create cluster --config="${TEST_CLUSTER_DIR}"/kind-config-testing.yaml --kubeconfig ${KUBECONFIG}
+if [[ "$?" -ne 0 ]]; then
+  echo "Failed to create local image (compile or image build failed!)"
+  exit 1
+fi
+
+# The nameservers of the host, mapped into every cluster's worker nodes below alongside that
+# cluster's own kube-dns, so the nodes can resolve the Quobyte API and registry.
+host_dns_ips="$(grep nameserver /etc/resolv.conf | awk '{print $2}' | tr '\n' ' ')"
 
 verify_all_nodes_ready() {
   local -n result=$1
@@ -433,88 +477,137 @@ verify_all_nodes_ready() {
   result=$has_not_ready_nodes
 }
 
-verify_all_nodes_ready has_not_ready_nodes
-if [[ "$has_not_ready_nodes" -eq 0 ]]; then
-  echo ""
-  kubectl get nodes | grep -q "NotReady" | awk 'NR>1{print $1}' \
-  | xargs -I {} sh -c "echo "Restarting the node container {}"; sudo docker restart {}"
-fi
-verify_all_nodes_ready has_not_ready_nodes
-if [[ "$has_not_ready_nodes" -eq 0 ]]; then
-  echo "K8S nodes are not ready after 10 minutes (Restarting also not fixed the nodes ready issue). \
-       Cannot continue testing cluster setup. Please fix the node not ready issue."
-fi
-# Wait until nodes are ready for DNS entries to be added - adding DNS entries before nodes are ready
-# makes nodes hang in NotReady
-dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
-if [[ -z "$dns_ips" ]]; then
-  echo "Error: could not retrieve required kube-dns IP"
-  exit 1
-fi
-if ! [[ "$dns_ips" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Error: Invalid kube-dns IP $dns_ips"
-  exit 1
-fi
+# Brings up one kind cluster and everything a test needs on it: the locally built images
+# loaded, the nodes labelled for the Quobyte client, kube-dns mapped into them and the
+# driver's "quobyte" namespace created. Every parallel worker calls this for a cluster of
+# its own, so nothing here may assume it is the only cluster around.
+#
+# KUBECONFIG must already point at the file to write, which is also where the caller's
+# kubectl calls read the cluster from afterwards.
+#
+#   $1 cluster     kind cluster name
+#   $2 kubeconfig  where its kubeconfig goes
+create_test_cluster() {
+  local cluster="$1" kubeconfig="$2"
+  local config_file="${TEST_CLUSTER_DIR}/kind-config-${cluster}.yaml"
 
-# Add host dns entries, so that we can resolve all the names (dependent container urls, Quobyte
-# api/registry etc)
-for host_dns_ip in $(grep nameserver /etc/resolv.conf | awk '{print $2}'); do
-   dns_ips="$dns_ips $host_dns_ip"
-done
+  rm -f "$kubeconfig"
+  cat > "$kubeconfig" <<END
+apiVersion: v1
+kind: Config
+preferences: {}
+END
 
-# Requires for Quobyte pod killer components - cache is run as a service and mount monitor
-# uses service url to communicate with the cache. Without kube-dns mapped, mount monitor cannot
-# resolve the service url
-echo "Mapping k8s kube-dns resolver into k8s nodes * * * * * * * * *"
-for node in $(kubectl get nodes --no-headers | grep 'worker' | awk '{print $1}'); do
-  echo "Mapping k8s kube-dns resolver into $node"
-  # Nullify current configuration -- ATM, kind configures dns is configured with the default
-  # gateway of the virtual network
-  sudo docker exec -it $node sh -c "cat /dev/null > /etc/resolv.conf"
-  # Next couple of lines are not intended on purpose - otherwise command does not work as
-  # -c interprets text verbatim
-  sudo docker exec -it $node sh -c "cat > /etc/resolv.conf <<END
+  cat > "$config_file" <<END
+kind: Cluster
+name: ${cluster}
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: quobyte/kind-node-testing:v0
+- role: worker
+  image: quobyte/kind-node-testing:v0
+- role: worker
+  image: quobyte/kind-node-testing:v0
+- role: worker
+  image: quobyte/kind-node-testing:v0
+END
+
+  echo  "Creating cluster ${cluster} with kind: * * * * * * * * * * * * * * * * * * * * * * *"
+  kind create cluster --config="$config_file" --kubeconfig "$kubeconfig" \
+    || { echo "Failed creating kind cluster ${cluster}"; return 1; }
+
+  verify_all_nodes_ready has_not_ready_nodes
+  if [[ "$has_not_ready_nodes" -eq 0 ]]; then
+    echo ""
+    kubectl get nodes | grep -q "NotReady" | awk 'NR>1{print $1}' \
+    | xargs -I {} sh -c "echo "Restarting the node container {}"; sudo docker restart {}"
+  fi
+  verify_all_nodes_ready has_not_ready_nodes
+  if [[ "$has_not_ready_nodes" -eq 0 ]]; then
+    echo "K8S nodes of ${cluster} are not ready after 10 minutes (Restarting also not fixed the \
+         node ready issue). Cannot continue testing cluster setup."
+    return 1
+  fi
+
+  # Wait until nodes are ready for DNS entries to be added - adding DNS entries before nodes are
+  # ready makes nodes hang in NotReady
+  local dns_ips
+  dns_ips="$(kubectl get services -n kube-system | grep 'kube-dns' | awk '{print $3}')"
+  if [[ -z "$dns_ips" ]]; then
+    echo "Error: could not retrieve required kube-dns IP of cluster ${cluster}"
+    return 1
+  fi
+  if ! [[ "$dns_ips" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: Invalid kube-dns IP $dns_ips"
+    return 1
+  fi
+  # Plus the host's, so the nodes resolve the dependent container urls, Quobyte api/registry etc.
+  dns_ips="$dns_ips $host_dns_ips"
+
+  # Requires for Quobyte pod killer components - cache is run as a service and mount monitor
+  # uses service url to communicate with the cache. Without kube-dns mapped, mount monitor cannot
+  # resolve the service url
+  echo "Mapping k8s kube-dns resolver into the nodes of ${cluster} * * * * * * * * *"
+  local node dns_ip
+  # No 'docker exec -it' anywhere below: a parallel worker runs with its output on a file
+  # rather than a terminal, and -t then fails outright. Nothing here needs a TTY.
+  for node in $(kubectl get nodes --no-headers | grep 'worker' | awk '{print $1}'); do
+    echo "Mapping k8s kube-dns resolver into $node"
+    # Nullify current configuration -- ATM, kind configures dns is configured with the default
+    # gateway of the virtual network
+    sudo docker exec $node sh -c "cat /dev/null > /etc/resolv.conf"
+    # Next couple of lines are not intended on purpose - otherwise command does not work as
+    # -c interprets text verbatim
+    sudo docker exec $node sh -c "cat > /etc/resolv.conf <<END
 search default svc.cluster.local cluster.local
 END"
 for dns_ip in $dns_ips; do
-sudo docker exec -it $node sh -c "cat >> /etc/resolv.conf <<END
+sudo docker exec $node sh -c "cat >> /etc/resolv.conf <<END
 nameserver $dns_ip
 END"
 done
- sudo docker exec -it $node sh -c "cat >> /etc/resolv.conf <<END
+    sudo docker exec $node sh -c "cat >> /etc/resolv.conf <<END
 options timeout:1 ndots:0
 END"
-  echo "Configured worker node $node with DNS entries as following:"
-  sudo docker exec -it quobyte-csi-testing-worker sh -c "cat /etc/resolv.conf"
-  echo ""
-done
+    echo "Configured worker node $node with DNS entries as following:"
+    sudo docker exec $node sh -c "cat /etc/resolv.conf"
+    echo ""
+  done
 
-echo  "Labeling Kubernetes nodes for Quobyte client installation * * * * * * * * * * * * * * *"
-for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
-  kubectl label nodes $node quobyte_client="true"
-done
+  echo  "Labeling Kubernetes nodes for Quobyte client installation * * * * * * * * * * * * * * *"
+  for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
+    kubectl label nodes $node quobyte_client="true"
+  done
 
-echo "Building local csi driver image"
-CONTAINER_URL_BASE=${CONTAINER_URL_BASE} LOCAL_IMAGE='true' \
- DISABLE_VERSION_VALIDATION='true' ${CODE_BASE_DIR}/src/build.sh \
- container ${CSI_DRIVER_VERSION}
+  kind load docker-image ${CSI_DRIVER_IMAGE} --name "$cluster" || return 1
+  kind load docker-image ${POD_KILLER_IMAGE} --name "$cluster" || return 1
 
-if [[ "$?" -ne 0 ]]; then
-  echo "Failed to create local image (compile or image build failed!)"
-  exit 1
-fi
-kind load docker-image ${CSI_DRIVER_IMAGE} --name ${KIND_CLUSTER_NAME}
-kind load docker-image ${POD_KILLER_IMAGE} --name ${KIND_CLUSTER_NAME}
+  echo "creating and setting default namespace to quobyte * * * * * * * * * * * *"
+  #to retrieve instances from all namespaces use '-A' argument
+  kubectl create ns quobyte || return 1
+  kubectl config use-context "kind-${cluster}"
+  kubectl config set-context --current --namespace=quobyte
 
-echo "creating and setting default namespace to quobyte * * * * * * * * * * * *" 
-#to retrieve instances from all namespaces use '-A' argument
-kubectl create ns quobyte
-kubectl config get-contexts
-kubectl get namespaces --context kind-quobyte-csi-testing
-kubectl config use-context kind-quobyte-csi-testing
-kubectl config set-context --current --namespace=quobyte
+  echo "To access cluster ${cluster} you should export KUBECONFIG=${kubeconfig} env variable"
+}
 
-echo "To access the test cluster you should export KUBECONFIG=$KUBECONFIG env varialbe"
+# Deletes a cluster a worker is done with, unless the run was told to keep it. Called only
+# where nothing is left to debug -- a failed test returns before this, so its cluster stays
+# up (see run_worker).
+delete_test_cluster() {
+  local cluster="$1" kubeconfig="$2" worker="$3"
+
+  if [[ "$KEEP_CLUSTERS" == 'true' ]]; then
+    echo "[worker ${worker}] KEEP_CLUSTERS=true: leaving cluster ${cluster} up (export KUBECONFIG=${kubeconfig})"
+    return 0
+  fi
+
+  echo "[worker ${worker}] deleting kind cluster ${cluster}"
+  kind delete cluster --name "$cluster" >> "${DEBUG_ROOT}/clusters/${cluster}.log" 2>&1 \
+    || echo "[worker ${worker}] warning: could not delete kind cluster ${cluster}, remove it with 'kind delete cluster --name ${cluster}'"
+  rm -f "$kubeconfig"
+}
 
 if [[ ! -d "$GO_E2E_SANITY_TESTS_DIR" && ! -d "$GO_E2E_UPSTREAM_TESTS_DIR" ]]; then
   die "No Go e2e tests found: neither ${GO_E2E_SANITY_TESTS_DIR} nor ${GO_E2E_UPSTREAM_TESTS_DIR} exists"
@@ -654,6 +747,11 @@ dump_debug_info() {
   echo "Dumping debug information for failed test '$test_name' to $debug_dir"
 
   {
+    # Which cluster this was is the first thing to know when several ran at once, and it is
+    # not something the dumps below say anywhere.
+    echo "KIND_CLUSTER=${TEST_KIND_CLUSTER}"
+    echo "KUBECONFIG=${KUBECONFIG}"
+    echo "test_namespace=${test_namespace}"
     echo "env_file=${env_file}"
     echo "values_file=${values_file}"
     echo "CSI_HELM_SET=${CSI_HELM_SET}"
@@ -779,7 +877,10 @@ run_go_test_for_env() {
   # (separate from the driver's fixed "quobyte" operating namespace set up above)
   # so each test run gets isolated, uniquely-named resources.
   local test_suffix test_namespace storage_class_name quobyte_tenant
-  test_suffix="$(date +%s)-${RANDOM}"
+  # BASHPID, not just RANDOM: parallel workers are subshells started in the same second, and
+  # they would otherwise be free to draw the same RANDOM sequence -- two combinations sharing
+  # a namespace or a Quobyte tenant name would be a confusing way to find that out.
+  test_suffix="$(date +%s)-${BASHPID}-${RANDOM}"
   test_namespace="quobyte-e2e-${test_suffix}"
   storage_class_name="quobyte-sc-${test_suffix}"
   # Generate a unique tenant name per run, unless the test's own "env" file already
@@ -792,7 +893,7 @@ run_go_test_for_env() {
 
   echo "Running Go e2e test '${test_name}' [${variant}]"
   # Per env file, so the variants of one test package don't overwrite each other's logs.
-  local debug_dir="${TEST_CLUSTER_DIR}/debug/${test_name}/${variant}"
+  local debug_dir="${DEBUG_ROOT}/${test_name}/${variant}"
   local artifacts_dir="${debug_dir}/artifacts"
   mkdir -p "$debug_dir" "$artifacts_dir"
   # UPSTREAM_E2E_SCRIPT/REPO_ROOT are passed to every test set; only tests that drive the
@@ -814,15 +915,16 @@ run_go_test_for_env() {
     echo "$debug_dir"
     if [[ "$CONTINUE_ON_FAILURE" != 'true' ]]; then
       echo ""
-      echo "The test skips its own cleanup on failure, so the cluster, quobyte-csi-driver,"
-      echo "quobyte-client, and this test's Secret/StorageClass/PVC/Pod are all still"
-      echo "running -- inspect them live, e.g.:"
+      echo "The test skips its own cleanup on failure, so this worker's cluster,"
+      echo "quobyte-csi-driver, quobyte-client, and this test's Secret/StorageClass/PVC/Pod"
+      echo "are all still running -- inspect them live, e.g.:"
       echo ""
       echo "  export KUBECONFIG=$KUBECONFIG"
       echo "  kubectl -n $test_namespace get pods,pvc,secret,storageclass"
       echo ""
-      echo "Run 'kind-tests/cleanup' when done to tear everything down, or re-run with"
-      echo "CONTINUE_ON_FAILURE=true to run the whole matrix instead of stopping here."
+      echo "Run 'kind delete cluster --name ${TEST_KIND_CLUSTER}' (or 'kind-tests/cleanup')"
+      echo "when done to tear it down, or re-run with CONTINUE_ON_FAILURE=true to run the"
+      echo "whole matrix instead of stopping here."
       return 1
     fi
     echo ""
@@ -845,6 +947,91 @@ run_go_test_for_env() {
   unset_env_file "$env_file"
 
   return "$test_status"
+}
+
+# Runs the combinations assigned to one worker, in a kind cluster of its own, and records
+# what each of them did in DEBUG_ROOT/results/<index> for the summary to pick up -- a
+# background subshell cannot write to the parent's arrays.
+#
+# Work is handed out round robin (worker N takes every Nth combination), which needs no
+# locking; combinations differ in how long they take, so the last worker may well finish
+# well after the others.
+#
+# The whole output of a combination goes to its own run.log, since several of them are
+# writing at once. A run with a single worker has nothing to interleave with and keeps the
+# live terminal output it always had.
+run_worker() {
+  local worker="$1"
+  # This subshell must not run the parent's summary when it exits.
+  trap - EXIT
+
+  local cluster kubeconfig cluster_log cluster_started_at
+  cluster="$(cluster_name_for_worker "$worker")"
+  kubeconfig="$(kubeconfig_for_worker "$worker")"
+  cluster_log="${DEBUG_ROOT}/clusters/${cluster}.log"
+  # Every kubectl/helm/kind call below, and the Go tests themselves, act on this worker's
+  # cluster alone. TEST_KIND_CLUSTER only names it for the debug dump of a failed test.
+  export KUBECONFIG="$kubeconfig"
+  export TEST_KIND_CLUSTER="$cluster"
+
+  echo "[worker ${worker}] creating kind cluster ${cluster} (log: ${cluster_log})"
+  cluster_started_at="$SECONDS"
+  if ! create_test_cluster "$cluster" "$kubeconfig" > "$cluster_log" 2>&1; then
+    echo "[worker ${worker}] FAILED to create kind cluster ${cluster} -- see ${cluster_log}"
+    # Its combinations are reported as NOT RUN, and nothing else should start either: a
+    # cluster that cannot be created is not a per-test problem.
+    touch "${DEBUG_ROOT}/abort"
+    return 1
+  fi
+  echo "[worker ${worker}] cluster ${cluster} ready after $(format_duration $((SECONDS - cluster_started_at)))"
+
+  local i tests_root test_name env_file variant combo_log started_at duration test_status
+  for ((i = worker - 1; i < ${#planned_tests[@]}; i += parallel_workers)); do
+    if [[ -f "${DEBUG_ROOT}/abort" ]]; then
+      echo "[worker ${worker}] stopping, the rest of its tests are left unrun"
+      # Nothing of this worker's went wrong, so there is nothing here to look at: the
+      # cluster being debugged is the one whose test failed.
+      delete_test_cluster "$cluster" "$kubeconfig" "$worker"
+      return 0
+    fi
+
+    IFS='|' read -r tests_root test_name env_file <<< "${planned_tests[i]}"
+    variant="$(basename "$env_file")"
+    combo_log="${DEBUG_ROOT}/${test_name}/${variant}/run.log"
+    mkdir -p "$(dirname "$combo_log")"
+
+    echo "[worker ${worker}] ${planned_names[i]} started (log: ${combo_log})"
+    started_at="$SECONDS"
+    if [[ "$parallel_workers" -eq 1 ]]; then
+      run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$variant" 2>&1 | tee "$combo_log"
+      test_status=${PIPESTATUS[0]}
+    else
+      run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$variant" > "$combo_log" 2>&1
+      test_status=$?
+    fi
+    duration=$((SECONDS - started_at))
+
+    if [[ "$test_status" -eq 0 ]]; then
+      echo "PASS ${duration}" > "${DEBUG_ROOT}/results/${i}"
+      echo "[worker ${worker}] ${planned_names[i]} PASS in $(format_duration "$duration")"
+      continue
+    fi
+
+    echo "FAIL ${duration}" > "${DEBUG_ROOT}/results/${i}"
+    echo "[worker ${worker}] ${planned_names[i]} FAIL in $(format_duration "$duration") -- see ${combo_log}"
+    if [[ "$CONTINUE_ON_FAILURE" != 'true' ]]; then
+      # Returning before delete_test_cluster on purpose: everything of this combination is
+      # left live for debugging (see run_go_test_for_env), and the other workers stop once
+      # they finish what they are on.
+      echo "[worker ${worker}] cluster ${cluster} left running: export KUBECONFIG=${kubeconfig}"
+      touch "${DEBUG_ROOT}/abort"
+      return 1
+    fi
+  done
+
+  # Everything this worker was given is done, and with CONTINUE_ON_FAILURE whatever failed
+  # has already been torn down and dumped, so the cluster has served its purpose.
+  delete_test_cluster "$cluster" "$kubeconfig" "$worker"
 }
 
 echo ""
@@ -900,53 +1087,66 @@ print_test_summary() {
   echo ""
   echo "${passed} passed, ${failed} failed, ${not_run} not run"
 
-  # Total wall clock, and how much of it went on the kind cluster and the images rather than
-  # on the tests -- with a driver redeployed per combination, that split is worth seeing.
+  # Total wall clock, and how much of it went on the images rather than on the tests. The
+  # durations above cover a combination's deploy/run/undeploy cycle only -- creating a
+  # worker's cluster is reported as that worker starts -- and with several workers they
+  # overlap, so they do not add up to the total either way.
   local elapsed
   elapsed="$(format_duration $((SECONDS - run_started_at)))"
   if [[ -n "$setup_seconds" ]]; then
-    echo "${elapsed} elapsed, of which $(format_duration "$setup_seconds") building the images and the kind cluster"
+    echo "${elapsed} elapsed, of which $(format_duration "$setup_seconds") building the images"
   else
     echo "${elapsed} elapsed, all of it before the first test started"
   fi
   if [[ -n "$TESTS" ]]; then
     echo "(TESTS='${TESTS}' selected ${#planned_names[@]} of ${#all_names[@]} available tests)"
   fi
-  if [[ "$failed" -gt 0 ]]; then
-    echo "Debug output of the failed run(s) is under ${TEST_CLUSTER_DIR}/debug/<test>/<environment>/"
-  fi
+  echo "Output of every test is under ${DEBUG_ROOT}/<test>/<environment>/, of every cluster under ${DEBUG_ROOT}/clusters/"
 }
 trap print_test_summary EXIT
 
 setup_seconds=$((SECONDS - run_started_at))
-echo "Cluster and images ready after $(format_duration "$setup_seconds"), starting ${#planned_tests[@]} test run(s)"
 
+# No point in more workers -- and more kind clusters -- than there are combinations to run.
+parallel_workers="$PARALLEL_TESTS"
+if [[ "$parallel_workers" -gt "${#planned_tests[@]}" ]]; then
+  parallel_workers="${#planned_tests[@]}"
+fi
+rm -f "${DEBUG_ROOT}/abort" "${DEBUG_ROOT}"/results/*
+
+echo "Images built after $(format_duration "$setup_seconds"): running ${#planned_tests[@]} test(s) \
+across ${parallel_workers} kind cluster(s), one per worker"
+if [[ "$parallel_workers" -gt 1 ]]; then
+  echo "Test output is collected under ${DEBUG_ROOT}/<test>/<environment>/run.log -- only"
+  echo "progress lines appear here while the workers run."
+fi
+
+declare -a worker_pids=()
+for ((worker = 1; worker <= parallel_workers; worker++)); do
+  run_worker "$worker" &
+  worker_pids+=("$!")
+done
+for worker_pid in "${worker_pids[@]}"; do
+  wait "$worker_pid"
+done
+
+# What the workers recorded, back into the index-aligned arrays the summary prints. A
+# combination with no result file never ran -- its worker aborted, or another one did.
 any_failed=0
 for i in "${!planned_tests[@]}"; do
-  IFS='|' read -r tests_root test_name env_file <<< "${planned_tests[i]}"
-  # Recorded as failed up front and only cleared on success, so a combination the run
-  # aborts in the middle of (a failed helm install, say) is reported as a failure rather
-  # than as one that never ran.
-  test_results[i]='FAIL'
-  test_started_at="$SECONDS"
-  # Deliberately not an 'if': the duration has to be recorded whichever way this went, and
-  # the failure path below leaves the loop without coming back here.
-  run_go_test_for_env "$tests_root" "$test_name" "$env_file" "$(basename "$env_file")"
-  test_status=$?
-  test_durations[i]=$((SECONDS - test_started_at))
-  echo "Test '${planned_names[i]}' took $(format_duration "${test_durations[i]}")"
-  if [[ "$test_status" -eq 0 ]]; then
-    test_results[i]='PASS'
-  else
-    any_failed=1
-    if [[ "$CONTINUE_ON_FAILURE" != 'true' ]]; then
-      print_test_summary
-      die "Stopping after first failed Go e2e test ('${planned_names[i]}')."
-    fi
-  fi
+  result_file="${DEBUG_ROOT}/results/${i}"
+  [[ -f "$result_file" ]] || continue
+  read -r result duration < "$result_file"
+  test_results[i]="$result"
+  test_durations[i]="$duration"
+  [[ "$result" == 'PASS' ]] || any_failed=1
 done
 
 if [[ "$any_failed" -ne 0 ]]; then
   print_test_summary
   die "Some Go e2e tests failed."
+fi
+if [[ -f "${DEBUG_ROOT}/abort" ]]; then
+  print_test_summary
+  die "A worker could not bring its kind cluster up; nothing else was started."
 fi

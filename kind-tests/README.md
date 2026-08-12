@@ -37,6 +37,35 @@ For every (test package, environment file) combination found, `run_test`:
 A test package with several environment files therefore goes through the whole deploy/run/undeploy
 cycle once per file, each time against a freshly deployed driver.
 
+### Running several at once
+
+`PARALLEL_TESTS` (default 5) is how many combinations run at the same time. Each one needs a kind
+cluster to itself -- the driver and client are deployed under fixed helm release names, and the
+client is a DaemonSet owning a mount point per node -- so a worker means a cluster of its own, four
+containers and a driver deployment each. That is the number to weigh when raising it. The
+combinations are handed out round robin, so a worker that draws the long upstream suites may still
+be going when the others are done.
+
+They all share one Quobyte installation, which is why each test creates its own tenant, its own
+Quobyte user and its own Kubernetes namespace, all named uniquely per run
+(`framework.CreateTestUser`).
+
+A worker deletes its cluster when it has finished the combinations it was given, so a green run
+leaves nothing behind. Two exceptions: the cluster of a test that failed is always left up (that
+is the one to debug -- its kubeconfig is printed with the failure, and `test-env.txt` in the debug
+directory names both), and `KEEP_CLUSTERS=true` keeps every cluster, which is what the
+[iterate-against-a-running-cluster](#run-tests) workflow below needs.
+
+`PARALLEL_TESTS=1` is the sequential run: one cluster, keeping the name and kubeconfig path used
+below, and the only mode that streams test output to the terminal. With more workers the terminal
+shows progress lines only and everything else is collected in the debug directory:
+
+```
+kind-csi-testing/debug/clusters/<cluster>.log       bringing that worker's cluster up
+kind-csi-testing/debug/<test>/<env file>/run.log    one combination, deploy to undeploy
+kind-csi-testing/debug/<test>/<env file>/           the failure snapshot described below
+```
+
 Every run ends with a summary of each combination, named `<test package>/<env file>`:
 
 ```
@@ -48,13 +77,15 @@ external_storage/access_keys      NOT RUN  -
 external_storage/default          FAIL     21m05s
 
 2 passed, 1 failed, 1 not run
-1h15m30s elapsed, of which 18m20s building the images and the kind cluster
-Debug output of the failed run(s) is under kind-csi-testing/debug/<test>/<environment>/
+1h15m30s elapsed, of which 18m20s building the images
+Output of every test is under kind-csi-testing/debug/<test>/<environment>/
 ```
 
-A combination's duration is the whole deploy/run/undeploy cycle, not just `go test`, so it
-includes the client and driver helm installs done for it. `NOT RUN` combinations show `-`,
-as does the one a stopped run was in the middle of.
+A combination's duration is its whole deploy/run/undeploy cycle, not just `go test`, so it includes
+the client and driver helm installs done for it -- but not the one-off creation of its worker's
+cluster, which is reported separately as the worker starts. `NOT RUN` combinations show `-`, as
+does the one a stopped run was in the middle of. With several workers the durations overlap, so
+they do not add up to the elapsed time.
 
 Those names are also how you select what to run. `--sanity` / `--upstream` narrow the run to one
 test set, `TESTS` takes a space-separated list of combination names with glob patterns included,
@@ -77,13 +108,13 @@ TESTS='external_storage/*' kind-tests/run_test http://host:port host:port
 The selection is resolved before the kind cluster is built, so a name that matches nothing fails
 immediately instead of after the cluster is up.
 
-On failure `run_test` stops right there without cleaning up: the cluster, the driver, the client
-and the test's own resources are all left running for live debugging (the Go tests use
-`framework.CleanupUnlessFailed`, which skips their own teardown when the test failed), and the
-combinations after it are reported as `NOT RUN`. Set `CONTINUE_ON_FAILURE=true` to run the whole
-matrix instead and get a complete table -- the failed combination is then torn down like any
-other, so only its debug snapshot survives. Either way `run_test` exits non-zero if anything
-failed.
+On failure `run_test` stops without cleaning up: that worker's cluster, the driver, the client and
+the test's own resources are all left running for live debugging (the Go tests use
+`framework.CleanupUnlessFailed`, which skips their own teardown when the test failed). The other
+workers finish the combination they are on and then stop taking new work, so what is left is
+reported as `NOT RUN`. Set `CONTINUE_ON_FAILURE=true` to run the whole matrix instead and get a
+complete table -- the failed combination is then torn down like any other, so only its debug
+snapshot survives. Either way `run_test` exits non-zero if anything failed.
 
 For every failed combination a best-effort debug snapshot -- pods, events, driver and client
 logs, plus a copy of the Secret/StorageClass the test applied -- is written to
@@ -207,7 +238,16 @@ either is missing. It also requires a clean git working tree, so commit your cha
 before running it.
 
 To iterate on one test directly against an already-running cluster without rerunning all of
-`run_test` (cluster creation, image build, etc.):
+`run_test` (cluster creation, image build, etc.). The cluster has to still be there, so either the
+run that made it failed, or it was told to keep it:
+
+```bash
+KEEP_CLUSTERS=true PARALLEL_TESTS=1 TESTS='dynamic_provisioning/default' \
+  kind-tests/run_test http://host:port host:port
+```
+
+then, against `/tmp/quobyte-k8s-config` (worker 1's cluster; further workers add a `-<worker>`
+suffix to both the cluster name and this path):
 
 ```bash
 cd kind-tests/e2e-sanity-tests
@@ -234,9 +274,15 @@ go test ./external_storage/... -v -timeout "$GO_TEST_TIMEOUT"
 
 ## Cleanup
 
-* To destroy `kind` cluster and other resources, run the following command
+* To destroy the `kind` clusters and other resources, run the following command
   (from project root: quobyte-csi-driver)
 
   ```bash
   kind-tests/cleanup
   ```
+
+  A run normally deletes its own clusters as the workers finish; this removes whatever is
+  left -- the cluster of a failed test, the clusters of a run that was interrupted or that
+  used `KEEP_CLUSTERS=true` -- along with their kubeconfigs, the kind node image and
+  `kind-csi-testing/`, and with it the debug output of that run. It only ever touches
+  clusters named `quobyte-csi-testing` and `quobyte-csi-testing-<worker>`.
