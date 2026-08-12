@@ -1,0 +1,12 @@
+# Namespace mapping on, credentials are a Quobyte access key.
+#
+# An access key belongs to a tenant, and this is where that tenant must NOT be the one used:
+# the test issues its key inside a tenant of its own, and still expects the claim without
+# quobyteTenant in the tenant named after its namespace. The claim with quobyteTenant
+# overrides both.
+#
+# USE_K8S_NAMESPACE_AS_TENANT/ENABLE_ACCESS_KEY_MOUNTS are what the Go test reads; the
+# CSI_HELM_SET entries are what actually deploy the driver that way. Keep them in step.
+ENABLE_ACCESS_KEY_MOUNTS=true
+USE_K8S_NAMESPACE_AS_TENANT=true
+CSI_HELM_SET="quobyte.useK8SNamespaceAsTenant=true quobyte.enableAccessKeyMounts=true"

@@ -33,6 +33,14 @@ type Config struct {
 	// accessKeyId/accessKeySecret instead of user/password (see
 	// src/driver/node.go).
 	EnableAccessKeyMounts bool
+	// UseK8SNamespaceAsTenant mirrors the USE_K8S_NAMESPACE_AS_TENANT setting of the
+	// "env" file, which that file also has to pass on to the driver as
+	// quobyte.useK8SNamespaceAsTenant (via CSI_HELM_SET) -- the same split as
+	// EnableSnapshots. With it, a StorageClass that names no quobyteTenant is
+	// provisioned into the tenant named after the PVC's namespace, instead of leaving
+	// the tenant to the Secret's credentials (see CreateVolume in
+	// src/driver/controller.go).
+	UseK8SNamespaceAsTenant bool
 	// UseSeparateMountSecret mirrors USE_SEPARATE_MOUNT_SECRET: split the driver's two
 	// uses of a Secret across two of them, the way
 	// kind-tests/test-configs/local_cluster_accesskeys_2 did on master -- a management
@@ -89,8 +97,9 @@ func LoadConfig(t *testing.T) Config {
 		StorageClassName:   os.Getenv("STORAGE_CLASS_NAME"),
 		ArtifactsDir:       os.Getenv("ARTIFACTS_DIR"),
 
-		EnableAccessKeyMounts:  boolEnv("ENABLE_ACCESS_KEY_MOUNTS"),
-		UseSeparateMountSecret: boolEnv("USE_SEPARATE_MOUNT_SECRET"),
+		EnableAccessKeyMounts:   boolEnv("ENABLE_ACCESS_KEY_MOUNTS"),
+		UseK8SNamespaceAsTenant: boolEnv("USE_K8S_NAMESPACE_AS_TENANT"),
+		UseSeparateMountSecret:  boolEnv("USE_SEPARATE_MOUNT_SECRET"),
 
 		EnableSnapshots:   boolEnv("ENABLE_SNAPSHOTS"),
 		UpstreamE2EScript: os.Getenv("UPSTREAM_E2E_SCRIPT"),

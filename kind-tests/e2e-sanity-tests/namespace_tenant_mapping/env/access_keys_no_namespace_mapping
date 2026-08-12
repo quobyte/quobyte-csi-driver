@@ -1,0 +1,9 @@
+# Namespace mapping off, credentials are a Quobyte access key.
+#
+# The only environment in which the access key's own tenant is the answer: with no mapping
+# and no quobyteTenant the driver sends no tenant, and the API resolves it from the key. The
+# test issues its key inside a tenant of its own and expects the claim to land there, and
+# the claim with quobyteTenant to land in the tenant it names instead.
+ENABLE_ACCESS_KEY_MOUNTS=true
+USE_K8S_NAMESPACE_AS_TENANT=false
+CSI_HELM_SET="quobyte.enableAccessKeyMounts=true"

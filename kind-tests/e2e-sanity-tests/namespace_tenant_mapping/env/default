@@ -1,5 +1,0 @@
-# Maps the PVC's Kubernetes namespace onto the Quobyte tenant. The driver only does this
-# for StorageClasses that leave quobyteTenant unset, so the same deployment covers both
-# the mapping and the StorageClass override.
-ENABLE_ACCESS_KEY_MOUNTS=false
-CSI_HELM_SET="quobyte.useK8SNamespaceAsTenant=true"

@@ -22,12 +22,19 @@ how to run a single combination.
 | [`pre_provisioned_volumes/`](./pre_provisioned_volumes) | A PV pointed at a volume the driver did not create; nothing calls CreateVolume and Retain leaves the volume alone | implemented |
 | [`shared_volume/`](./shared_volume) | Two claims become subdirectories of one volume, isolated from each other; deleting one leaves the other and the volume | implemented, see the note below |
 | [`subdirectory/`](./subdirectory) | A three-part volume handle mounts a subdirectory and nothing above it | implemented |
-| [`namespace_tenant_mapping/`](./namespace_tenant_mapping) | The PVC's namespace becomes the tenant, and a StorageClass that names one overrides that | implemented |
+| [`namespace_tenant_mapping/`](./namespace_tenant_mapping) | Which tenant a volume lands in: the PVC's namespace, the Secret's access key, or the StorageClass — which always overrides the other two | implemented, see the note below |
 | [`access_key_negative/`](./access_key_negative) | Wrong and missing credentials fail visibly — at mount time and at provisioning time respectively | implemented |
 | [`pod_killer/`](./pod_killer) | A pod whose mount went stale is deleted and comes back on a working mount | implemented |
 | [`snapshots/`](./snapshots) | Snapshot and restore | TODO |
 
-Two things are deliberately not covered yet:
+Three things are deliberately not covered yet:
+
+- **a tenant nothing names** is left out of `namespace_tenant_mapping/`. Its four env files
+  cross access key mounts with the namespace mapping, and the case without a `quobyteTenant`
+  in the StorageClass runs in three of them; in the fourth (user/password, no mapping)
+  nothing names a tenant at all, the driver sends none, and whether the API still finds one
+  is undefined — so only the StorageClass override is asserted there. The full matrix is in
+  [`namespace_tenant_mapping/README.md`](./namespace_tenant_mapping/README.md).
 
 - **snapshots** is structure only — the directory, its `env/` file and a test that says what
   it has to cover, then calls `t.Skip`. It needs the VolumeSnapshot CRD types, which means
