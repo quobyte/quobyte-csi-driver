@@ -47,7 +47,6 @@ func NewStorageClass(opts StorageClassOptions) *storagev1.StorageClass {
 	}
 
 	parameters := map[string]string{
-		"quobyteTenant": opts.Tenant,
 		// Ignored by the driver for shared volumes, where the quota would apply to a
 		// subdirectory and has to be set by an admin at tenant level instead.
 		"createQuota": "true",
@@ -58,6 +57,12 @@ func NewStorageClass(opts StorageClassOptions) *storagev1.StorageClass {
 		"csi.storage.k8s.io/controller-expand-secret-namespace": opts.SecretNamespace,
 		"csi.storage.k8s.io/node-publish-secret-name":           mountSecretName,
 		"csi.storage.k8s.io/node-publish-secret-namespace":      mountSecretNamespace,
+	}
+	// Left out entirely when empty rather than set to "": a StorageClass without
+	// quobyteTenant is what makes the driver fall back to the PVC's namespace, when it
+	// runs with useK8SNamespaceAsTenant (see CreateVolume in src/driver/controller.go).
+	if opts.Tenant != "" {
+		parameters["quobyteTenant"] = opts.Tenant
 	}
 	if opts.SharedVolumeName != "" {
 		parameters[SharedVolumeNameParameter] = opts.SharedVolumeName

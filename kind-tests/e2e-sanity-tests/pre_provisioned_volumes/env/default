@@ -1,0 +1,3 @@
+# Default driver setup: the volume is created by the test through the Quobyte API and
+# mounted with the API user/password the test puts into its Secret.
+ENABLE_ACCESS_KEY_MOUNTS=false

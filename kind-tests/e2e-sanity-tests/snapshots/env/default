@@ -1,0 +1,7 @@
+# Snapshots need the driver's snapshotter sidecar (quobyte.enableSnapshots) and the
+# external-snapshotter CRDs plus controller, which run_test installs for any environment
+# that turns snapshots on. ENABLE_SNAPSHOTS is what the Go test reads; the CSI_HELM_SET
+# entry is what actually deploys the sidecar.
+ENABLE_ACCESS_KEY_MOUNTS=false
+ENABLE_SNAPSHOTS=true
+CSI_HELM_SET="quobyte.enableSnapshots=true"

@@ -1,10 +1,15 @@
 package framework
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// TestContainerName is the container NewPod puts the Quobyte mount in, and the one
+// WriteFileInPod/ReadFileInPod exec into.
+const TestContainerName = "test-container"
 
 // NewSecret builds the Quobyte API credentials Secret referenced by a
 // StorageClass's provisioner/controller-expand/node-publish secret
@@ -63,6 +68,90 @@ func NewPVC(name, namespace, storageClass, size string) *corev1.PersistentVolume
 	}
 }
 
+// PVOptions describes a PersistentVolume pointed at a Quobyte volume that already exists,
+// as opposed to one the provisioner created.
+type PVOptions struct {
+	Name   string
+	Driver string
+	// VolumeHandle is "<tenant>|<volume>", or "<tenant>|<volume>|<subDirectory>" to mount
+	// a subdirectory of that volume rather than its root -- see processVolumeHandle and
+	// formMountPath in src/driver/node.go. Tenant and volume may each be a name or a UUID;
+	// names are only resolvable if the secret below carries API credentials.
+	VolumeHandle string
+	Size         string
+	// SecretName/SecretNamespace become the PV's nodePublishSecretRef. A statically
+	// provisioned volume has no StorageClass to take mount credentials from, so without
+	// this the node plugin gets no secrets at all.
+	SecretName      string
+	SecretNamespace string
+}
+
+// NewPreProvisionedPV builds a PersistentVolume bound to an existing Quobyte volume. Its
+// reclaim policy is Retain: the volume belongs to whoever created it, and deleting the PV
+// must not take it away.
+func NewPreProvisionedPV(opts PVOptions) *corev1.PersistentVolume {
+	return &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: opts.Name,
+		},
+		Spec: corev1.PersistentVolumeSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Capacity: corev1.ResourceList{
+				corev1.ResourceStorage: resourceapi.MustParse(opts.Size),
+			},
+			PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimRetain,
+			// Empty on purpose: the PVC binds to this PV by name, and naming a
+			// StorageClass would send the claim through the provisioner instead.
+			StorageClassName: "",
+			PersistentVolumeSource: corev1.PersistentVolumeSource{
+				CSI: &corev1.CSIPersistentVolumeSource{
+					Driver:       opts.Driver,
+					VolumeHandle: opts.VolumeHandle,
+					NodePublishSecretRef: &corev1.SecretReference{
+						Name:      opts.SecretName,
+						Namespace: opts.SecretNamespace,
+					},
+				},
+			},
+		},
+	}
+}
+
+// NewPVCForPV builds a PersistentVolumeClaim that binds to one specific pre-provisioned
+// PV by name instead of asking a StorageClass for a new volume.
+func NewPVCForPV(name, namespace, pvName, size string) *corev1.PersistentVolumeClaim {
+	// Must be set and empty: left nil, the cluster's default StorageClass would apply.
+	const noStorageClass = ""
+
+	pvc := NewPVC(name, namespace, noStorageClass, size)
+	pvc.Spec.VolumeName = pvName
+
+	return pvc
+}
+
+// NewDeployment builds a single-replica Deployment of the pod NewPod describes. Used where
+// a test needs the pod to come back after something deletes it -- a bare pod would simply
+// stay gone.
+func NewDeployment(name, namespace, pvcName, mountPath string) *appsv1.Deployment {
+	replicas := int32(1)
+	pod := NewPod(name, namespace, pvcName, mountPath)
+
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{MatchLabels: pod.Labels},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: pod.Labels},
+				Spec:       pod.Spec,
+			},
+		},
+	}
+}
+
 // NewPod builds a Pod object mounting the given PVC at mountPath, mirroring
 // kind-tests/quobyte-k8s-resources/usage-examples/01_getting_started/05_testpod.yaml
 // but using busybox with a long-running command so the e2e suite can exec
@@ -89,7 +178,7 @@ func NewPod(name, namespace, pvcName, mountPath string) *corev1.Pod {
 			},
 			Containers: []corev1.Container{
 				{
-					Name:    "test-container",
+					Name:    TestContainerName,
 					Image:   "busybox",
 					Command: []string{"sh", "-c", "sleep 3600"},
 					VolumeMounts: []corev1.VolumeMount{

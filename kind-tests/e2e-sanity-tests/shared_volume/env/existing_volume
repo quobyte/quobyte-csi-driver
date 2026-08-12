@@ -1,0 +1,6 @@
+# The shared volume exists before any PVC does: the test creates it through the Quobyte
+# API (framework.CreateSharedVolume) and the driver has to provision into it rather than
+# create it. Cleanup goes through the DELETE_FILES_IN_VOLUMES task, the chart default.
+ENABLE_ACCESS_KEY_MOUNTS=false
+USE_SHARED_VOLUME=true
+PRE_CREATE_SHARED_VOLUME=true

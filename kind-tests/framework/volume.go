@@ -8,25 +8,32 @@ import (
 	"github.com/quobyte/api/v4/quobyte"
 )
 
-// SharedVolumeAccessMode is the POSIX access mode a shared volume's root directory needs
-// so the driver can create and remove a subdirectory per PVC in it. Mirrors
-// DefaultSharedVolumeAccessModes in src/driver/controller.go, which is what the driver
-// itself uses when it creates the shared volume.
-const SharedVolumeAccessMode int32 = 1777
+// The POSIX access modes the driver gives a volume's root directory, mirroring
+// DefaultAccessModes and DefaultSharedVolumeAccessModes in src/driver/controller.go, so a
+// volume a test pre-creates is indistinguishable from one the driver made. A shared volume
+// needs the wider mode because the driver creates and removes a subdirectory per PVC in it.
+const (
+	DefaultVolumeAccessMode int32 = 700
+	SharedVolumeAccessMode  int32 = 1777
+)
 
 // CreateSharedVolume creates the Quobyte volume a StorageClass's sharedVolumeName points
-// at, the way the driver would create it on the first provisioning request: owned by the
-// API user this client is authenticated as, with an access mode that lets the driver
-// manage subdirectories in it. Returns the volume's UUID.
+// at, the way the driver would create it on the first provisioning request.
+func CreateSharedVolume(client *quobyte.QuobyteClient, name, tenantID string) (string, error) {
+	return CreateVolume(client, name, tenantID, SharedVolumeAccessMode)
+}
+
+// CreateVolume creates a Quobyte volume owned by the API user this client is
+// authenticated as, and returns its UUID.
 //
 // Idempotent: a volume of that name already in the tenant is resolved and returned
 // instead, the same way the driver handles ENTITY_EXISTS_ALREADY.
-func CreateSharedVolume(client *quobyte.QuobyteClient, name, tenantID string) (string, error) {
+func CreateVolume(client *quobyte.QuobyteClient, name, tenantID string, accessMode int32) (string, error) {
 	// The driver resolves the owner the same way, so a pre-created volume ends up
 	// indistinguishable from one the driver made.
 	userInfo, err := client.WhoAmI(&quobyte.WhoAmIRequest{})
 	if err != nil {
-		return "", fmt.Errorf("resolving the Quobyte API user to own shared volume %q: %w", name, err)
+		return "", fmt.Errorf("resolving the Quobyte API user to own volume %q: %w", name, err)
 	}
 
 	createResp, err := client.CreateVolume(&quobyte.CreateVolumeRequest{
@@ -34,18 +41,18 @@ func CreateSharedVolume(client *quobyte.QuobyteClient, name, tenantID string) (s
 		TenantId:    tenantID,
 		RootUserId:  userInfo.UserName,
 		RootGroupId: userInfo.PrimaryGroup,
-		AccessMode:  SharedVolumeAccessMode,
+		AccessMode:  accessMode,
 	})
 	if err == nil {
 		return createResp.VolumeUuid, nil
 	}
 	if !strings.Contains(err.Error(), "ENTITY_EXISTS_ALREADY") {
-		return "", fmt.Errorf("creating shared volume %q in tenant %s: %w", name, tenantID, err)
+		return "", fmt.Errorf("creating volume %q in tenant %s: %w", name, tenantID, err)
 	}
 
 	volumeUUID, err := client.ResolveVolumeNameToUUID(name, tenantID)
 	if err != nil {
-		return "", fmt.Errorf("resolving already existing shared volume %q in tenant %s: %w", name, tenantID, err)
+		return "", fmt.Errorf("resolving already existing volume %q in tenant %s: %w", name, tenantID, err)
 	}
 
 	return volumeUUID, nil
@@ -76,6 +83,25 @@ func DeleteVolume(client *quobyte.QuobyteClient, volumeUUID string) error {
 	}
 
 	return nil
+}
+
+// ListVolumeNamesInTenant returns the names of the volumes currently in the given tenant,
+// for tests that need to show the driver did (or did not) create a volume of its own.
+func ListVolumeNamesInTenant(client *quobyte.QuobyteClient, tenantID string) ([]string, error) {
+	listResp, err := client.GetVolumeList(&quobyte.GetVolumeListRequest{TenantDomain: tenantID})
+	if err != nil {
+		return nil, fmt.Errorf("listing volumes of tenant %s: %w", tenantID, err)
+	}
+
+	names := make([]string, 0, len(listResp.Volume))
+	for _, volume := range listResp.Volume {
+		if volume == nil {
+			continue
+		}
+		names = append(names, volume.Name)
+	}
+
+	return names, nil
 }
 
 // DeleteVolumesInTenant removes every volume still listed in the given tenant and returns
