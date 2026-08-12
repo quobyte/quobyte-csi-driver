@@ -460,6 +460,8 @@ fi
 # The nameservers of the host, mapped into every cluster's worker nodes below alongside that
 # cluster's own kube-dns, so the nodes can resolve the Quobyte API and registry.
 host_dns_ips="$(grep nameserver /etc/resolv.conf | awk '{print $2}' | tr '\n' ' ')"
+# Kubelet does not allow more than 3 DNS entries so limit it in the script
+MAX_NODE_NAMESERVERS=3
 
 verify_all_nodes_ready() {
   local -n result=$1
@@ -543,7 +545,16 @@ END
     return 1
   fi
   # Plus the host's, so the nodes resolve the dependent container urls, Quobyte api/registry etc.
-  dns_ips="$dns_ips $host_dns_ips"
+  # Unquoted on purpose: host_dns_ips is a space-separated list of addresses.
+  # shellcheck disable=SC2206
+  node_dns_ips=("$dns_ips" $host_dns_ips)
+  if [[ "${#node_dns_ips[@]}" -gt "$MAX_NODE_NAMESERVERS" ]]; then
+    echo "Note: ${#node_dns_ips[@]} nameservers available for the nodes of ${cluster} \
+(${node_dns_ips[*]}), kubelet accepts ${MAX_NODE_NAMESERVERS}. Keeping the first \
+${MAX_NODE_NAMESERVERS}, dropping ${node_dns_ips[*]:$MAX_NODE_NAMESERVERS}."
+    node_dns_ips=("${node_dns_ips[@]:0:$MAX_NODE_NAMESERVERS}")
+  fi
+  dns_ips="${node_dns_ips[*]}"
 
   # Requires for Quobyte pod killer components - cache is run as a service and mount monitor
   # uses service url to communicate with the cache. Without kube-dns mapped, mount monitor cannot
