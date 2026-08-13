@@ -49,15 +49,23 @@ func NewAccessKeySecret(name, namespace, accessKeyID, accessKeySecret string) *c
 
 // NewPVC builds a PersistentVolumeClaim object mirroring
 // kind-tests/quobyte-k8s-resources/usage-examples/01_getting_started/04-testpvc.yaml,
-// parameterized by name/namespace/storageClass/size.
+// parameterized by name/namespace/storageClass/size, with the ReadWriteOnce access mode
+// almost every test wants. Use NewPVCWithAccessModes for anything else.
 func NewPVC(name, namespace, storageClass, size string) *corev1.PersistentVolumeClaim {
+	return NewPVCWithAccessModes(name, namespace, storageClass, size, corev1.ReadWriteOnce)
+}
+
+// NewPVCWithAccessModes is NewPVC with the access modes spelled out, for the tests that
+// mount one volume from several nodes at once (ReadWriteMany) -- which is what a Quobyte
+// volume actually supports, and what the driver declares to the upstream suite.
+func NewPVCWithAccessModes(name, namespace, storageClass, size string, accessModes ...corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			AccessModes: accessModes,
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resourceapi.MustParse(size),
@@ -84,18 +92,25 @@ type PVOptions struct {
 	// this the node plugin gets no secrets at all.
 	SecretName      string
 	SecretNamespace string
+	// AccessModes defaults to ReadWriteOnce when empty, matching NewPVC.
+	AccessModes []corev1.PersistentVolumeAccessMode
 }
 
 // NewPreProvisionedPV builds a PersistentVolume bound to an existing Quobyte volume. Its
 // reclaim policy is Retain: the volume belongs to whoever created it, and deleting the PV
 // must not take it away.
 func NewPreProvisionedPV(opts PVOptions) *corev1.PersistentVolume {
+	accessModes := opts.AccessModes
+	if len(accessModes) == 0 {
+		accessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	}
+
 	return &corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: opts.Name,
 		},
 		Spec: corev1.PersistentVolumeSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			AccessModes: accessModes,
 			Capacity: corev1.ResourceList{
 				corev1.ResourceStorage: resourceapi.MustParse(opts.Size),
 			},
@@ -156,6 +171,17 @@ func NewDeployment(name, namespace, pvcName, mountPath string) *appsv1.Deploymen
 // kind-tests/quobyte-k8s-resources/usage-examples/01_getting_started/05_testpod.yaml
 // but using busybox with a long-running command so the e2e suite can exec
 // into it to write/read files.
+// NewPodOnNode is NewPod pinned to one named node. A test that has to show a volume is
+// mounted from two nodes at once has to place its pods itself: left to the scheduler, two
+// pods of the same shape may well land on the same node and the test would pass without
+// ever crossing a node boundary.
+func NewPodOnNode(name, namespace, pvcName, mountPath, nodeName string) *corev1.Pod {
+	pod := NewPod(name, namespace, pvcName, mountPath)
+	pod.Spec.NodeName = nodeName
+
+	return pod
+}
+
 func NewPod(name, namespace, pvcName, mountPath string) *corev1.Pod {
 	const volumeName = "test-storage"
 

@@ -157,6 +157,11 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 		}
 	})
 
+	// What the tenant holds before this claim exists, so the count at the end is about this
+	// claim rather than about everything the run has provisioned so far.
+	volumesBefore, err := framework.ListVolumeNamesInTenant(quobyteClient, tenantID)
+	require.NoError(t, err, "listing the volumes of tenant %s before provisioning", cfg.QuobyteTenant)
+
 	pvc := framework.NewPVC(pvcName, cfg.Namespace, storageClassName, "1Gi")
 	_, err = clientset.CoreV1().PersistentVolumeClaims(cfg.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	require.NoError(t, err, "creating pvc")
@@ -231,6 +236,20 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	gotUUID, err := quobyteClient.GetVolumeUUID(volumeUUID, tenantUUID)
 	require.NoError(t, err, "volume referenced by PV %s not found in Quobyte", pv.Name)
 	require.Equal(t, volumeUUID, gotUUID, "Quobyte API returned a different UUID than the PV volume handle")
+
+	// One claim, one volume. A second one means the driver provisioned twice for the same
+	// claim -- which is what a controller deployed with more than one replica does when
+	// leader election is not working (see env/ha_controller). Only for a volume per claim:
+	// through a shared volume the claim adds a subdirectory, and how many volumes the tenant
+	// gains depends on whether the shared volume was pre-created, which shared_volume/
+	// covers instead.
+	if sharedVolume.Name == "" {
+		volumesAfter, err := framework.ListVolumeNamesInTenant(quobyteClient, tenantID)
+		require.NoError(t, err, "listing the volumes of tenant %s after provisioning", cfg.QuobyteTenant)
+		require.Len(t, volumesAfter, len(volumesBefore)+1,
+			"one claim should have added exactly one volume to tenant %s: it held %v before and holds %v now",
+			cfg.QuobyteTenant, volumesBefore, volumesAfter)
+	}
 }
 
 // splitVolumeHandle parses a CSI VolumeHandle of the form "tenantUUID|volumeUUID", or

@@ -30,6 +30,11 @@ type StorageClassOptions struct {
 	// against this StorageClass is provisioned as a subdirectory of that one Quobyte
 	// volume. Empty means a volume per PVC.
 	SharedVolumeName string
+	// ExtraParameters are put into the StorageClass after everything above, so a test can
+	// reach the parameters CreateVolume accepts but nothing here spells out -- user, group,
+	// labels, accessMode (see src/driver/controller.go) -- and can override the defaults
+	// below, createQuota in particular.
+	ExtraParameters map[string]string
 }
 
 // NewStorageClass builds a StorageClass object referencing the given secret
@@ -66,6 +71,10 @@ func NewStorageClass(opts StorageClassOptions) *storagev1.StorageClass {
 	}
 	if opts.SharedVolumeName != "" {
 		parameters[SharedVolumeNameParameter] = opts.SharedVolumeName
+	}
+	// Last, so a test can override what is set above rather than only add to it.
+	for name, value := range opts.ExtraParameters {
+		parameters[name] = value
 	}
 
 	return &storagev1.StorageClass{

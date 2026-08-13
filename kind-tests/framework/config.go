@@ -48,6 +48,14 @@ type Config struct {
 	// node-publish secret carries for mounting. Only meaningful together with
 	// EnableAccessKeyMounts.
 	UseSeparateMountSecret bool
+	// EnableVolumeMetrics mirrors ENABLE_VOLUME_METRICS, which the "env" file also has to
+	// pass on to the driver as quobyte.enableVolumeMetrics (via CSI_HELM_SET) -- the same
+	// split as EnableSnapshots. With it off, NodeGetVolumeStats refuses every request and
+	// the kubelet exports no kubelet_volume_stats_* series for the claim (see
+	// src/driver/node.go).
+	//
+	// Defaults to true, matching the chart.
+	EnableVolumeMetrics bool
 	// EnableSnapshots mirrors the ENABLE_SNAPSHOTS setting of the "env" file and
 	// is passed on to the upstream Kubernetes e2e suite (see RunUpstreamE2E).
 	EnableSnapshots bool
@@ -79,6 +87,16 @@ type SharedVolumeOptions struct {
 	// required -- if unset, the test generates a name unique to the run, the same
 	// way it names its StorageClass.
 	Name string
+	// UseDeleteFilesTask mirrors USE_DELETE_FILES_TASK, which the "env" file also has to
+	// pass on to the driver as quobyte.useDeleteFilesTaskForSharedVolumeCleanup (via
+	// CSI_HELM_SET) -- the same split as EnableSnapshots. It decides which branch of
+	// DeleteVolume a shared volume PVC takes: the DELETE_FILES_IN_VOLUMES task, or
+	// renaming the subdirectory to a delete marker for the driver's own sweep (see
+	// src/driver/controller.go and src/driver/shared_volume_directory_deleter.go).
+	//
+	// Defaults to true, matching the chart, so only an "env" file that turns it off has
+	// to mention it at all.
+	UseDeleteFilesTask bool
 }
 
 // LoadConfig reads the required environment variables and fails the test
@@ -101,6 +119,8 @@ func LoadConfig(t *testing.T) Config {
 		UseK8SNamespaceAsTenant: boolEnv("USE_K8S_NAMESPACE_AS_TENANT"),
 		UseSeparateMountSecret:  boolEnv("USE_SEPARATE_MOUNT_SECRET"),
 
+		EnableVolumeMetrics: boolEnvWithDefault("ENABLE_VOLUME_METRICS", true),
+
 		EnableSnapshots:   boolEnv("ENABLE_SNAPSHOTS"),
 		UpstreamE2EScript: os.Getenv("UPSTREAM_E2E_SCRIPT"),
 		RepoRoot:          os.Getenv("REPO_ROOT"),
@@ -108,6 +128,7 @@ func LoadConfig(t *testing.T) Config {
 			EnableSharedVolume:    boolEnv("USE_SHARED_VOLUME"),
 			PreCreateSharedVolume: boolEnv("PRE_CREATE_SHARED_VOLUME"),
 			Name:                  os.Getenv("SHARED_VOLUME_NAME"),
+			UseDeleteFilesTask:    boolEnvWithDefault("USE_DELETE_FILES_TASK", true),
 		},
 	}
 
@@ -146,9 +167,15 @@ func LoadConfig(t *testing.T) Config {
 // that isn't parseable as false. The values come from the shell "env" files
 // run_test sources, so they're written as true/false.
 func boolEnv(name string) bool {
+	return boolEnvWithDefault(name, false)
+}
+
+// boolEnvWithDefault is boolEnv for the settings whose chart default is true: an "env" file
+// that says nothing about them means the chart default, not false.
+func boolEnvWithDefault(name string, fallback bool) bool {
 	value, err := strconv.ParseBool(os.Getenv(name))
 	if err != nil {
-		return false
+		return fallback
 	}
 	return value
 }

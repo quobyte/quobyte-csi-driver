@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	resourceapi "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -37,6 +38,38 @@ func WaitForPVCBound(ctx context.Context, clientset *kubernetes.Clientset, names
 	}
 
 	return bound, nil
+}
+
+// WaitForPVCCapacity polls until the named PVC reports at least want in its status, which is
+// what says an expansion finished: a resize edits the claim's spec immediately, and the
+// status only follows once the resizer has called the driver and the new size is real.
+func WaitForPVCCapacity(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string, want resourceapi.Quantity, timeout time.Duration) (*corev1.PersistentVolumeClaim, error) {
+	var resized *corev1.PersistentVolumeClaim
+	var last string
+
+	err := wait.PollUntilContextTimeout(ctx, pollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		got, ok := pvc.Status.Capacity[corev1.ResourceStorage]
+		if !ok {
+			last = "no capacity in status"
+			return false, nil
+		}
+		last = got.String()
+		if got.Cmp(want) >= 0 {
+			resized = pvc
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("waiting for PVC %s/%s to report a capacity of at least %s (last saw %s): %w",
+			namespace, name, want.String(), last, err)
+	}
+
+	return resized, nil
 }
 
 // WaitForPodRunning polls until the named pod reaches the Running phase or

@@ -116,6 +116,107 @@ func ListVolumeNamesInTenant(client *quobyte.QuobyteClient, tenantID string) ([]
 	return names, nil
 }
 
+// GetVolumeQuota returns the logical disk space quota set on the given volume, in bytes,
+// and whether there is one at all. The driver sets it through SetVolumeQuota on
+// provisioning (only with createQuota) and again on expansion, so this is what tells a test
+// that a StorageClass parameter or a PVC resize reached the storage system rather than only
+// the Kubernetes objects.
+//
+// A volume with no quota is not an error: createQuota defaults to false in the driver
+// (DefaultCreateQuota in src/driver/controller.go), and "no quota was set" is exactly what
+// some of the tests here assert.
+func GetVolumeQuota(client *quobyte.QuobyteClient, volumeUUID string) (int64, bool, error) {
+	resp, err := client.GetQuota(&quobyte.GetQuotaRequest{
+		OnlyEntity: []*quobyte.ConsumingEntity{
+			{
+				Type:       quobyte.ConsumingEntity_Type_VOLUME,
+				Identifier: volumeUUID,
+			},
+		},
+		OnlyResourceType: []*quobyte.Resource_Type{&logicalDiskSpace},
+	})
+	if err != nil {
+		return 0, false, fmt.Errorf("reading the quota of volume %s: %w", volumeUUID, err)
+	}
+
+	for _, quota := range resp.Quotas {
+		if quota == nil {
+			continue
+		}
+		for _, limit := range quota.Limits {
+			if limit != nil && limit.Type == quobyte.Resource_Type_LOGICAL_DISK_SPACE {
+				return limit.Value, true, nil
+			}
+		}
+	}
+
+	return 0, false, nil
+}
+
+// Addressable because GetQuotaRequest.OnlyResourceType is a slice of pointers.
+var logicalDiskSpace = quobyte.Resource_Type_LOGICAL_DISK_SPACE
+
+// CapTenantDiskSpace puts a logical disk space quota on the tenant and forbids
+// oversubscribing it, so that a volume quota larger than what is left has to be refused.
+//
+// This is how a test provokes the one failure the driver has an error path for: with
+// createQuota in the StorageClass, CreateVolume sets a quota right after creating the volume
+// and deletes the volume again if that fails (src/driver/controller.go). Without a tenant
+// limit the API would happily accept any volume quota, oversubscribed or not, and that path
+// would never be reached.
+//
+// Only for a tenant the test created: it replaces whatever quota the tenant has.
+func CapTenantDiskSpace(client *quobyte.QuobyteClient, tenantID string, bytes int64) error {
+	_, err := client.SetQuota(&quobyte.SetQuotaRequest{
+		Quotas: []*quobyte.Quota{
+			{
+				Consumer: []*quobyte.ConsumingEntity{
+					{
+						Type:                    quobyte.ConsumingEntity_Type_TENANT,
+						Identifier:              tenantID,
+						DisableOversubscription: true,
+					},
+				},
+				Limits: []*quobyte.Resource{
+					{
+						Type:  quobyte.Resource_Type_LOGICAL_DISK_SPACE,
+						Value: bytes,
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("limiting tenant %s to %d bytes of logical disk space: %w", tenantID, bytes, err)
+	}
+
+	return nil
+}
+
+// GetVolumeLabels returns the labels set on the given volume, as name -> value. The driver
+// sets them from the StorageClass's "labels" parameter when it creates the volume (see
+// parseLabels in src/driver/utils.go), and nothing else here does, so this is what shows
+// that parameter reached Quobyte.
+func GetVolumeLabels(client *quobyte.QuobyteClient, volumeUUID string) (map[string]string, error) {
+	resp, err := client.GetLabels(&quobyte.GetLabelsRequest{
+		FilterEntityType: quobyte.Label_EntityType_VOLUME,
+		FilterEntityId:   volumeUUID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("reading the labels of volume %s: %w", volumeUUID, err)
+	}
+
+	labels := make(map[string]string, len(resp.Label))
+	for _, label := range resp.Label {
+		if label == nil {
+			continue
+		}
+		labels[label.Name] = label.Value
+	}
+
+	return labels, nil
+}
+
 // DeleteVolumesInTenant removes every volume still listed in the given tenant and returns
 // how many it deleted. Used to empty a tenant a test created before deleting the tenant
 // itself -- a tenant that still holds volumes cannot be deleted, and the driver's erase

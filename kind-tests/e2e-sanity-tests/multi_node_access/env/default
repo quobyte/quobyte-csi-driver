@@ -1,0 +1,5 @@
+# Nothing special about the driver setup: what this environment provides is the cluster
+# itself. run_test creates three worker nodes, and this test needs two of them -- it mounts
+# one Quobyte volume from two nodes at once, which is what ReadWriteMany means and what every
+# other test here leaves untested (framework.NewPVC asks for ReadWriteOnce).
+ENABLE_ACCESS_KEY_MOUNTS=false

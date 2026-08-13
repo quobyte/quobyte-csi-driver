@@ -14,9 +14,6 @@ import (
 
 const mountPath = "/mnt/test"
 
-// TestSubdirectoryOfExistingVolumeIsMountable covers the "Subdirectory" entry of the TODO
-// list in kind-tests/e2e-sanity-tests/README.md.
-//
 // The driver accepts a three-part volume handle, "<tenant>|<volume>|<subdir>", and mounts
 // that subdirectory rather than the volume root (formMountPath in src/driver/node.go).
 // shared_volume covers the handles the provisioner produces; this covers the ones written

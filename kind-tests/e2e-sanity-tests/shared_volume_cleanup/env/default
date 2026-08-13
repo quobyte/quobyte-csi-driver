@@ -1,0 +1,16 @@
+# The other branch of shared volume cleanup: with the delete files task turned off, the
+# driver removes a PVC's subdirectory by renaming it to a delete marker and sweeping the
+# markers up later (src/driver/controller.go, src/driver/shared_volume_directory_deleter.go).
+# Every other environment leaves the chart default (true) in place, so this branch has never
+# run outside unit tests.
+#
+# USE_DELETE_FILES_TASK is what the Go test reads; the CSI_HELM_SET entry is what actually
+# deploys the driver that way. Keep the two in step.
+#
+# The shared volume is pre-created so the test knows its name before any PVC exists and can
+# mount its root to see what the driver leaves behind in it.
+ENABLE_ACCESS_KEY_MOUNTS=false
+USE_SHARED_VOLUME=true
+PRE_CREATE_SHARED_VOLUME=true
+USE_DELETE_FILES_TASK=false
+CSI_HELM_SET="quobyte.useDeleteFilesTaskForSharedVolumeCleanup=false"

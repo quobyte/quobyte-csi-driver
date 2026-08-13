@@ -1,0 +1,4 @@
+# Volume per claim: expanding it has to move the Quobyte quota, which is the only place the
+# new size exists at all (ControllerExpandVolume -> expandVolume -> SetVolumeQuota,
+# src/driver/controller.go). Nothing special about the driver setup.
+ENABLE_ACCESS_KEY_MOUNTS=false
