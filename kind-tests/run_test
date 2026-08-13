@@ -23,7 +23,7 @@ KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
 # and the client are deployed under fixed helm release names, and the client is a DaemonSet
 # owning a mount point per node. So a worker means a cluster of its own -- four containers
 # and a driver deployment each, which is what to weigh when raising this.
-PARALLEL_TESTS="${PARALLEL_TESTS:-5}"
+PARALLEL_TESTS="${PARALLEL_TESTS:-3}"
 # Seconds to wait between starting one worker and the next. Every worker begins by creating its
 # kind cluster, and kubeadm gives the control plane it brings up a fixed 60s to start answering
 # on :6443. Started together, N control planes (etcd + apiserver + controller-manager +
@@ -150,7 +150,7 @@ Other environment variables honored:
                         from --list; glob patterns are allowed. Unset, everything runs.
                         Checked before the cluster is built, so a name that matches
                         nothing fails immediately.
-  PARALLEL_TESTS        How many combinations to run at once (default: 5). Each gets a kind
+  PARALLEL_TESTS        How many combinations to run at once (default: 3). Each gets a kind
                         cluster of its own -- two cannot share one, the driver and client
                         are deployed under fixed helm release names -- so this many clusters
                         of four containers are created. Set to 1 for the sequential run,
@@ -169,10 +169,11 @@ Other environment variables honored:
                         in between. The nodes of a failed attempt are kept long enough to
                         export their logs to kind-csi-testing/debug/clusters/<cluster>-attempt-N/.
   SKIP_ENDPOINT_PRECHECK
-                        Set to 'true' to start a run without checking first that
-                        QUOBYTE_API_URL and QUOBYTE_REGISTRY resolve and accept a connection.
-                        Unset (default), a run whose endpoints are unreachable stops
-                        immediately instead of failing test by test much later.
+                        Set to 'true' to skip checking that QUOBYTE_API_URL and QUOBYTE_REGISTRY
+                        resolve and accept a connection. Unset (default), each cluster checks
+                        both from one of its own nodes once its DNS is set up -- which is what
+                        a pod will see -- and a cluster that cannot reach them is reported
+                        there and then instead of failing test by test much later.
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
@@ -343,17 +344,12 @@ fi
 # each worker exports its own (see run_worker).
 export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD
 
-# --- Quobyte endpoint preflight --------------------------------------------------
-# Both endpoints are checked here, before an image is built or a cluster created, because
-# neither this script nor the driver can do anything without them and a run that discovers
-# it later pays for the discovery: the tests fail one by one, minutes apart, with a
-# "dial tcp <ip>:<port>" from inside a pod that says nothing about which side is at fault.
-# The two ways this goes wrong need different fixes and are told apart here:
-#   the name does not resolve  -- the nodes will not resolve it either (see create_test_cluster,
-#                                 which maps this machine's nameservers into them)
-#   the port refuses/times out -- it resolves fine and nothing is listening, or it is filtered.
-#                                 A service bound to 127.0.0.1 looks exactly like this from a
-#                                 kind node: a container cannot reach the host's loopback.
+# --- Quobyte endpoint parsing ----------------------------------------------------
+# The endpoints themselves are checked per cluster, once its DNS has been set up -- see
+# verify_endpoints_from_cluster in create_test_cluster. Checking them from this machine
+# beforehand would answer the wrong question: what matters is what a pod resolves and reaches,
+# and this machine can resolve names the cluster cannot and reach addresses it cannot (a
+# service on 127.0.0.1 being the obvious one).
 
 # Splits "scheme://host:port/path", "host:port" or "host" into the host and the port to test,
 # printed as "<host> <port>". The port is empty when neither the value nor its scheme implies
@@ -387,53 +383,6 @@ endpoint_host_port() {
   echo "$host $port"
 }
 
-check_endpoint() {
-  local label="$1" value="$2" host port rc
-  read -r host port <<< "$(endpoint_host_port "$value")"
-
-  if [[ -z "$host" ]]; then
-    die "${label} '${value}' does not name a host."
-  fi
-  if ! getent ahosts "$host" > /dev/null 2>&1; then
-    die "${label} '${value}': '${host}' does not resolve on this machine.
-  The kind nodes are given this machine's nameservers, so they will not resolve it either.
-  Check the name, or that the resolvers in /etc/resolv.conf know it:
-$(sed -n 's/^nameserver/    nameserver/p' /etc/resolv.conf)
-  Set ${label%% *}=... to an address that resolves, or export SKIP_ENDPOINT_PRECHECK=true
-  to run anyway."
-  fi
-  if [[ -z "$port" ]]; then
-    echo "  ${label}: ${host} resolves (no port given, nothing to connect to)"
-    return 0
-  fi
-
-  timeout 5 bash -c "exec 3<>/dev/tcp/${host}/${port}" 2>/dev/null
-  rc=$?
-  if [[ "$rc" -eq 0 ]]; then
-    echo "  ${label}: ${host}:${port} reachable"
-    return 0
-  fi
-  if [[ "$rc" -eq 124 ]]; then
-    die "${label} '${value}': ${host}:${port} did not answer within 5s.
-  The name resolves, so this is not DNS -- the port is filtered or the host is unreachable.
-  Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
-  fi
-  die "${label} '${value}': ${host}:${port} refused the connection.
-  The name resolves, so this is not DNS -- nothing is listening on that port. Check the
-  service is up and which address it is bound to:
-    ss -ltnp | grep ':${port}\b'
-  A service bound to 127.0.0.1 cannot be reached from a kind node at all, whatever this
-  machine can do: a container has its own loopback. Bind it to 0.0.0.0 or to this host's
-  address instead. Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
-}
-
-if [[ "$SKIP_ENDPOINT_PRECHECK" == 'true' ]]; then
-  echo "*** SKIP_ENDPOINT_PRECHECK=true: not checking the Quobyte API/registry endpoints ***"
-else
-  echo "*** Checking the Quobyte endpoints are reachable ***"
-  check_endpoint 'QUOBYTE_API_URL' "$QUOBYTE_API_URL"
-  check_endpoint 'QUOBYTE_REGISTRY' "$QUOBYTE_REGISTRY"
-fi
 
 # --- Required tools (see kind-tests/README.md "Requirements") -------------------
 # docker and go are foundational (version/daemon management is out of scope for this
@@ -645,7 +594,24 @@ configure_cluster_dns_upstreams() {
   fi
 
   echo "Pointing the cluster DNS of ${cluster} at this machine's resolvers: ${upstreams}"
-  new_corefile="${corefile//forward . \/etc\/resolv.conf/forward . ${upstreams}}"
+  # "policy sequential" matters as much as the addresses. The forward plugin defaults to
+  # "random", and this machine's resolvers are not interchangeable: the internal ones know the
+  # Quobyte API's name, a public fallback like 8.8.8.8 does not and says NXDOMAIN for it. That
+  # is a valid, final answer -- CoreDNS hands it to the pod and caches it -- so with the default
+  # policy a share of the lookups fail, the negative cache spreads it further, and the driver
+  # reports "lookup <api host> on <cluster dns>:53: no such host" against a name that resolves
+  # perfectly well a second later. Sequential always asks the first resolver first, in the order
+  # /etc/resolv.conf lists them, and only falls through to the others when one does not answer.
+  local forward_block="forward . ${upstreams} {
+       policy sequential"
+  if [[ "$corefile" == *'forward . /etc/resolv.conf {'* ]]; then
+    # Keeps whatever the existing block already sets (max_concurrent and the like).
+    new_corefile="${corefile//forward . \/etc\/resolv.conf \{/$forward_block}"
+  else
+    local forward_full="${forward_block}
+    }"
+    new_corefile="${corefile//forward . \/etc\/resolv.conf/$forward_full}"
+  fi
   kubectl -n kube-system create configmap coredns --from-literal=Corefile="$new_corefile" \
     --dry-run=client -o yaml | kubectl -n kube-system apply -f - \
     || { echo "Error: could not update the CoreDNS Corefile of ${cluster}"; return 1; }
@@ -660,11 +626,91 @@ configure_cluster_dns_upstreams() {
 # deployed against it. Asked from a node rather than from a pod deliberately: it needs no image
 # pulled and nothing scheduled, and kube-proxy makes the DNS service reachable from the node's
 # own network namespace. nslookup comes from the dnsutils installed into the node image.
-verify_cluster_dns_resolves() {
-  local cluster="$1" name="$2"
-  local node cluster_dns attempt
+verify_endpoint_from_cluster() {
+  local cluster="$1" label="$2" value="$3" node="$4" cluster_dns="$5"
+  local host port attempt ip lookup output rc
 
-  [[ -z "$name" ]] && return 0
+  read -r host port <<< "$(endpoint_host_port "$value")"
+  if [[ -z "$host" ]]; then
+    echo "Error: ${label} '${value}' does not name a host"
+    return 1
+  fi
+
+  # The address the cluster DNS gives for this name, which is the one a pod would get. Everything
+  # below dials that address rather than the name again: resolving twice would mean the connection
+  # goes through the node's own /etc/resolv.conf instead, a different path with a different first
+  # nameserver, and a hiccup there would be reported below as a service that is not listening.
+  # CoreDNS has just been restarted, so give it a few tries before calling this a failure.
+  for ((attempt = 1; attempt <= 3; attempt++)); do
+    lookup="$(sudo docker exec "$node" nslookup "$host" "$cluster_dns" 2>&1)"
+    ip="$(awk '/^Name:/{found = 1} found && /^Address:/{print $2; exit}' <<< "$lookup")"
+    [[ -n "$ip" ]] && break
+    if [[ "$attempt" -eq 3 ]]; then
+      echo "Error: the DNS of ${cluster} does not resolve the ${label} host '${host}', so no pod"
+      echo "in this cluster will reach it -- the driver could not talk to it and every test would"
+      echo "fail on that. Asked of ${cluster_dns} from ${node}:"
+      sed 's/^/    /' <<< "$lookup"
+      echo "The upstreams it forwards to are this machine's: ${host_dns_ips}"
+      echo "Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+      return 1
+    fi
+    sleep 5
+  done
+
+  # Resolving once proves very little: an upstream that does not know this name answers NXDOMAIN
+  # rather than failing, so a cluster where only some of the upstreams know it resolves the name
+  # sometimes and not others -- and one lookup that happened to reach a good upstream would call
+  # that healthy. Ask a few more times before believing it.
+  local confirm
+  for ((confirm = 1; confirm <= 5; confirm++)); do
+    lookup="$(sudo docker exec "$node" nslookup "$host" "$cluster_dns" 2>&1)"
+    if ! awk '/^Name:/{found = 1} found && /^Address:/{print $2; exit}' <<< "$lookup" | grep -q .; then
+      echo "Error: the DNS of ${cluster} resolves the ${label} host '${host}' only some of the"
+      echo "time -- it answered on the first try and not on try $((confirm + 1)):"
+      sed 's/^/    /' <<< "$lookup"
+      echo "That is what a resolver which does not know the name looks like: it answers NXDOMAIN"
+      echo "rather than failing, and CoreDNS passes that on and caches it. Check that every"
+      echo "upstream it forwards to knows this name, in the Corefile of ${cluster}:"
+      echo "    kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}'"
+      echo "Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+      return 1
+    fi
+  done
+
+  if [[ -z "$port" ]]; then
+    echo "  ${label}: ${host} resolves to ${ip} in ${cluster} (no port given, nothing to connect to)"
+    return 0
+  fi
+
+  # bash, not the node's sh: /dev/tcp is a bash feature and the node's /bin/sh is dash.
+  output="$(sudo docker exec "$node" timeout 5 bash -c "exec 3<>/dev/tcp/${ip}/${port}" 2>&1)"
+  rc=$?
+  if [[ "$rc" -eq 0 ]]; then
+    echo "  ${label}: ${host} (${ip}):${port} resolves and answers from inside ${cluster}"
+    return 0
+  fi
+
+  echo "Error: ${label} '${value}': ${host} resolves to ${ip} in ${cluster}, but nothing in the"
+  if [[ "$rc" -eq 124 ]]; then
+    echo "cluster can reach ${ip}:${port} -- it did not answer within 5s, so the port is filtered"
+    echo "or the host is unreachable from the cluster network."
+  elif [[ "$output" == *'Connection refused'* ]]; then
+    echo "cluster can connect to ${ip}:${port} -- the connection was refused, so nothing is"
+    echo "listening there. Check the service is up and which address it is bound to:"
+    echo "    ss -ltnp | grep ':${port}\b'"
+    echo "A service bound to 127.0.0.1 cannot be reached from a kind node whatever this machine"
+    echo "can do -- a container has its own loopback. Bind it to 0.0.0.0 or to this host's address."
+  else
+    echo "cluster could dial ${ip}:${port}. The node reported (exit ${rc}):"
+    sed 's/^/    /' <<< "$output"
+  fi
+  echo "Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+  return 1
+}
+
+# Runs the check above for both Quobyte endpoints, from a node of the given cluster.
+verify_endpoints_from_cluster() {
+  local cluster="$1" node cluster_dns
 
   cluster_dns="$(kubectl get services -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}')"
   if [[ -z "$cluster_dns" ]]; then
@@ -673,26 +719,15 @@ verify_cluster_dns_resolves() {
   fi
   node="$(kubectl get nodes --no-headers | grep 'worker' | awk 'NR==1{print $1}')"
   if [[ -z "$node" ]]; then
-    echo "Error: ${cluster} has no worker node to ask its DNS from"
+    echo "Error: ${cluster} has no worker node to check its endpoints from"
     return 1
   fi
 
-  # CoreDNS has just been restarted, so give it a few tries before calling this a failure.
-  for ((attempt = 1; attempt <= 3; attempt++)); do
-    if sudo docker exec "$node" nslookup "$name" "$cluster_dns" > /dev/null 2>&1; then
-      echo "Cluster DNS of ${cluster} resolves ${name}"
-      return 0
-    fi
-    sleep 5
-  done
-
-  echo "Error: the cluster DNS of ${cluster} (${cluster_dns}) does not resolve '${name}', so no"
-  echo "pod in this cluster will reach it either -- the driver could not talk to the Quobyte API"
-  echo "and every test would fail on it. The query, from ${node}:"
-  sudo docker exec "$node" nslookup "$name" "$cluster_dns" 2>&1 | sed 's/^/    /'
-  echo "This machine resolves it with: ${host_dns_ips}"
-  echo "Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
-  return 1
+  echo "Checking the Quobyte endpoints from inside ${cluster} (via its DNS at ${cluster_dns})"
+  verify_endpoint_from_cluster "$cluster" 'QUOBYTE_API_URL' "$QUOBYTE_API_URL" "$node" "$cluster_dns" \
+    || return 1
+  verify_endpoint_from_cluster "$cluster" 'QUOBYTE_REGISTRY' "$QUOBYTE_REGISTRY" "$node" "$cluster_dns" \
+    || return 1
 }
 
 # Brings up one kind cluster and everything a test needs on it: the locally built images
@@ -834,11 +869,9 @@ END"
   # resolvers too, and then confirm it answers for the name the tests must reach.
   configure_cluster_dns_upstreams "$cluster" || return 1
   if [[ "$SKIP_ENDPOINT_PRECHECK" == 'true' ]]; then
-    echo "SKIP_ENDPOINT_PRECHECK=true: not checking that the DNS of ${cluster} resolves the Quobyte API"
+    echo "SKIP_ENDPOINT_PRECHECK=true: not checking the Quobyte endpoints from ${cluster}"
   else
-    local api_host
-    read -r api_host _ <<< "$(endpoint_host_port "$QUOBYTE_API_URL")"
-    verify_cluster_dns_resolves "$cluster" "$api_host" || return 1
+    verify_endpoints_from_cluster "$cluster" || return 1
   fi
 
   echo  "Labeling Kubernetes nodes for Quobyte client installation * * * * * * * * * * * * * * *"
