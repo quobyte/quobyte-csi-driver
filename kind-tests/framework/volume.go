@@ -97,6 +97,44 @@ func DeleteVolume(client *quobyte.QuobyteClient, volumeUUID string) error {
 	return nil
 }
 
+// TenantOfVolume returns the UUID of the tenant the given volume lives in, asking Quobyte
+// rather than the Kubernetes objects.
+//
+// Needed because a PV's volume handle does not always say. The driver builds it as
+// "<tenant>|<volume>" out of the tenant *it* resolved (CreateVolume in
+// src/driver/controller.go), and where neither the StorageClass nor the namespace mapping
+// names one it sends no tenant at all and lets the Quobyte API pick from the credentials --
+// so the handle starts with an empty first part and the volume is the only way back to the
+// tenant that was chosen.
+//
+// Whatever the API reports the volume's tenant as, name or UUID, comes back as a UUID:
+// GetTenantUUID passes a UUID through and resolves anything else.
+func TenantOfVolume(client *quobyte.QuobyteClient, volumeUUID string) (string, error) {
+	listResp, err := client.GetVolumeList(&quobyte.GetVolumeListRequest{
+		VolumeUuid: []string{volumeUUID},
+	})
+	if err != nil {
+		return "", fmt.Errorf("looking up volume %s to find its tenant: %w", volumeUUID, err)
+	}
+
+	for _, volume := range listResp.Volume {
+		if volume == nil || volume.VolumeUuid != volumeUUID {
+			continue
+		}
+		tenantID, err := client.GetTenantUUID(volume.TenantDomain)
+		if err != nil {
+			return "", fmt.Errorf("resolving tenant %q of volume %s: %w", volume.TenantDomain, volumeUUID, err)
+		}
+		if tenantID == "" {
+			return "", fmt.Errorf("the Quobyte API reports no tenant for volume %s", volumeUUID)
+		}
+
+		return tenantID, nil
+	}
+
+	return "", fmt.Errorf("volume %s not found, so it has no tenant to report", volumeUUID)
+}
+
 // ListVolumeNamesInTenant returns the names of the volumes currently in the given tenant,
 // for tests that need to show the driver did (or did not) create a volume of its own.
 func ListVolumeNamesInTenant(client *quobyte.QuobyteClient, tenantID string) ([]string, error) {

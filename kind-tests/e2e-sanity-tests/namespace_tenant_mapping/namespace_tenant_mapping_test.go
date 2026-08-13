@@ -3,6 +3,7 @@ package namespacetenantmapping
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -37,6 +38,14 @@ import (
 // The two cases of a run differ in nothing but their StorageClass, and the tenants involved
 // are deliberately distinct ones, so the tenant a volume ends up in names the rule the
 // driver applied and no other.
+//
+// Each case brings its own credentials -- a Quobyte user created for it, admin of exactly
+// the tenants that case needs and of nothing else. Nothing here grants an already-existing
+// user anything: a grant replaces that user's tenant mappings wholesale, and the environment's
+// API user is shared by every test of the run, so rewriting it to set up one case is both a
+// side effect on the others and a thing to undo afterwards. Creating the tenant first and
+// naming it in CreateUser has neither problem, and it keeps each case's credentials narrow
+// enough that what they can reach is part of what the case asserts.
 func TestTenantSelection(t *testing.T) {
 	cfg := framework.LoadConfig(t)
 	ctx := context.Background()
@@ -47,13 +56,12 @@ func TestTenantSelection(t *testing.T) {
 	quobyteClient := framework.NewQuobyteClient(cfg)
 
 	suffix := time.Now().UnixNano()
-	secretName := fmt.Sprintf("e2e-nstenant-secret-%d", suffix)
 
 	// The tenant the StorageClass override names. Generated per run by run_test and shared
 	// with every other sanity test, so -- unlike the tenants below, which this test invents
 	// for itself -- it is left behind rather than deleted.
-	storageClassTenantID, err := framework.EnsureTenant(quobyteClient, cfg.QuobyteTenant, cfg.QuobyteAPIUser)
-	require.NoError(t, err, "ensuring tenant %q exists and %q has access to it", cfg.QuobyteTenant, cfg.QuobyteAPIUser)
+	storageClassTenantID, err := framework.EnsureTenantExists(quobyteClient, cfg.QuobyteTenant)
+	require.NoError(t, err, "ensuring tenant %q exists", cfg.QuobyteTenant)
 
 	// The mapping is namespace name -> tenant name and the driver does not create tenants,
 	// so where the mapping is on, the tenant named after this run's namespace has to exist
@@ -61,44 +69,56 @@ func TestTenantSelection(t *testing.T) {
 	// goes again afterwards.
 	namespaceTenantID := ""
 	if cfg.UseK8SNamespaceAsTenant {
-		namespaceTenantID = ensureTestTenant(t, quobyteClient, cfg, cfg.Namespace)
+		namespaceTenantID = ensureTestTenant(t, quobyteClient, cfg.Namespace)
 		t.Logf("tenant %s (%s) stands in for namespace %s", cfg.Namespace, namespaceTenantID, cfg.Namespace)
 		require.NotEqual(t, storageClassTenantID, namespaceTenantID,
 			"QUOBYTE_TENANT resolves to the same tenant as the namespace, so the override cannot be told apart from the mapping")
 	}
 
-	// Whom the Secret's credentials belong to. An access key is issued inside a tenant, so
-	// give it one of its own: a volume landing there can then only mean the driver named no
-	// tenant and left the choice to the API. Without access key mounts the Secret carries
-	// the API user's user/password, which belong to no single tenant, and there is nothing
-	// to set up.
+	// Where a case's access key is issued. An access key belongs to one tenant, and that
+	// tenant is what the Quobyte API falls back to when the driver names none -- so it has to
+	// be a tenant of its own, distinct from both the namespace's and the StorageClass's, or a
+	// volume landing there would not say which rule put it there. Without access key mounts
+	// the Secret carries a user/password pair, which belongs to no single tenant, and there
+	// is nothing to set up.
+	//
+	// Shared by the cases as a tenant, not as credentials: each case still issues its own key
+	// in it, for its own user.
 	credentialsTenantID := ""
 	if cfg.EnableAccessKeyMounts {
-		credentialsTenantID = ensureTestTenant(t, quobyteClient, cfg, fmt.Sprintf("e2e-nstenant-akey-%d", suffix))
+		credentialsTenantID = ensureTestTenant(t, quobyteClient, fmt.Sprintf("e2e-nstenant-akey-%d", suffix))
 	}
 
-	// The tenants those credentials have to be able to provision in: the access key's own
-	// first, since that is the one the API falls back to, then whichever others this
-	// environment has cases for. An access key is issued for a Quobyte user created for the
-	// run, and a user is only admin of the tenants it is given -- unlike the API user, which
-	// EnsureTenant makes an admin of every tenant here.
-	credentialTenantIDs := []string{}
-	for _, tenantID := range []string{credentialsTenantID, namespaceTenantID, storageClassTenantID} {
-		if tenantID != "" {
-			credentialTenantIDs = append(credentialTenantIDs, tenantID)
+	// credentialTenantsFor lists the tenants one case's user is made admin of. The access
+	// key's own tenant comes first where there is one: NewCredentials issues the key in the
+	// first tenant it is given.
+	//
+	// The two can be the same tenant -- with access keys and no namespace mapping, the tenant
+	// the key belongs to is exactly the fallback the case expects -- so a tenant already in
+	// the list is not added again. Naming one twice makes the user admin (and member) of it
+	// twice over, which Quobyte stores as it is given.
+	credentialTenantsFor := func(caseTenantID string) []string {
+		tenantIDs := []string{}
+		for _, tenantID := range []string{credentialsTenantID, caseTenantID} {
+			if tenantID != "" && !slices.Contains(tenantIDs, tenantID) {
+				tenantIDs = append(tenantIDs, tenantID)
+			}
 		}
-	}
 
-	// After the tenants above, never before: NewCredentialsSecret registers the removal of
-	// the user and access key it creates, and LIFO cleanup then gets rid of those before the
-	// tenants they belong to.
-	framework.ApplySecret(t, ctx, clientset,
-		framework.NewCredentialsSecret(t, cfg, quobyteClient, secretName, credentialTenantIDs...))
+		return tenantIDs
+	}
 
 	// --- no tenant in the StorageClass: whichever fallback this environment has ---
 	if fallbackTenantID, rule, defined := expectedFallbackTenant(cfg, namespaceTenantID, credentialsTenantID); defined {
 		t.Run("without a storage class tenant", func(t *testing.T) {
-			tenantUUID := provisionAndResolveTenant(t, ctx, clientset, cfg, tenantCase{
+			// Admin of the tenant this case expects the volume in, and of the access key's
+			// own where there is one -- with the mapping on those are two different tenants,
+			// which is exactly what makes the assertion below mean something.
+			secretName := fmt.Sprintf("e2e-nstenant-fallback-secret-%d", suffix)
+			framework.ApplySecret(t, ctx, clientset, framework.NewCredentialsSecret(t, cfg, quobyteClient,
+				secretName, credentialTenantsFor(fallbackTenantID)...))
+
+			tenantUUID := provisionAndResolveTenant(t, ctx, clientset, quobyteClient, cfg, tenantCase{
 				storageClassName: fmt.Sprintf("e2e-nstenant-sc-fallback-%d", suffix),
 				tenant:           "", // left out on purpose: this is what leaves the choice to the driver
 				secretName:       secretName,
@@ -114,7 +134,14 @@ func TestTenantSelection(t *testing.T) {
 
 	// --- the override: the StorageClass names a tenant ------------------------
 	t.Run("with a storage class tenant", func(t *testing.T) {
-		tenantUUID := provisionAndResolveTenant(t, ctx, clientset, cfg, tenantCase{
+		// Its own user again, admin of the StorageClass's tenant. Where access keys are on,
+		// the key is still issued in the credentials tenant, so this case's volume landing in
+		// the StorageClass's tenant is the override and not the API's fallback.
+		secretName := fmt.Sprintf("e2e-nstenant-override-secret-%d", suffix)
+		framework.ApplySecret(t, ctx, clientset, framework.NewCredentialsSecret(t, cfg, quobyteClient,
+			secretName, credentialTenantsFor(storageClassTenantID)...))
+
+		tenantUUID := provisionAndResolveTenant(t, ctx, clientset, quobyteClient, cfg, tenantCase{
 			storageClassName: fmt.Sprintf("e2e-nstenant-sc-override-%d", suffix),
 			tenant:           cfg.QuobyteTenant,
 			secretName:       secretName,
@@ -143,15 +170,18 @@ func expectedFallbackTenant(cfg framework.Config, namespaceTenantID, credentials
 	}
 }
 
-// ensureTestTenant creates the named tenant if it does not exist yet, grants the API user
-// access to it and registers its removal. For the tenants this test invents for itself --
-// the driver creates none, so every tenant a case expects a volume to land in has to be
-// there before the claim is.
-func ensureTestTenant(t *testing.T, quobyteClient *quobyte.QuobyteClient, cfg framework.Config, tenantName string) string {
+// ensureTestTenant creates the named tenant if it does not exist yet and registers its
+// removal. For the tenants this test invents for itself -- the driver creates none, so every
+// tenant a case expects a volume to land in has to be there before the claim is.
+//
+// Nobody is granted anything here: each case's user is created afterwards and named admin of
+// the tenants it needs at creation time (framework.CreateUser), so no existing user's tenant
+// mappings are rewritten to make this tenant reachable.
+func ensureTestTenant(t *testing.T, quobyteClient *quobyte.QuobyteClient, tenantName string) string {
 	t.Helper()
 
-	tenantID, err := framework.EnsureTenant(quobyteClient, tenantName, cfg.QuobyteAPIUser)
-	require.NoError(t, err, "ensuring tenant %q exists and %q has access to it", tenantName, cfg.QuobyteAPIUser)
+	tenantID, err := framework.EnsureTenantExists(quobyteClient, tenantName)
+	require.NoError(t, err, "ensuring tenant %q exists", tenantName)
 
 	framework.CleanupUnlessFailed(t, fmt.Sprintf("quobyte tenant %s", tenantName), func() {
 		if err := framework.DeleteTenant(quobyteClient, tenantName); err != nil {
@@ -170,10 +200,17 @@ type tenantCase struct {
 	nameSuffix       string
 }
 
-// provisionAndResolveTenant creates the StorageClass and a claim through it, and returns
-// the tenant UUID the driver put into the bound PV's volume handle -- which is the only
-// place the decision it made is visible.
-func provisionAndResolveTenant(t *testing.T, ctx context.Context, clientset *kubernetes.Clientset, cfg framework.Config, testCase tenantCase) string {
+// provisionAndResolveTenant creates the StorageClass and a claim through it, and returns the
+// UUID of the tenant the volume ended up in -- the decision this test is about.
+//
+// Read out of the bound PV's volume handle where it is there, and out of Quobyte where it is
+// not. The handle is "<tenant>|<volume>" built from the tenant the driver itself resolved, so
+// its first part is empty in exactly the case where the driver named no tenant and left the
+// choice to the Quobyte API (access keys, no namespace mapping, no quobyteTenant -- see
+// CreateVolume in src/driver/controller.go). That is a case this test asserts, so an empty
+// first part is an answer to look up, not an error.
+func provisionAndResolveTenant(t *testing.T, ctx context.Context, clientset *kubernetes.Clientset,
+	quobyteClient *quobyte.QuobyteClient, cfg framework.Config, testCase tenantCase) string {
 	t.Helper()
 
 	pvcName := fmt.Sprintf("e2e-nstenant-pvc-%s", testCase.nameSuffix)
@@ -198,6 +235,19 @@ func provisionAndResolveTenant(t *testing.T, ctx context.Context, clientset *kub
 	// The driver resolves whichever tenant it chose to a UUID before building the handle.
 	parts := strings.Split(pv.Spec.CSI.VolumeHandle, "|")
 	require.GreaterOrEqual(t, len(parts), 2, "unexpected volume handle format %q", pv.Spec.CSI.VolumeHandle)
+	if parts[0] != "" {
+		return parts[0]
+	}
 
-	return parts[0]
+	// No tenant in the handle: the driver named none, so the volume itself is what says where
+	// the API put it.
+	require.NotEmpty(t, parts[1],
+		"the volume handle %q of PV %s names neither a tenant nor a volume", pv.Spec.CSI.VolumeHandle, pv.Name)
+	tenantUUID, err := framework.TenantOfVolume(quobyteClient, parts[1])
+	require.NoErrorf(t, err,
+		"PV %s has the handle %q, so the tenant has to come from the volume itself",
+		pv.Name, pv.Spec.CSI.VolumeHandle)
+	t.Logf("handle %q names no tenant; volume %s is in tenant %s", pv.Spec.CSI.VolumeHandle, parts[1], tenantUUID)
+
+	return tenantUUID
 }

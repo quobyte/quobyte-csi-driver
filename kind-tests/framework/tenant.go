@@ -2,25 +2,46 @@ package framework
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/quobyte/api/v4/quobyte"
 )
+
+// EnsureTenantExists makes sure a tenant named tenantName exists, creating it via the
+// Quobyte API if it does not, and returns its UUID. Idempotent.
+//
+// Unlike EnsureTenant it grants nobody anything, so no existing user is touched. Use it
+// where the test hands the tenant to a user it creates for itself -- CreateUser takes the
+// tenants a new user is admin of, so a user made after the tenant needs no grant at all, and
+// nothing shared has to be rewritten to give one test access to its own tenant.
+func EnsureTenantExists(client *quobyte.QuobyteClient, tenantName string) (string, error) {
+	if tenantID, err := client.ResolveTenantNameToUUID(tenantName); err == nil {
+		return tenantID, nil
+	}
+
+	createResp, err := client.SetTenant(&quobyte.SetTenantRequest{
+		Tenant: quobyte.TenantDomainConfiguration{Name: tenantName},
+	})
+	if err != nil {
+		return "", fmt.Errorf("creating tenant %q: %w", tenantName, err)
+	}
+
+	return createResp.TenantId, nil
+}
 
 // EnsureTenant makes sure a tenant named tenantName exists (creating it via the
 // Quobyte API if it doesn't) and that quobyteUser has admin access to it, and
 // returns the tenant's UUID. Idempotent -- safe to call on every test run
 // whether tenantName is freshly generated or refers to an already-existing,
 // already-granted tenant.
+//
+// Granting rewrites that user's tenant mappings wholesale (see below), so this is only for
+// tenants an already-existing user has to reach. A test whose own user is created after the
+// tenant should use EnsureTenantExists and name the tenant in CreateUser instead.
 func EnsureTenant(client *quobyte.QuobyteClient, tenantName, quobyteUser string) (string, error) {
-	tenantID, err := client.ResolveTenantNameToUUID(tenantName)
+	tenantID, err := EnsureTenantExists(client, tenantName)
 	if err != nil {
-		createResp, createErr := client.SetTenant(&quobyte.SetTenantRequest{
-			Tenant: quobyte.TenantDomainConfiguration{Name: tenantName},
-		})
-		if createErr != nil {
-			return "", fmt.Errorf("creating tenant %q: %w", tenantName, createErr)
-		}
-		tenantID = createResp.TenantId
+		return "", err
 	}
 
 	usersResp, err := client.GetUsers(&quobyte.GetUsersRequest{UserId: []string{quobyteUser}})
@@ -85,10 +106,15 @@ func existingTenantIDs(client *quobyte.QuobyteClient) (map[string]bool, error) {
 
 // keepExistingTenants drops the IDs of tenants that are gone, so a user's stale mappings do
 // not travel back to the API in the next update.
+//
+// Repetitions are dropped too. An update rewrites these lists wholesale, so a user that
+// already carries a tenant twice -- from a request that named it twice -- would carry it
+// twice for the rest of its life otherwise, and every later update would write the duplicate
+// back. Passing through here is the one point where that can be undone.
 func keepExistingTenants(tenantIDs []string, existing map[string]bool) []string {
 	kept := make([]string, 0, len(tenantIDs))
 	for _, tenantID := range tenantIDs {
-		if existing[tenantID] {
+		if existing[tenantID] && !slices.Contains(kept, tenantID) {
 			kept = append(kept, tenantID)
 		}
 	}
