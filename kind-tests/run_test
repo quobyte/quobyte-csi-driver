@@ -24,6 +24,21 @@ KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
 # owning a mount point per node. So a worker means a cluster of its own -- four containers
 # and a driver deployment each, which is what to weigh when raising this.
 PARALLEL_TESTS="${PARALLEL_TESTS:-5}"
+# Seconds to wait between starting one worker and the next. Every worker begins by creating its
+# kind cluster, and kubeadm gives the control plane it brings up a fixed 60s to start answering
+# on :6443. Started together, N control planes (etcd + apiserver + controller-manager +
+# scheduler each, plus a kubelet and containerd per node) cold-start at once and can all miss
+# that deadline -- "failed to init node with kubeadm ... wait-control-plane ... context deadline
+# exceeded", with every request before it logged as status="" milliseconds=0, i.e. nothing
+# listening yet. Staggering keeps at most a couple of them bootstrapping at any one time. Set
+# to 0 to start every worker at once, the way this script used to.
+CLUSTER_START_STAGGER="${CLUSTER_START_STAGGER:-30}"
+# How many times a worker tries to create its kind cluster before giving up, and how long it
+# waits between tries. A cluster that loses the race above is a transient failure of the host,
+# not of the driver, and without a retry it costs the whole run: the worker aborts and every
+# other combination is left NOT RUN.
+CLUSTER_CREATE_ATTEMPTS="${CLUSTER_CREATE_ATTEMPTS:-3}"
+CLUSTER_CREATE_RETRY_DELAY="${CLUSTER_CREATE_RETRY_DELAY:-30}"
 # Set to 'true' to keep every cluster a run created, the way this script always used to --
 # handy to go on poking at one with kubectl afterwards. Unset, a worker deletes its cluster
 # once it is done with it, so a green run of N workers does not leave N clusters behind. The
@@ -143,6 +158,16 @@ Other environment variables honored:
   KEEP_CLUSTERS         Set to 'true' to keep every cluster a run created. Unset (default),
                         a worker deletes its cluster when it is done with it -- except the
                         one holding a failed test, which is always left up for debugging.
+  CLUSTER_START_STAGGER Seconds between starting one worker and the next (default: 30). Each
+                        starts by creating its kind cluster, and control planes bootstrapping
+                        all at once can miss kubeadm's fixed 60s deadline, failing the create
+                        with "wait-control-plane ... context deadline exceeded". 0 starts them
+                        all at once.
+  CLUSTER_CREATE_ATTEMPTS
+                        How often a worker retries creating its kind cluster before giving up
+                        (default: 3), waiting CLUSTER_CREATE_RETRY_DELAY seconds (default: 30)
+                        in between. The nodes of a failed attempt are kept long enough to
+                        export their logs to kind-csi-testing/debug/clusters/<cluster>-attempt-N/.
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
@@ -218,6 +243,15 @@ fi
 
 if [[ ! "$PARALLEL_TESTS" =~ ^[1-9][0-9]*$ ]]; then
   die "PARALLEL_TESTS must be a positive whole number, got '${PARALLEL_TESTS}'."
+fi
+if [[ ! "$CLUSTER_START_STAGGER" =~ ^[0-9]+$ ]]; then
+  die "CLUSTER_START_STAGGER must be a whole number of seconds (0 to disable), got '${CLUSTER_START_STAGGER}'."
+fi
+if [[ ! "$CLUSTER_CREATE_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
+  die "CLUSTER_CREATE_ATTEMPTS must be a positive whole number, got '${CLUSTER_CREATE_ATTEMPTS}'."
+fi
+if [[ ! "$CLUSTER_CREATE_RETRY_DELAY" =~ ^[0-9]+$ ]]; then
+  die "CLUSTER_CREATE_RETRY_DELAY must be a whole number of seconds, got '${CLUSTER_CREATE_RETRY_DELAY}'."
 fi
 
 echo "Collected test set ${test_set}"
@@ -516,8 +550,35 @@ nodes:
 END
 
   echo  "Creating cluster ${cluster} with kind: * * * * * * * * * * * * * * * * * * * * * * *"
-  kind create cluster --config="$config_file" --kubeconfig "$kubeconfig" \
-    || { echo "Failed creating kind cluster ${cluster}"; return 1; }
+  # --retain keeps the node containers when kubeadm fails, which is the only way to get at the
+  # apiserver/etcd/kubelet logs of a control plane that never came up: without it kind deletes
+  # the nodes on failure and the failure erases its own evidence. So every failed attempt's
+  # logs are exported next to this cluster's log first, and only then are the nodes removed so
+  # the next attempt starts from a clean slate. See CLUSTER_CREATE_ATTEMPTS for why it retries.
+  local attempt created=0 logs_dir
+  for ((attempt = 1; attempt <= CLUSTER_CREATE_ATTEMPTS; attempt++)); do
+    if kind create cluster --config="$config_file" --kubeconfig "$kubeconfig" --retain; then
+      created=1
+      break
+    fi
+    logs_dir="${DEBUG_ROOT}/clusters/${cluster}-attempt-${attempt}"
+    echo "Attempt ${attempt} of ${CLUSTER_CREATE_ATTEMPTS} at creating ${cluster} failed, \
+exporting the node logs to ${logs_dir}"
+    kind export logs "$logs_dir" --name "$cluster" \
+      || echo "Could not export the logs of ${cluster}, continuing"
+    if [[ "$attempt" -lt "$CLUSTER_CREATE_ATTEMPTS" ]]; then
+      kind delete cluster --name "$cluster" \
+        || echo "Could not remove the retained nodes of ${cluster}, the next attempt may fail on them"
+      echo "Retrying in ${CLUSTER_CREATE_RETRY_DELAY}s"
+      sleep "${CLUSTER_CREATE_RETRY_DELAY}"
+    fi
+  done
+  if [[ "$created" -ne 1 ]]; then
+    echo "Failed creating kind cluster ${cluster} after ${CLUSTER_CREATE_ATTEMPTS} attempt(s)."
+    echo "The nodes of the last attempt are left in place for debugging (see the exported logs"
+    echo "above); remove them with 'kind delete cluster --name ${cluster}' or 'kind-tests/cleanup'."
+    return 1
+  fi
 
   verify_all_nodes_ready has_not_ready_nodes
   if [[ "$has_not_ready_nodes" -eq 0 ]]; then
@@ -1134,6 +1195,12 @@ fi
 
 declare -a worker_pids=()
 for ((worker = 1; worker <= parallel_workers; worker++)); do
+  # Spread the cluster creations out rather than starting every worker in the same second
+  # (see CLUSTER_START_STAGGER). Nothing is waited for here, only delayed: the workers already
+  # running carry on while this sleeps.
+  if [[ "$worker" -gt 1 && "$CLUSTER_START_STAGGER" -gt 0 ]]; then
+    sleep "$CLUSTER_START_STAGGER"
+  fi
   run_worker "$worker" &
   worker_pids+=("$!")
 done
