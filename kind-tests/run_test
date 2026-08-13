@@ -610,6 +610,91 @@ verify_all_nodes_ready() {
   result=$has_not_ready_nodes
 }
 
+# Points the cluster's own DNS at this machine's resolvers, by name, in the Corefile.
+#
+# This is what actually decides whether a pod can resolve the Quobyte API and registry, and it
+# is not the node's /etc/resolv.conf rewritten in create_test_cluster: a pod does not read that
+# file. Kubelet hands pods the cluster DNS service, CoreDNS answers what it knows and forwards
+# the rest to its upstreams -- and out of the box those upstreams are "forward . /etc/resolv.conf",
+# meaning whatever the node CoreDNS happens to run on has. That makes resolving anything outside
+# the cluster depend on three things we do not control: which node CoreDNS was scheduled to (only
+# workers get the file rewritten, control planes keep docker's resolver), kubelet's limit of
+# MAX_NODE_NAMESERVERS entries, and the order of that file -- whose first entry is the cluster
+# DNS service itself, so CoreDNS ends up asking itself and its 'loop' plugin kills the pod.
+# Naming the resolvers here removes all three at once: the forward plugin takes as many upstreams
+# as this machine has, whatever node CoreDNS lands on, and never points back at CoreDNS.
+configure_cluster_dns_upstreams() {
+  local cluster="$1"
+  local corefile new_corefile upstreams="${host_dns_ips% }"
+
+  if [[ -z "$upstreams" ]]; then
+    echo "Error: no nameserver in /etc/resolv.conf to point the cluster DNS of ${cluster} at"
+    return 1
+  fi
+
+  corefile="$(kubectl -n kube-system get configmap coredns -o jsonpath='{.data.Corefile}')" \
+    || { echo "Error: could not read the CoreDNS Corefile of ${cluster}"; return 1; }
+
+  if [[ "$corefile" != *'forward . /etc/resolv.conf'* ]]; then
+    # Someone has already pointed it somewhere deliberate; replacing that would be worse than
+    # leaving it, so say what it is and move on.
+    echo "Note: the CoreDNS Corefile of ${cluster} does not forward to /etc/resolv.conf, so its"
+    echo "upstreams are left as they are:"
+    echo "$corefile"
+    return 0
+  fi
+
+  echo "Pointing the cluster DNS of ${cluster} at this machine's resolvers: ${upstreams}"
+  new_corefile="${corefile//forward . \/etc\/resolv.conf/forward . ${upstreams}}"
+  kubectl -n kube-system create configmap coredns --from-literal=Corefile="$new_corefile" \
+    --dry-run=client -o yaml | kubectl -n kube-system apply -f - \
+    || { echo "Error: could not update the CoreDNS Corefile of ${cluster}"; return 1; }
+
+  # CoreDNS would reload the file on its own eventually; restarting is what makes the pods that
+  # answer the check below the ones already running the config just applied.
+  kubectl -n kube-system rollout restart deployment coredns || return 1
+  kubectl -n kube-system rollout status deployment coredns --timeout=2m || return 1
+}
+
+# Confirms the cluster DNS resolves the name the tests have to reach, before a driver is
+# deployed against it. Asked from a node rather than from a pod deliberately: it needs no image
+# pulled and nothing scheduled, and kube-proxy makes the DNS service reachable from the node's
+# own network namespace. nslookup comes from the dnsutils installed into the node image.
+verify_cluster_dns_resolves() {
+  local cluster="$1" name="$2"
+  local node cluster_dns attempt
+
+  [[ -z "$name" ]] && return 0
+
+  cluster_dns="$(kubectl get services -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}')"
+  if [[ -z "$cluster_dns" ]]; then
+    echo "Error: could not find the cluster DNS service IP of ${cluster}"
+    return 1
+  fi
+  node="$(kubectl get nodes --no-headers | grep 'worker' | awk 'NR==1{print $1}')"
+  if [[ -z "$node" ]]; then
+    echo "Error: ${cluster} has no worker node to ask its DNS from"
+    return 1
+  fi
+
+  # CoreDNS has just been restarted, so give it a few tries before calling this a failure.
+  for ((attempt = 1; attempt <= 3; attempt++)); do
+    if sudo docker exec "$node" nslookup "$name" "$cluster_dns" > /dev/null 2>&1; then
+      echo "Cluster DNS of ${cluster} resolves ${name}"
+      return 0
+    fi
+    sleep 5
+  done
+
+  echo "Error: the cluster DNS of ${cluster} (${cluster_dns}) does not resolve '${name}', so no"
+  echo "pod in this cluster will reach it either -- the driver could not talk to the Quobyte API"
+  echo "and every test would fail on it. The query, from ${node}:"
+  sudo docker exec "$node" nslookup "$name" "$cluster_dns" 2>&1 | sed 's/^/    /'
+  echo "This machine resolves it with: ${host_dns_ips}"
+  echo "Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+  return 1
+}
+
 # Brings up one kind cluster and everything a test needs on it: the locally built images
 # loaded, the nodes labelled for the Quobyte client, kube-dns mapped into them and the
 # driver's "quobyte" namespace created. Every parallel worker calls this for a cluster of
@@ -743,6 +828,18 @@ END"
     sudo docker exec $node sh -c "cat /etc/resolv.conf"
     echo ""
   done
+
+  # The node files above serve the node itself (image pulls, hostNetwork pods that ask for the
+  # node's resolver). What pods get is the cluster DNS, so point that at this machine's
+  # resolvers too, and then confirm it answers for the name the tests must reach.
+  configure_cluster_dns_upstreams "$cluster" || return 1
+  if [[ "$SKIP_ENDPOINT_PRECHECK" == 'true' ]]; then
+    echo "SKIP_ENDPOINT_PRECHECK=true: not checking that the DNS of ${cluster} resolves the Quobyte API"
+  else
+    local api_host
+    read -r api_host _ <<< "$(endpoint_host_port "$QUOBYTE_API_URL")"
+    verify_cluster_dns_resolves "$cluster" "$api_host" || return 1
+  fi
 
   echo  "Labeling Kubernetes nodes for Quobyte client installation * * * * * * * * * * * * * * *"
   for node in $(kubectl get nodes --no-headers | awk '{print $1}'); do
