@@ -147,9 +147,12 @@ Options:
 
 Other environment variables honored:
   TESTS                 Space-separated list of the combinations to run, using the names
-                        from --list; glob patterns are allowed. Unset, everything runs.
-                        Checked before the cluster is built, so a name that matches
-                        nothing fails immediately.
+                        from --list; glob patterns are allowed. Naming just the test
+                        package runs every environment of it ('shared_volume' and
+                        'shared_volume/' both mean 'shared_volume/*'; a package whose name
+                        merely starts the same way, such as shared_volume_cleanup, is not
+                        included). Unset, everything runs. Checked before the cluster is
+                        built, so a name that matches nothing fails immediately.
   PARALLEL_TESTS        How many combinations to run at once (default: 3). Each gets a kind
                         cluster of its own -- two cannot share one, the driver and client
                         are deployed under fixed helm release names -- so this many clusters
@@ -205,8 +208,12 @@ Examples:
   TESTS='dynamic_provisioning/default' \\
     kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
 
-  # or every environment of one test package:
-  TESTS='external_storage/*' \\
+  # or every environment of one test package, by naming the package:
+  TESTS='namespace_tenant_mapping' \\
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+
+  # globs still work, and several patterns can be given at once:
+  TESTS='external_storage/* shared_volume*/default' \\
     kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
 
   # one at a time, in a single cluster, with the output on the terminal:
@@ -317,6 +324,17 @@ test_selected() {
     # Unquoted on purpose: TESTS entries are patterns, not literal strings.
     # shellcheck disable=SC2053
     [[ "$name" == $pattern ]] && return 0
+    # A pattern naming only the test package selects every environment of it, so
+    # 'namespace_tenant_mapping' and 'namespace_tenant_mapping/' both mean
+    # 'namespace_tenant_mapping/*' -- the common case is wanting the whole package, and
+    # having to remember the glob for it is a poor default.
+    #
+    # The package, not a string prefix: 'shared_volume' selects the two environments of
+    # shared_volume/ and leaves shared_volume_cleanup/ alone. A neighbouring package whose
+    # name merely starts the same way is a different test, and quietly running it too would
+    # be the worse surprise.
+    # shellcheck disable=SC2053
+    [[ "$name" == ${pattern%/}/* ]] && return 0
   done
   return 1
 }
@@ -333,7 +351,8 @@ done
 if [[ "${#planned_tests[@]}" -eq 0 ]]; then
   die "TESTS='${TESTS}' selected none of the available tests:
 $(printf '  %s\n' "${all_names[@]}")
-Run '$0 --list' to see them, and use those names (glob patterns allowed) in TESTS."
+Run '$0 --list' to see them, and use those names in TESTS -- a whole name, the package part
+of one to run every environment of it, or a glob pattern."
 fi
 
 if [[ -n "$TESTS" ]]; then

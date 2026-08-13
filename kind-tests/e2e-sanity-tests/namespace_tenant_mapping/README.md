@@ -81,7 +81,7 @@ is expected and does not fail the run.
 ## Running it
 
 ```bash
-TESTS='namespace_tenant_mapping/*' kind-tests/run_test --sanity http://host:port host:port
+TESTS='namespace_tenant_mapping' kind-tests/run_test --sanity http://host:port host:port
 ```
 
 Each env file is a full driver redeploy, so that is four deploy/run/undeploy cycles. Name a

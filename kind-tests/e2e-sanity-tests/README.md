@@ -56,4 +56,6 @@ Three things are deliberately not covered yet:
   with its UUID pinned in the env file.
 
 Use `TESTS` to work on one scenario at a time, e.g.
-`TESTS='shared_volume/*' kind-tests/run_test --sanity http://host:port host:port`.
+`TESTS='shared_volume' kind-tests/run_test --sanity http://host:port host:port` — naming the
+package runs every environment of it, and stops at the directory boundary, so that one does not
+also run `shared_volume_cleanup/`.

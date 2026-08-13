@@ -101,9 +101,18 @@ kind-tests/run_test --sanity http://host:port host:port
 # re-run just the one that failed
 TESTS='dynamic_provisioning/default' kind-tests/run_test http://host:port host:port
 
-# or every environment of one test package
-TESTS='external_storage/*' kind-tests/run_test http://host:port host:port
+# or every environment of one test package, by naming the package
+TESTS='external_storage' kind-tests/run_test http://host:port host:port
+
+# several patterns at once; globs still work
+TESTS='expansion volume_metrics shared_volume*/default' kind-tests/run_test http://host:port host:port
 ```
+
+A `TESTS` entry matches a combination three ways: the whole name, the package part of one
+(`external_storage`, with or without a trailing `/`, meaning every environment of it), or a glob
+pattern. The package form stops at the directory boundary, so `shared_volume` runs the two
+environments of `shared_volume/` and leaves `shared_volume_cleanup/` alone — use a glob
+(`shared_volume*`) if you do mean both.
 
 The selection is resolved before the kind cluster is built, so a name that matches nothing fails
 immediately instead of after the cluster is up.
