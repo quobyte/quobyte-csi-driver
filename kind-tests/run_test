@@ -237,8 +237,10 @@ done
 # Discovery is restricted to the selected test set, so everything downstream -- the
 # --list output, TESTS, the run itself and the final summary -- sees only those.
 if [[ "$test_set" == 'all' ]]; then
-  collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
+  # Tests are run in the collected order - so run simpler sanity tests first to catch any
+  # setup issues early
   collect_test_set "$GO_E2E_SANITY_TESTS_DIR"
+  collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
 elif [[ "$test_set" == 'upstream' ]]; then
   collect_test_set "$GO_E2E_UPSTREAM_TESTS_DIR"
 elif [[ "$test_set" == 'sanity' ]]; then
