@@ -168,6 +168,11 @@ Other environment variables honored:
                         (default: 3), waiting CLUSTER_CREATE_RETRY_DELAY seconds (default: 30)
                         in between. The nodes of a failed attempt are kept long enough to
                         export their logs to kind-csi-testing/debug/clusters/<cluster>-attempt-N/.
+  SKIP_ENDPOINT_PRECHECK
+                        Set to 'true' to start a run without checking first that
+                        QUOBYTE_API_URL and QUOBYTE_REGISTRY resolve and accept a connection.
+                        Unset (default), a run whose endpoints are unreachable stops
+                        immediately instead of failing test by test much later.
   CSI_PROVISIONER_NAME  CSI provisioner name (default: csi.quobyte.com)
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
@@ -337,6 +342,98 @@ fi
 # via os.Getenv) below can see them. KUBECONFIG is not among them: it names one cluster, so
 # each worker exports its own (see run_worker).
 export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD
+
+# --- Quobyte endpoint preflight --------------------------------------------------
+# Both endpoints are checked here, before an image is built or a cluster created, because
+# neither this script nor the driver can do anything without them and a run that discovers
+# it later pays for the discovery: the tests fail one by one, minutes apart, with a
+# "dial tcp <ip>:<port>" from inside a pod that says nothing about which side is at fault.
+# The two ways this goes wrong need different fixes and are told apart here:
+#   the name does not resolve  -- the nodes will not resolve it either (see create_test_cluster,
+#                                 which maps this machine's nameservers into them)
+#   the port refuses/times out -- it resolves fine and nothing is listening, or it is filtered.
+#                                 A service bound to 127.0.0.1 looks exactly like this from a
+#                                 kind node: a container cannot reach the host's loopback.
+
+# Splits "scheme://host:port/path", "host:port" or "host" into the host and the port to test,
+# printed as "<host> <port>". The port is empty when neither the value nor its scheme implies
+# one, which is not an error -- it only means there is nothing to connect to.
+endpoint_host_port() {
+  local value="$1" scheme='' hostport host port=''
+  if [[ "$value" == *://* ]]; then
+    scheme="${value%%://*}"
+    hostport="${value#*://}"
+  else
+    hostport="$value"
+  fi
+  hostport="${hostport%%/*}"  # drop any path
+  hostport="${hostport##*@}"  # drop any user:password@
+  if [[ "$hostport" == \[*\]* ]]; then
+    # Bracketed IPv6 literal, where the colons are part of the address.
+    host="${hostport%%\]*}"
+    host="${host#\[}"
+    port="${hostport##*\]}"
+    port="${port#:}"
+  else
+    host="${hostport%%:*}"
+    [[ "$hostport" == *:* ]] && port="${hostport##*:}"
+  fi
+  if [[ -z "$port" ]]; then
+    case "$scheme" in
+      http)  port=80 ;;
+      https) port=443 ;;
+    esac
+  fi
+  echo "$host $port"
+}
+
+check_endpoint() {
+  local label="$1" value="$2" host port rc
+  read -r host port <<< "$(endpoint_host_port "$value")"
+
+  if [[ -z "$host" ]]; then
+    die "${label} '${value}' does not name a host."
+  fi
+  if ! getent ahosts "$host" > /dev/null 2>&1; then
+    die "${label} '${value}': '${host}' does not resolve on this machine.
+  The kind nodes are given this machine's nameservers, so they will not resolve it either.
+  Check the name, or that the resolvers in /etc/resolv.conf know it:
+$(sed -n 's/^nameserver/    nameserver/p' /etc/resolv.conf)
+  Set ${label%% *}=... to an address that resolves, or export SKIP_ENDPOINT_PRECHECK=true
+  to run anyway."
+  fi
+  if [[ -z "$port" ]]; then
+    echo "  ${label}: ${host} resolves (no port given, nothing to connect to)"
+    return 0
+  fi
+
+  timeout 5 bash -c "exec 3<>/dev/tcp/${host}/${port}" 2>/dev/null
+  rc=$?
+  if [[ "$rc" -eq 0 ]]; then
+    echo "  ${label}: ${host}:${port} reachable"
+    return 0
+  fi
+  if [[ "$rc" -eq 124 ]]; then
+    die "${label} '${value}': ${host}:${port} did not answer within 5s.
+  The name resolves, so this is not DNS -- the port is filtered or the host is unreachable.
+  Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+  fi
+  die "${label} '${value}': ${host}:${port} refused the connection.
+  The name resolves, so this is not DNS -- nothing is listening on that port. Check the
+  service is up and which address it is bound to:
+    ss -ltnp | grep ':${port}\b'
+  A service bound to 127.0.0.1 cannot be reached from a kind node at all, whatever this
+  machine can do: a container has its own loopback. Bind it to 0.0.0.0 or to this host's
+  address instead. Export SKIP_ENDPOINT_PRECHECK=true to run anyway."
+}
+
+if [[ "$SKIP_ENDPOINT_PRECHECK" == 'true' ]]; then
+  echo "*** SKIP_ENDPOINT_PRECHECK=true: not checking the Quobyte API/registry endpoints ***"
+else
+  echo "*** Checking the Quobyte endpoints are reachable ***"
+  check_endpoint 'QUOBYTE_API_URL' "$QUOBYTE_API_URL"
+  check_endpoint 'QUOBYTE_REGISTRY' "$QUOBYTE_REGISTRY"
+fi
 
 # --- Required tools (see kind-tests/README.md "Requirements") -------------------
 # docker and go are foundational (version/daemon management is out of scope for this
