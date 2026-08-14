@@ -53,6 +53,14 @@ run_started_at="$SECONDS"
 
 die() { echo "$*" 1>&2 ; exit 1; }
 
+image_tag() {
+  local image="$1"
+  local name_part="${image##*/}"
+  if [[ "$name_part" == *:* ]]; then
+    echo "${name_part##*:}"
+  fi
+}
+
 # The kind cluster a worker runs its combinations in, and where its kubeconfig goes. Worker
 # 1 keeps the historical names (see KIND_CLUSTER_NAME above).
 cluster_name_for_worker() {
@@ -118,7 +126,7 @@ collect_test_set() {
 
 print_help() {
   cat <<EOF
-Usage: $0 [--sanity|--upstream] <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+Usage: $0 [--sanity|--upstream] <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> <QUOBYTE_CLIENT_IMAGE> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
        $0 [--sanity|--upstream] --list
 
 Builds the Quobyte CSI driver + pod-killer from source, spins up local kind clusters, then
@@ -136,6 +144,8 @@ See kind-tests/README.md for details.
 Arguments:
   QUOBYTE_API_URL       Quobyte API endpoint, e.g. http://host:7860 (required)
   QUOBYTE_REGISTRY      Quobyte client image registry, e.g. host:5000 (required)
+  QUOBYTE_CLIENT_IMAGE  Quobyte client container image, tagged with its version, e.g.
+                        quay.io/quobyte/quobyte-client:4[.8.1] (required).
   QUOBYTE_API_USER      Quobyte API user (optional, default: admin)
   QUOBYTE_API_PASSWORD  Quobyte API password (optional, default: quobyte)
 
@@ -197,30 +207,37 @@ Every run ends with a summary table of each test/environment combination, its re
 long it took, followed by the wall clock of the whole run.
 
 Examples:
-  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
   # overriding the admin/quobyte user/password defaults:
-  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 myuser mypass
+  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1] myuser mypass
 
   # only the sanity tests, skipping the long upstream suites:
-  kind-tests/run_test --sanity http://quobyte-api.example.com:7860 registry.example.com:5000
+  kind-tests/run_test --sanity http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
   # re-running just one combination from the summary table:
   kind-tests/run_test --list
   TESTS='dynamic_provisioning/default' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
   # or every environment of one test package, by naming the package:
   TESTS='namespace_tenant_mapping' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
   # globs still work, and several patterns can be given at once:
   TESTS='external_storage/* shared_volume*/default' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
   # one at a time, in a single cluster, with the output on the terminal:
   PARALLEL_TESTS=1 \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000
+    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    quay.io/quobyte/quobyte-client:4[.8.1]
 
 Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
 automatically if missing (see kind-tests/README.md "Requirements").
@@ -289,17 +306,27 @@ if [[ "$list_tests" -eq 1 ]]; then
   exit 0
 fi
 
-# --- Quobyte API endpoint / registry (positional args) ---------------------------
+# --- Quobyte API endpoint / registry / client image (positional args) ------------
 QUOBYTE_API_URL="$1"
 QUOBYTE_REGISTRY="$2"
-QUOBYTE_API_USER="${3:-admin}"
-QUOBYTE_API_PASSWORD="${4:-quobyte}"
+QUOBYTE_CLIENT_IMAGE="$3"
+QUOBYTE_API_USER="${4:-admin}"
+QUOBYTE_API_PASSWORD="${5:-quobyte}"
 
-if [[ -z "$QUOBYTE_API_URL" || -z "$QUOBYTE_REGISTRY" ]]; then
-  die "Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
-  QUOBYTE_API_URL and QUOBYTE_REGISTRY are required. QUOBYTE_API_USER/QUOBYTE_API_PASSWORD
-  are optional, defaulting to 'admin'/'quobyte' if not given.
-  Example: kind-tests/run_test http://host:port host:port"
+if [[ -z "$QUOBYTE_API_URL" || -z "$QUOBYTE_REGISTRY" || -z "$QUOBYTE_CLIENT_IMAGE" ]]; then
+  die "Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> <QUOBYTE_CLIENT_IMAGE> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+  QUOBYTE_API_URL, QUOBYTE_REGISTRY and QUOBYTE_CLIENT_IMAGE are required.
+  QUOBYTE_API_USER/QUOBYTE_API_PASSWORD are optional, defaulting to 'admin'/'quobyte' if not given.
+  Example: kind-tests/run_test http://host:port host:port quay.io/quobyte/quobyte-client:4[.8.1]"
+fi
+
+# The quobyte-client helm chart is deployed with this image and, deduced from its tag, this
+# version (see deploy_quobyte_client). A tagless reference (e.g. just "quobyte-client") has
+# no version to deduce, and deploying without one is not a case worth silently allowing.
+QUOBYTE_CLIENT_VERSION="$(image_tag "$QUOBYTE_CLIENT_IMAGE")"
+if [[ -z "$QUOBYTE_CLIENT_VERSION" ]]; then
+  die "QUOBYTE_CLIENT_IMAGE '${QUOBYTE_CLIENT_IMAGE}' has no version tag (expected e.g. \
+'quay.io/quobyte/quobyte-client:4[.8.1]'); cannot deduce the client version from it."
 fi
 
 # --- Test selection --------------------------------------------------------------
@@ -365,7 +392,8 @@ fi
 # Exported so every helm/kubectl call and the Go e2e tests (framework.LoadConfig reads these
 # via os.Getenv) below can see them. KUBECONFIG is not among them: it names one cluster, so
 # each worker exports its own (see run_worker).
-export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD
+export QUOBYTE_API_URL QUOBYTE_REGISTRY QUOBYTE_API_USER QUOBYTE_API_PASSWORD \
+  QUOBYTE_CLIENT_IMAGE QUOBYTE_CLIENT_VERSION
 
 # --- Quobyte endpoint parsing ----------------------------------------------------
 # The endpoints themselves are checked per cluster, once its DNS has been set up -- see
@@ -999,12 +1027,17 @@ deploy_snapshot_resources_if_needed() {
   snapshot_crds_installed=1
 }
 
-# Deploys quobyte-client using QUOBYTE_REGISTRY (a required script argument, see top of
-# file) and ENABLE_ACCESS_KEY_MOUNTS (set by the per-test "env" file sourced by the caller).
+# Deploys quobyte-client using QUOBYTE_REGISTRY, QUOBYTE_CLIENT_IMAGE and
+# QUOBYTE_CLIENT_VERSION (required script arguments, see top of file; the version is
+# deduced from the image's tag) and ENABLE_ACCESS_KEY_MOUNTS (set by the per-test "env"
+# file sourced by the caller).
 deploy_quobyte_client() {
-  echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
+  echo "Deploying Quobyte client with helm chart ${CLIENT_CHART_DIR} (registry: $QUOBYTE_REGISTRY, \
+image: $QUOBYTE_CLIENT_IMAGE, version: $QUOBYTE_CLIENT_VERSION, enableAccessKeys: $ENABLE_ACCESS_KEY_MOUNTS)"
   helm install quobyte-client "${CLIENT_CHART_DIR}" --namespace kube-system \
    --set quobyte.registry="$QUOBYTE_REGISTRY" \
+   --set quobyte.clientImage="$QUOBYTE_CLIENT_IMAGE" \
+   --set-string quobyte.clientVersion="$QUOBYTE_CLIENT_VERSION" \
    --set-string quobyte.enableAccessKeys="$ENABLE_ACCESS_KEY_MOUNTS" \
    --set-string nodeSelector.quobyte_client="true" \
    || die 'Failed installing quobyte-client helm chart'
@@ -1080,6 +1113,8 @@ dump_debug_info() {
     echo "QUOBYTE_API_URL=${QUOBYTE_API_URL}"
     echo "QUOBYTE_TENANT=${QUOBYTE_TENANT}"
     echo "QUOBYTE_REGISTRY=${QUOBYTE_REGISTRY}"
+    echo "QUOBYTE_CLIENT_IMAGE=${QUOBYTE_CLIENT_IMAGE}"
+    echo "QUOBYTE_CLIENT_VERSION=${QUOBYTE_CLIENT_VERSION}"
     echo "ENABLE_ACCESS_KEY_MOUNTS=${ENABLE_ACCESS_KEY_MOUNTS}"
     echo "CSI_PROVISIONER_NAME=${CSI_PROVISIONER_NAME}"
   } > "${debug_dir}/test-env.txt"
@@ -1382,8 +1417,9 @@ echo ""
 #                                         suite (kind-tests/e2e, see framework.RunUpstreamE2E)
 #                                         and cleans that setup up afterwards.
 #
-# The Quobyte API endpoint/client registry (QUOBYTE_API_URL/USER/PASSWORD, QUOBYTE_REGISTRY)
-# and CSI_PROVISIONER_NAME are script-level config (see top of file), not part of any env
+# The Quobyte API endpoint/client registry/client image (QUOBYTE_API_URL/USER/PASSWORD,
+# QUOBYTE_REGISTRY, QUOBYTE_CLIENT_IMAGE/VERSION) and CSI_PROVISIONER_NAME are script-level
+# config (see top of file), not part of any env
 # file -- the same physical endpoints/driver apply to every test in a run. An env file
 # holds only what varies per deployment: ENABLE_ACCESS_KEY_MOUNTS, and optionally
 # ENABLE_SNAPSHOTS, QUOBYTE_TENANT, CSI_VALUES_FILE and CSI_HELM_SET.
