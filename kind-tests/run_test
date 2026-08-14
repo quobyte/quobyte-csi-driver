@@ -9,10 +9,10 @@ CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
 GO_E2E_SANITY_TESTS_DIR="${KIND_DIR}/e2e-sanity-tests"
 GO_E2E_UPSTREAM_TESTS_DIR="${KIND_DIR}/e2e-upstream-tests"
 UPSTREAM_E2E_SCRIPT="${KIND_DIR}/e2e"
-TEST_CLUSTER_DIR="${KIND_DIR}/kind-csi-testing"
+TEST_TEMP_DIR="${KIND_DIR}/tmp"
 # Everything a run produces lands here: a log per combination, a log per cluster, and the
 # debug snapshot of whatever failed.
-DEBUG_ROOT="${TEST_CLUSTER_DIR}/debug"
+DEBUG_ROOT="${TEST_TEMP_DIR}/debug"
 # Base names of the per-worker kind clusters and their kubeconfigs. The first worker gets
 # these unchanged, so a sequential run is exactly what it always was -- same cluster name,
 # same kubeconfig path the README tells you to export -- and further workers get a
@@ -523,9 +523,9 @@ fi
 
 cd $CODE_BASE_DIR
 
-rm -rf "${TEST_CLUSTER_DIR}"
+rm -rf "${TEST_TEMP_DIR}"
 
-mkdir -p "${TEST_CLUSTER_DIR}" "${DEBUG_ROOT}/clusters" "${DEBUG_ROOT}/results"
+mkdir -p "${TEST_TEMP_DIR}" "${DEBUG_ROOT}/clusters" "${DEBUG_ROOT}/results"
 
 echo "Running script from $(pwd)"
 
@@ -537,7 +537,7 @@ echo ""
 # Install the latest kind binary (download and add executable
 # to your PATH) from the releases on testing host
 # and update the kindest/node: image
-tee -a "${TEST_CLUSTER_DIR}"/Dockerfile <<END
+tee -a "${TEST_TEMP_DIR}"/Dockerfile <<END
 FROM kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
 RUN apt-get -y update 
 RUN apt-get -y install wget && apt-get install -y git && apt install -y nano dnsutils
@@ -546,7 +546,7 @@ END
 
 echo "Building new image using the above Dockerfile. On the local machine: * * *"
 # Change `v0` appropriately to whatever version is needed.
-docker build -t 'quobyte/kind-node-testing:v0' -f "${TEST_CLUSTER_DIR}"/Dockerfile .
+docker build -t 'quobyte/kind-node-testing:v0' -f "${TEST_TEMP_DIR}"/Dockerfile .
 
 docker image ls | grep 'quobyte/kind-node-testing:v0'
 
@@ -765,7 +765,7 @@ verify_endpoints_from_cluster() {
 #   $2 kubeconfig  where its kubeconfig goes
 create_test_cluster() {
   local cluster="$1" kubeconfig="$2"
-  local config_file="${TEST_CLUSTER_DIR}/kind-config-${cluster}.yaml"
+  local config_file="${TEST_TEMP_DIR}/kind-config-${cluster}.yaml"
 
   rm -f "$kubeconfig"
   cat > "$kubeconfig" <<END
