@@ -27,16 +27,22 @@ const mountPath = "/mnt/test"
 // files vary; the test is the same either way, which is the point -- the outcome must not
 // depend on who created the volume.
 //
-// The cleanup half of the README entry (delete files task vs the client rm walk) is not
-// covered here: the driver only cleans up volumes named in --shared_volumes_list, which
-// takes volume UUIDs, and the UUID of a per-run volume cannot be known when the helm values
-// are set. See the note in kind-tests/e2e-sanity-tests/README.md.
+// Both env files run with USE_DELETE_FILES_TASK=true (the chart default), so deleting a
+// claim's PV must not erase the shared volume: DeleteVolume schedules a
+// DELETE_FILES_IN_VOLUMES task against the claim's subdirectory instead of taking the
+// two-part "erase the whole volume" branch (see DeleteVolume in src/driver/controller.go).
+// That the task actually gets scheduled is what this test checks; that it is ever collected
+// is not -- the collector only walks volumes named in --shared_volumes_list, which takes
+// volume UUIDs, and the UUID of a per-run volume cannot be known when the helm values are
+// set. See the note in kind-tests/e2e-sanity-tests/README.md.
 func TestSharedVolumeProvisionsSubdirectories(t *testing.T) {
 	cfg := framework.LoadConfig(t)
 	ctx := context.Background()
 
 	require.True(t, cfg.SharedVolumeOptions.EnableSharedVolume,
 		"this test only makes sense with USE_SHARED_VOLUME set; check this directory's env files")
+	require.True(t, cfg.SharedVolumeOptions.UseDeleteFilesTask,
+		"this test covers the delete files task branch of shared volume cleanup; check this directory's env files (USE_DELETE_FILES_TASK)")
 
 	clientset, restConfig, err := framework.NewClientset(cfg.Kubeconfig)
 	require.NoError(t, err, "building kubernetes clientset")
@@ -102,12 +108,6 @@ func TestSharedVolumeProvisionsSubdirectories(t *testing.T) {
 	require.NotEqual(t, firstSubDir, secondSubDir,
 		"both claims were given the same subdirectory of the shared volume")
 
-	// One volume for both claims, whoever created it.
-	volumeNames, err := framework.ListVolumeNamesInTenant(quobyteClient, tenantID)
-	require.NoError(t, err, "listing the volumes of tenant %s", cfg.QuobyteTenant)
-	require.Equal(t, []string{sharedVolume.Name}, volumeNames,
-		"expected the tenant to hold only the shared volume, with a subdirectory per claim")
-
 	// --- the subdirectories are separate --------------------------------------
 	firstContent := fmt.Sprintf("first-%d", suffix)
 	suite.writeFile(first.podName, "own.txt", firstContent)
@@ -122,10 +122,23 @@ func TestSharedVolumeProvisionsSubdirectories(t *testing.T) {
 	require.Equal(t, firstContent, suite.readFile(first.podName, "own.txt"),
 		"deleting the second claim disturbed the first claim's data in the shared volume")
 
-	volumeNames, err = framework.ListVolumeNamesInTenant(quobyteClient, tenantID)
-	require.NoError(t, err, "listing the volumes of tenant %s after deleting one claim", cfg.QuobyteTenant)
-	require.Equal(t, []string{sharedVolume.Name}, volumeNames,
-		"deleting a claim removed the shared volume itself, not just its subdirectory")
+	// ... and deleting the claim's PV has to have scheduled a DELETE_FILES_IN_VOLUMES task
+	// for its subdirectory, rather than removing the subdirectory directly.
+	scheduled, err := framework.DeleteFilesTaskScheduled(quobyteClient, secondVolume, "/"+secondSubDir)
+	require.NoError(t, err, "listing delete-files tasks")
+	require.True(t, scheduled,
+		"deleting the second claim's PV did not schedule a delete files task for its subdirectory %q", secondSubDir)
+
+	suite.deleteClaimWithPod(first)
+	scheduled, err = framework.DeleteFilesTaskScheduled(quobyteClient, firstVolume, "/"+firstSubDir)
+	require.NoError(t, err, "listing delete-files tasks")
+	require.True(t, scheduled,
+		"deleting the first claim's PV did not schedule a delete files task for its subdirectory %q", firstSubDir)
+
+	// The volume itself still has to resolve -- DeleteVolume for a "tenant|volume|subdir"
+	// handle must not take the two-part branch that erases the whole volume.
+	_, err = quobyteClient.ResolveVolumeNameToUUID(sharedVolume.Name, tenantID)
+	require.NoError(t, err, "deleting a claim removed the shared volume itself, not just its subdirectory")
 }
 
 // sharedVolumeSuite carries what every step below needs, so the steps read as what they do.

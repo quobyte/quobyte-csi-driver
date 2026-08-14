@@ -20,7 +20,7 @@ how to run a single combination.
 | --- | --- | --- |
 | [`dynamic_provisioning/`](./dynamic_provisioning) | A PVC gets its own Quobyte volume, mounted read/write, and the volume really exists; also the StorageClass parameters `user`, `group`, `labels`, `accessMode` and `createQuota`, including the rollback when the quota is refused | implemented |
 | [`pre_provisioned_volumes/`](./pre_provisioned_volumes) | A PV pointed at a volume the driver did not create; nothing calls CreateVolume and Retain leaves the volume alone | implemented |
-| [`shared_volume/`](./shared_volume) | Two claims become subdirectories of one volume, isolated from each other; deleting one leaves the other and the volume, and `accessMode` reaches the subdirectory | implemented |
+| [`shared_volume/`](./shared_volume) | Two claims become subdirectories of one volume, isolated from each other; deleting one leaves the other and the volume alone and schedules a delete files task for its subdirectory instead, and `accessMode` reaches the subdirectory | implemented |
 | [`shared_volume_cleanup/`](./shared_volume_cleanup) | The other branch of shared volume cleanup: with the delete files task off, a deleted claim's subdirectory is renamed to the driver's delete marker rather than removed | implemented, see the note below |
 | [`expansion/`](./expansion) | Growing a claim moves the Quobyte quota, and does nothing at all for a claim inside a shared volume | implemented |
 | [`immediate_erase/`](./immediate_erase) | With `immediateErase`, the volume is gone from its tenant shortly after the PV is, instead of lingering | implemented |
