@@ -26,8 +26,8 @@ const (
 	// numeric id.
 	ownerUser  = "daemon"
 	ownerGroup = "daemon"
-	ownerUID   = "1"
-	ownerGID   = "1"
+	ownerUID   = "10000"
+	ownerGID   = "10000"
 )
 
 // TestStorageClassParameters covers the StorageClass parameters CreateVolume understands but
