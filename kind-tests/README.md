@@ -255,13 +255,13 @@ KEEP_CLUSTERS=true PARALLEL_TESTS=1 TESTS='dynamic_provisioning/default' \
   kind-tests/run_test http://host:port host:port
 ```
 
-then, against `/tmp/quobyte-k8s-config` (worker 1's cluster; further workers add a `-<worker>`
-suffix to both the cluster name and this path):
+then, against `kind-tests/tmp/kubeconfig-cluster` (worker 1's cluster; further workers add a
+`-<worker>` suffix to both the cluster name and this path):
 
 ```bash
 cd kind-tests/e2e-sanity-tests
 set -a; source dynamic_provisioning/env/default; set +a
-KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
+KUBECONFIG=kind-tests/tmp/kubeconfig-cluster NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
 QUOBYTE_API_URL=http://host:port QUOBYTE_API_USER=admin QUOBYTE_API_PASSWORD=secret \
 CSI_PROVISIONER_NAME=csi.quobyte.com \
 go test ./dynamic_provisioning/... -v -timeout 20m
@@ -273,7 +273,7 @@ and the checkout are:
 ```bash
 cd kind-tests/e2e-upstream-tests
 set -a; source external_storage/env/default; set +a
-KUBECONFIG=/tmp/quobyte-k8s-config NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
+KUBECONFIG=kind-tests/tmp/kubeconfig-cluster NAMESPACE=quobyte QUOBYTE_TENANT=my-tenant \
 QUOBYTE_API_URL=http://host:port QUOBYTE_API_USER=admin QUOBYTE_API_PASSWORD=secret \
 CSI_PROVISIONER_NAME=csi.quobyte.com ARTIFACTS_DIR=/tmp/e2e-artifacts \
 UPSTREAM_E2E_SCRIPT="$(git rev-parse --show-toplevel)/kind-tests/e2e" \

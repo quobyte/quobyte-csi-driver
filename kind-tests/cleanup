@@ -12,7 +12,7 @@
 
 CLUSTER_NAME='quobyte-csi-testing'
 TEST_CLUSTER_DIR='kind-tests/kind-csi-testing'
-KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
+KUBECONFIG_BASE='kind-tests/tmp/kubeconfig-cluster'
 NODE_IMAGE='quobyte/kind-node-testing:v0'
 
 echo ''

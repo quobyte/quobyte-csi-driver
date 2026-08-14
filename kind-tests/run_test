@@ -18,7 +18,7 @@ DEBUG_ROOT="${TEST_TEMP_DIR}/debug"
 # same kubeconfig path the README tells you to export -- and further workers get a
 # "-<worker>" suffix.
 KIND_CLUSTER_NAME="quobyte-csi-testing"
-KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
+KUBECONFIG_BASE="${TEST_TEMP_DIR}/kubeconfig-cluster"
 # Do not exit on the first failure
 CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-true}"
 # How many combinations run at once. One kind cluster cannot host two of them: the driver
