@@ -1436,7 +1436,12 @@ print_test_summary() {
   if [[ -n "$TESTS" ]]; then
     echo "(TESTS='${TESTS}' selected ${#planned_names[@]} of ${#all_names[@]} available tests)"
   fi
-  echo "Output of every test is under ${DEBUG_ROOT}/<test>/<environment>/, of every cluster under ${DEBUG_ROOT}/clusters/"
+  if [[ "$failed" -eq 0 ]]; then
+    rm -rf "${TEST_TEMP_DIR}"
+    echo "Every test passed: removed ${TEST_TEMP_DIR} (debug output and cluster configs included)"
+  else
+    echo "Output of every test is under ${DEBUG_ROOT}/<test>/<environment>/, of every cluster under ${DEBUG_ROOT}/clusters/"
+  fi
 }
 trap print_test_summary EXIT
 
