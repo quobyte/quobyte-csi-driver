@@ -19,6 +19,8 @@ DEBUG_ROOT="${TEST_CLUSTER_DIR}/debug"
 # "-<worker>" suffix.
 KIND_CLUSTER_NAME="quobyte-csi-testing"
 KUBECONFIG_BASE='/tmp/quobyte-k8s-config'
+# Do not exit on the first failure
+CONTINUE_ON_FAILURE="${CONTINUE_ON_FAILURE:-true}"
 # How many combinations run at once. One kind cluster cannot host two of them: the driver
 # and the client are deployed under fixed helm release names, and the client is a DaemonSet
 # owning a mount point per node. So a worker means a cluster of its own -- four containers
@@ -181,8 +183,8 @@ Other environment variables honored:
   GO_TEST_COUNT         -count passed to 'go test' for each test package (default: 1)
   GO_TEST_TIMEOUT       -timeout passed to 'go test' (default: 20m). A test's own "env"
                         file may raise this -- the upstream suites need much longer.
-  CONTINUE_ON_FAILURE   Set to 'true' to run the whole matrix and report every result.
-                        Unset (default), the run stops at the first failing test with its
+  CONTINUE_ON_FAILURE   Runs the whole matrix and report every result (default).
+                        Set it 'false' to stop tests at the first failing test with its
                         cluster, driver and resources left live for debugging; workers that
                         are mid-test finish it and then stop taking new work.
 
