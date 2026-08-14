@@ -308,7 +308,7 @@ fi
 # ("external_storage/*"). Unset, everything runs. Resolved here, before the cluster is
 # built, so a name that matches nothing fails immediately.
 #   planned_tests/planned_names  the selected subset of all_tests/all_names
-#   test_results                 PASS / FAIL / NOT RUN per planned combination
+#   test_results                 PASS / FAIL / SKIPPED / NOT RUN per planned combination
 #   test_durations               seconds that combination took, empty until it has run
 declare -a planned_tests=()
 declare -a planned_names=()
@@ -1334,8 +1334,20 @@ run_worker() {
     duration=$((SECONDS - started_at))
 
     if [[ "$test_status" -eq 0 ]]; then
-      echo "PASS ${duration}" > "${DEBUG_ROOT}/results/${i}"
-      echo "[worker ${worker}] ${planned_names[i]} PASS in $(format_duration "$duration")"
+      # go test exits 0 whether every top-level test passed or every one of them called
+      # t.Skip() -- nothing failed either way. Tell those two apart from the -v output: a
+      # combination where at least one top-level test actually ran and passed is PASS even
+      # if others were skipped, and only one where every top-level test was skipped, and
+      # none passed, is reported as SKIPPED. Top-level results start at column 0; a t.Run
+      # subtest's SKIP/PASS is indented and does not count here.
+      local result='PASS'
+      local go_test_log="${DEBUG_ROOT}/${test_name}/${variant}/go-test-output.log"
+      if [[ -f "$go_test_log" ]] && grep -q '^--- SKIP:' "$go_test_log" \
+         && ! grep -q '^--- PASS:' "$go_test_log"; then
+        result='SKIPPED'
+      fi
+      echo "${result} ${duration}" > "${DEBUG_ROOT}/results/${i}"
+      echo "[worker ${worker}] ${planned_names[i]} ${result} in $(format_duration "$duration")"
       continue
     fi
 
@@ -1386,7 +1398,7 @@ print_test_summary() {
   [[ "$summary_printed" -eq 1 ]] && return
   summary_printed=1
 
-  local i width=4 passed=0 failed=0 not_run=0 duration
+  local i width=4 passed=0 failed=0 skipped=0 not_run=0 duration
   for i in "${!planned_names[@]}"; do
     [[ "${#planned_names[i]}" -gt "$width" ]] && width="${#planned_names[i]}"
   done
@@ -1401,13 +1413,14 @@ print_test_summary() {
     [[ -n "${test_durations[i]}" ]] && duration="$(format_duration "${test_durations[i]}")"
     printf "%-${width}s  %-7s  %s\n" "${planned_names[i]}" "${test_results[i]}" "$duration"
     case "${test_results[i]}" in
-      PASS) passed=$((passed + 1)) ;;
-      FAIL) failed=$((failed + 1)) ;;
-      *)    not_run=$((not_run + 1)) ;;
+      PASS)    passed=$((passed + 1)) ;;
+      FAIL)    failed=$((failed + 1)) ;;
+      SKIPPED) skipped=$((skipped + 1)) ;;
+      *)       not_run=$((not_run + 1)) ;;
     esac
   done
   echo ""
-  echo "${passed} passed, ${failed} failed, ${not_run} not run"
+  echo "${passed} passed, ${failed} failed, ${skipped} skipped, ${not_run} not run"
 
   # Total wall clock, and how much of it went on the images rather than on the tests. The
   # durations above cover a combination's deploy/run/undeploy cycle only -- creating a
@@ -1467,7 +1480,7 @@ for i in "${!planned_tests[@]}"; do
   read -r result duration < "$result_file"
   test_results[i]="$result"
   test_durations[i]="$duration"
-  [[ "$result" == 'PASS' ]] || any_failed=1
+  [[ "$result" == 'FAIL' ]] && any_failed=1
 done
 
 if [[ "$any_failed" -ne 0 ]]; then
