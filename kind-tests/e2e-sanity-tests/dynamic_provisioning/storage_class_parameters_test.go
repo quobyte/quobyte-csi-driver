@@ -24,10 +24,10 @@ const (
 	// involved knows -- busybox and the kind node both have daemon at 1:1 -- because the
 	// only place a volume's root owner can be observed is the mount, and there it is a
 	// numeric id.
-	ownerUser  = "daemon"
-	ownerGroup = "daemon"
-	ownerUID   = "10000"
-	ownerGID   = "10000"
+	ownerUser  = "1"
+	ownerGroup = "1"
+	ownerUID   = "1"
+	ownerGID   = "1"
 )
 
 // TestStorageClassParameters covers the StorageClass parameters CreateVolume understands but
