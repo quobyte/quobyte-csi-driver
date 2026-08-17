@@ -10,7 +10,7 @@ package laid out like [`dynamic_provisioning/`](./dynamic_provisioning):
     <name>             one driver setup; the package is run once per file
 ```
 
-`run_test` discovers them by that `env/` directory and names each combination
+`test_runner` discovers them by that `env/` directory and names each combination
 `<scenario>/<env file>` — see [../README.md](../README.md) for the env file contract and
 how to run a single combination.
 
@@ -45,7 +45,7 @@ Three things are deliberately not covered yet:
   it has to cover, then calls `t.Skip`. It needs the VolumeSnapshot CRD types, which means
   adding `github.com/kubernetes-csi/external-snapshotter/client/v8` to
   [`../go.mod`](../go.mod). Note that **a skipped test passes**: its row in the summary table
-  reads `PASS` while proving nothing, and `run_test` still deploys a driver for it.
+  reads `PASS` while proving nothing, and `test_runner` still deploys a driver for it.
 - **the sweep that removes a shared volume's delete markers** is uncovered.
   `shared_volume_cleanup/` asserts the rename half of that branch — with the delete-files
   task off, a deleted claim's subdirectory becomes `<driverName>_delete_<subdir>` and still
@@ -56,6 +56,6 @@ Three things are deliberately not covered yet:
   with its UUID pinned in the env file.
 
 Use `TESTS` to work on one scenario at a time, e.g.
-`TESTS='shared_volume' kind-tests/run_test --sanity http://host:port host:port` — naming the
+`TESTS='shared_volume' kind-tests/test_runner --sanity http://host:port host:port` — naming the
 package runs every environment of it, and stops at the directory boundary, so that one does not
 also run `shared_volume_cleanup/`.

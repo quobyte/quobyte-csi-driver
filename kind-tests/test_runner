@@ -221,36 +221,36 @@ Every run ends with a summary table of each test/environment combination, its re
 long it took, followed by the wall clock of the whole run.
 
 Examples:
-  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+  kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
   # overriding the admin/quobyte user/password defaults:
-  kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+  kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1] myuser mypass
 
   # only the sanity tests, skipping the long upstream suites:
-  kind-tests/run_test --sanity http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+  kind-tests/test_runner --sanity http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
   # re-running just one combination from the summary table:
-  kind-tests/run_test --list
+  kind-tests/test_runner --list
   TESTS='dynamic_provisioning/default' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
   # or every environment of one test package, by naming the package:
   TESTS='namespace_tenant_mapping' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
   # globs still work, and several patterns can be given at once:
   TESTS='external_storage/* shared_volume*/default' \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
   # one at a time, in a single cluster, with the output on the terminal:
   PARALLEL_TESTS=1 \\
-    kind-tests/run_test http://quobyte-api.example.com:7860 registry.example.com:5000 \\
+    kind-tests/test_runner http://quobyte-api.example.com:7860 registry.example.com:5000 \\
     quay.io/quobyte/quobyte-client:4[.8.1]
 
 Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
@@ -331,7 +331,7 @@ if [[ -z "$QUOBYTE_API_URL" || -z "$QUOBYTE_REGISTRY" || -z "$QUOBYTE_CLIENT_IMA
   die "Usage: $0 <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> <QUOBYTE_CLIENT_IMAGE> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
   QUOBYTE_API_URL, QUOBYTE_REGISTRY and QUOBYTE_CLIENT_IMAGE are required.
   QUOBYTE_API_USER/QUOBYTE_API_PASSWORD are optional, defaulting to 'admin'/'quobyte' if not given.
-  Example: kind-tests/run_test http://host:port host:port quay.io/quobyte/quobyte-client:4[.8.1]"
+  Example: kind-tests/test_runner http://host:port host:port quay.io/quobyte/quobyte-client:4[.8.1]"
 fi
 
 # The quobyte-client helm chart is deployed with this image and, deduced from its tag, this

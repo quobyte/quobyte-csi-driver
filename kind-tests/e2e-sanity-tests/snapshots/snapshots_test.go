@@ -12,7 +12,7 @@ import "testing"
 // in src/driver/controller.go). That asymmetry is the part most worth pinning down.
 //
 // To implement:
-//   - the external-snapshotter CRDs and controller have to be installed; run_test does
+//   - the external-snapshotter CRDs and controller have to be installed; test_runner does
 //     that automatically for an environment that enables snapshots
 //     (deploy_snapshot_resources_if_needed), so this test only needs to create the
 //     VolumeSnapshotClass and the VolumeSnapshot objects

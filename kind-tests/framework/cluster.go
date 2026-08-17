@@ -9,7 +9,7 @@ import (
 )
 
 // NewClientset builds a Kubernetes clientset and REST config from a kubeconfig
-// file path (as produced by kind-tests/run_test).
+// file path (as produced by kind-tests/test_runner).
 func NewClientset(kubeconfigPath string) (*kubernetes.Clientset, *rest.Config, error) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {

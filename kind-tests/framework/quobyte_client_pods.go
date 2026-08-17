@@ -9,8 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Where run_test's quobyte-client helm release puts its DaemonSet, and the label that
-// selects its pods (the same one kind-tests/run_test collects client logs with).
+// Where test_runner's quobyte-client helm release puts its DaemonSet, and the label that
+// selects its pods (the same one kind-tests/test_runner collects client logs with).
 const (
 	QuobyteClientNamespace     = "kube-system"
 	QuobyteClientPodLabel      = "role=client"

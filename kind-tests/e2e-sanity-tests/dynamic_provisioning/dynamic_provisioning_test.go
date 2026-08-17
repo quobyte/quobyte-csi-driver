@@ -13,13 +13,13 @@ import (
 )
 
 // TestDynamicProvisioningCreatesVolumeAndIsWritable exercises the basic
-// dynamic-provisioning flow against a cluster set up by kind-tests/run_test.
+// dynamic-provisioning flow against a cluster set up by kind-tests/test_runner.
 // Every k8s resource involved -- Secret, StorageClass, PVC, Pod -- is
 // generated in Go and uniquely named per run, so the test is fully
 // self-contained: it doesn't depend on any pre-applied test-config manifest.
 //
 // It runs once per file in this directory's env/, i.e. once per driver setup
-// run_test deploys (see kind-tests/run_test), which is why the credentials it
+// test_runner deploys (see kind-tests/test_runner), which is why the credentials it
 // puts into its Secret depend on cfg.EnableAccessKeyMounts.
 //
 //   - create a Secret holding the Quobyte credentials
@@ -87,7 +87,7 @@ func TestDynamicProvisioningCreatesVolumeAndIsWritable(t *testing.T) {
 	// to actually be gone -- otherwise the steps overlap and that order is only
 	// nominal. A wait that times out is reported as a warning and the remaining
 	// steps still run. On failure, framework.CleanupUnlessFailed skips all of this
-	// so the resources stay live for debugging (see run_test).
+	// so the resources stay live for debugging (see test_runner).
 	//
 	// Which credentials go into the Secret is decided by the environment the driver
 	// was deployed with: with access key mounts enabled the node plugin requires

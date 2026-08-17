@@ -60,11 +60,11 @@ type Config struct {
 	// is passed on to the upstream Kubernetes e2e suite (see RunUpstreamE2E).
 	EnableSnapshots bool
 	// UpstreamE2EScript is the path to kind-tests/e2e, the script that runs the
-	// upstream sig-storage "external storage" suite. Set by run_test; only the
+	// upstream sig-storage "external storage" suite. Set by test_runner; only the
 	// tests that drive that suite need it (see RunUpstreamE2E).
 	UpstreamE2EScript string
 	// RepoRoot is the quobyte-csi-driver checkout UpstreamE2EScript must run
-	// from. Set by run_test alongside UpstreamE2EScript.
+	// from. Set by test_runner alongside UpstreamE2EScript.
 	RepoRoot string
 	// SharedVolumeOptions mirrors the shared volume settings of the "env" file.
 	SharedVolumeOptions SharedVolumeOptions
@@ -165,7 +165,7 @@ func LoadConfig(t *testing.T) Config {
 
 // boolEnv reads an optional boolean environment variable, treating anything
 // that isn't parseable as false. The values come from the shell "env" files
-// run_test sources, so they're written as true/false.
+// test_runner sources, so they're written as true/false.
 func boolEnv(name string) bool {
 	return boolEnvWithDefault(name, false)
 }

@@ -15,7 +15,7 @@ import (
 
 // TestUpstreamExternalStorageSuite runs the upstream Kubernetes sig-storage
 // "external storage" suite against the quobyte-csi-driver deployment
-// kind-tests/run_test made for the environment being tested. It runs once per
+// kind-tests/test_runner made for the environment being tested. It runs once per
 // file in this directory's env/, so the same suite is exercised against every
 // driver setup listed there.
 //
@@ -55,7 +55,7 @@ func TestUpstreamExternalStorageSuite(t *testing.T) {
 	}
 
 	// --- setup: Quobyte side -------------------------------------------------
-	// run_test generates a fresh tenant name per run, but an "env" file may pin an
+	// test_runner generates a fresh tenant name per run, but an "env" file may pin an
 	// existing one via QUOBYTE_TENANT. Only a tenant this run brought into
 	// existence may be deleted again afterwards.
 	_, err = quobyteClient.ResolveTenantNameToUUID(cfg.QuobyteTenant)

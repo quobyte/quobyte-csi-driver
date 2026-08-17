@@ -57,7 +57,7 @@ func TestTenantSelection(t *testing.T) {
 
 	suffix := time.Now().UnixNano()
 
-	// The tenant the StorageClass override names. Generated per run by run_test and shared
+	// The tenant the StorageClass override names. Generated per run by test_runner and shared
 	// with every other sanity test, so -- unlike the tenants below, which this test invents
 	// for itself -- it is left behind rather than deleted.
 	storageClassTenantID, err := framework.EnsureTenantExists(quobyteClient, cfg.QuobyteTenant)
@@ -65,7 +65,7 @@ func TestTenantSelection(t *testing.T) {
 
 	// The mapping is namespace name -> tenant name and the driver does not create tenants,
 	// so where the mapping is on, the tenant named after this run's namespace has to exist
-	// first. It is this test's own (the namespace is generated per run by run_test), so it
+	// first. It is this test's own (the namespace is generated per run by test_runner), so it
 	// goes again afterwards.
 	namespaceTenantID := ""
 	if cfg.UseK8SNamespaceAsTenant {

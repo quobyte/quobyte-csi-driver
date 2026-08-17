@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Removes what a kind-tests/run_test run leaves on this machine: the kind clusters it
+# Removes what a kind-tests/test_runner run leaves on this machine: the kind clusters it
 # created, the kubeconfigs they were written to, the node image it built, and its working
 # directory (with it, the debug output of that run).
 #
@@ -17,7 +17,7 @@ NODE_IMAGE='quobyte/kind-node-testing:v0'
 
 echo ''
 echo "deleting kind clusters of ${CLUSTER_NAME}"
-# Anchored: this deletes clusters, so it may only ever match the names run_test itself
+# Anchored: this deletes clusters, so it may only ever match the names test_runner itself
 # generates and nothing that merely starts the same way.
 mapfile -t clusters < <(kind get clusters 2>/dev/null | grep -E "^${CLUSTER_NAME}(-[0-9]+)?$")
 if [[ "${#clusters[@]}" -eq 0 ]]; then

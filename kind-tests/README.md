@@ -3,7 +3,7 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`run_test` provisions the kind cluster, builds the CSI driver and pod killer from source (or,
+`test_runner` provisions the kind cluster, builds the CSI driver and pod killer from source (or,
 with `USE_CHART_IMAGES=true`, deploys the images already named in the chart's `values.yaml`
 instead), and then runs **two sets** of self-contained Go test packages against it,
 redeploying the Quobyte client and CSI driver for each one:
@@ -21,7 +21,7 @@ Both sets share the [`framework/`](./framework) package and one Go module rooted
 
 ## How a test is run
 
-For every (test package, environment file) combination found, `run_test`:
+For every (test package, environment file) combination found, `test_runner`:
 
 1. **Deploys the environment** -- exports the variables of that `env` file (see
    [Environment files](#environment-files)).
@@ -90,23 +90,23 @@ they do not add up to the elapsed time.
 
 Those names are also how you select what to run. `--sanity` / `--upstream` narrow the run to one
 test set, `TESTS` takes a space-separated list of combination names with glob patterns included,
-and `run_test --list` prints the available ones without touching anything:
+and `test_runner --list` prints the available ones without touching anything:
 
 ```bash
-kind-tests/run_test --list
-kind-tests/run_test --sanity --list      # just the sanity set
+kind-tests/test_runner --list
+kind-tests/test_runner --sanity --list      # just the sanity set
 
 # only the sanity tests, skipping the long upstream suites
-kind-tests/run_test --sanity http://host:port host:port
+kind-tests/test_runner --sanity http://host:port host:port
 
 # re-run just the one that failed
-TESTS='dynamic_provisioning/default' kind-tests/run_test http://host:port host:port
+TESTS='dynamic_provisioning/default' kind-tests/test_runner http://host:port host:port
 
 # or every environment of one test package, by naming the package
-TESTS='external_storage' kind-tests/run_test http://host:port host:port
+TESTS='external_storage' kind-tests/test_runner http://host:port host:port
 
 # several patterns at once; globs still work
-TESTS='expansion volume_metrics shared_volume*/default' kind-tests/run_test http://host:port host:port
+TESTS='expansion volume_metrics shared_volume*/default' kind-tests/test_runner http://host:port host:port
 ```
 
 A `TESTS` entry matches a combination three ways: the whole name, the package part of one
@@ -118,13 +118,13 @@ environments of `shared_volume/` and leaves `shared_volume_cleanup/` alone — u
 The selection is resolved before the kind cluster is built, so a name that matches nothing fails
 immediately instead of after the cluster is up.
 
-On failure `run_test` stops without cleaning up: that worker's cluster, the driver, the client and
+On failure `test_runner` stops without cleaning up: that worker's cluster, the driver, the client and
 the test's own resources are all left running for live debugging (the Go tests use
 `framework.CleanupUnlessFailed`, which skips their own teardown when the test failed). The other
 workers finish the combination they are on and then stop taking new work, so what is left is
 reported as `NOT RUN`. Set `CONTINUE_ON_FAILURE=true` to run the whole matrix instead and get a
 complete table -- the failed combination is then torn down like any other, so only its debug
-snapshot survives. Either way `run_test` exits non-zero if anything failed.
+snapshot survives. Either way `test_runner` exits non-zero if anything failed.
 
 For every failed combination a best-effort debug snapshot -- pods, events, driver and client
 logs, plus a copy of the Secret/StorageClass the test applied -- is written to
@@ -134,7 +134,7 @@ logs, plus a copy of the Secret/StorageClass the test applied -- is written to
 
 An `env` file holds only what varies per driver deployment. The Quobyte API endpoint and client
 registry (`QUOBYTE_API_URL`/`QUOBYTE_API_USER`/`QUOBYTE_API_PASSWORD`/`QUOBYTE_REGISTRY`) and
-`CSI_PROVISIONER_NAME` are *not* part of it -- they are script-level config set by `run_test`
+`CSI_PROVISIONER_NAME` are *not* part of it -- they are script-level config set by `test_runner`
 itself (see [Requirements](#requirements)), since they are the same physical endpoints and driver
 for every test in a run.
 
@@ -148,12 +148,12 @@ for every test in a run.
 | `USE_SEPARATE_MOUNT_SECRET` | no | Split the driver's two uses of a Secret across two: a Quobyte management access key for provisioning/expansion, and a separate data access key that the node-publish secret carries for mounting. Requires `ENABLE_ACCESS_KEY_MOUNTS`. |
 | `USE_SHARED_VOLUME` | no | Provision through a Quobyte shared volume: the test adds a `sharedVolumeName` parameter to its StorageClass, so every PVC becomes a subdirectory of that one volume instead of a volume of its own. The test names the volume itself, uniquely per run. |
 | `PRE_CREATE_SHARED_VOLUME` | no | With `USE_SHARED_VOLUME`, have the test create that volume through the Quobyte API during setup (`framework.CreateSharedVolume`) and delete it again afterwards, instead of leaving the driver to create it on the first provisioning request. Setting it without `USE_SHARED_VOLUME` fails the test. |
-| `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `run_test` generates. |
-| `GO_TEST_TIMEOUT` | no | `-timeout` for this test's `go test` run (`run_test` default: `20m`). |
+| `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `test_runner` generates. |
+| `GO_TEST_TIMEOUT` | no | `-timeout` for this test's `go test` run (`test_runner` default: `20m`). |
 
 `quobyte.dev.csiImage`/`quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are
-overridden by `run_test` with the locally built images, whichever values file is used --
-unless `USE_CHART_IMAGES=true` (`run_test --help`), in which case they are left exactly as
+overridden by `test_runner` with the locally built images, whichever values file is used --
+unless `USE_CHART_IMAGES=true` (`test_runner --help`), in which case they are left exactly as
 the values file has them and nothing is built from source.
 
 ## The sanity tests
@@ -226,11 +226,11 @@ only knows how to create PVCs from a StorageClass. So the test brackets it:
 
 5. Installed `go`
 
-6. Quobyte API endpoint and registry endpoint, passed to `run_test` as positional
+6. Quobyte API endpoint and registry endpoint, passed to `test_runner` as positional
    arguments: `<QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]`.
    The URL and registry are required; user/password are optional and default to
    `admin`/`quobyte` if omitted. `CSI_PROVISIONER_NAME` also defaults to `csi.quobyte.com`
-   inside `run_test`; override by pre-setting the env var if a different provisioner name
+   inside `test_runner`; override by pre-setting the env var if a different provisioner name
    is needed.
 
 ## Run tests
@@ -239,23 +239,23 @@ Run from the project root (`quobyte-csi-driver`):
 
 ```bash
 kind-tests/cleanup
-kind-tests/run_test http://host:port host:port
+kind-tests/test_runner http://host:port host:port
 # or, overriding the admin/quobyte user/password defaults:
-kind-tests/run_test http://host:port host:port myuser mypassword
+kind-tests/test_runner http://host:port host:port myuser mypassword
 ```
 
-`run_test` requires the Quobyte API endpoint and client registry as its first two
+`test_runner` requires the Quobyte API endpoint and client registry as its first two
 arguments (see Requirements above) -- it `die`s immediately with a usage message if
 either is missing. It also requires a clean git working tree, so commit your changes
 before running it.
 
 To iterate on one test directly against an already-running cluster without rerunning all of
-`run_test` (cluster creation, image build, etc.). The cluster has to still be there, so either the
+`test_runner` (cluster creation, image build, etc.). The cluster has to still be there, so either the
 run that made it failed, or it was told to keep it:
 
 ```bash
 KEEP_CLUSTERS=true PARALLEL_TESTS=1 TESTS='dynamic_provisioning/default' \
-  kind-tests/run_test http://host:port host:port
+  kind-tests/test_runner http://host:port host:port
 ```
 
 then, against `kind-tests/tmp/kubeconfig-cluster` (worker 1's cluster; further workers add a

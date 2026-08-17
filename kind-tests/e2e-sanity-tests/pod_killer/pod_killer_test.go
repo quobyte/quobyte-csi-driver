@@ -24,7 +24,7 @@ const (
 // list in kind-tests/e2e-sanity-tests/README.md.
 //
 // The pod killer (kind-tests/quobyte-csi-pod-killer, deployed by the quobyte-csi chart and
-// built from source by run_test) walks the kubelet's CSI mount paths and treats a mount as
+// built from source by test_runner) walks the kubelet's CSI mount paths and treats a mount as
 // stale when getxattr(quobyte.statuspage_port) on it returns ENOTCONN -- which is what
 // happens once the Quobyte client serving that mount is gone. It then deletes the pod, so
 // whatever owns the pod can reschedule it onto a working mount. Deleting is the whole of
@@ -32,7 +32,7 @@ const (
 // asserts both because only together do they mean anything to a user.
 //
 // The mount is made stale by deleting the quobyte-client pod on the node -- which breaks
-// every Quobyte mount on that node, acceptable because run_test's cluster runs nothing else
+// every Quobyte mount on that node, acceptable because test_runner's cluster runs nothing else
 // against Quobyte.
 //
 // A Deployment rather than a bare pod: a pod the pod killer deletes would otherwise simply

@@ -24,7 +24,7 @@ type UpstreamE2EOptions struct {
 
 // RunUpstreamE2E runs the upstream Kubernetes sig-storage "external storage"
 // suite against the already-deployed quobyte-csi-driver, by invoking the
-// kind-tests/e2e script (cfg.UpstreamE2EScript) the same way run_test would.
+// kind-tests/e2e script (cfg.UpstreamE2EScript) the same way test_runner would.
 // Ginkgo's output is streamed to the test's stdout/stderr rather than buffered,
 // so a long suite reports progress as it goes.
 func RunUpstreamE2E(ctx context.Context, cfg Config, opts UpstreamE2EOptions) error {

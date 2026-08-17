@@ -36,7 +36,7 @@ up in names the rule that put it there and no other:
 
 | Tenant | Where it comes from | Created for |
 | --- | --- | --- |
-| `$QUOBYTE_TENANT` | generated per run by `run_test`, shared with the other sanity tests | the StorageClass override |
+| `$QUOBYTE_TENANT` | generated per run by `test_runner`, shared with the other sanity tests | the StorageClass override |
 | `$NAMESPACE` | the test's own randomized namespace name | the namespace mapping |
 | `e2e-nstenant-akey-<ts>` | invented by the test | the access key to be issued in |
 
@@ -81,7 +81,7 @@ is expected and does not fail the run.
 ## Running it
 
 ```bash
-TESTS='namespace_tenant_mapping' kind-tests/run_test --sanity http://host:port host:port
+TESTS='namespace_tenant_mapping' kind-tests/test_runner --sanity http://host:port host:port
 ```
 
 Each env file is a full driver redeploy, so that is four deploy/run/undeploy cycles. Name a
