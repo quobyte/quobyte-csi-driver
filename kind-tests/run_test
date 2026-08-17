@@ -46,6 +46,13 @@ CLUSTER_CREATE_RETRY_DELAY="${CLUSTER_CREATE_RETRY_DELAY:-30}"
 # once it is done with it, so a green run of N workers does not leave N clusters behind. The
 # cluster of a test that failed is never deleted; that one is the point.
 KEEP_CLUSTERS="${KEEP_CLUSTERS:-false}"
+# Set to 'true' to skip building the CSI driver and pod killer from this checkout and instead
+# deploy whatever quobyte.dev.csiImage/quobyte.dev.podKillerImage already name in the
+# quobyte-csi chart's values.yaml (or in a test's CSI_VALUES_FILE/CSI_HELM_SET override of
+# them) -- pulled by kind/kubelet like any other image, not built or 'kind load'ed. Unset
+# (default), both are built from this checkout and loaded into every kind cluster, which is
+# what lets a local change show up in the run without pushing an image anywhere.
+USE_CHART_IMAGES="${USE_CHART_IMAGES:-false}"
 # Wall clock of the whole run, reported by the summary at the end. Taken from bash's own
 # SECONDS counter (seconds since this shell started) rather than a timestamp, so nothing
 # has to be subtracted later.
@@ -173,6 +180,13 @@ Other environment variables honored:
   KEEP_CLUSTERS         Set to 'true' to keep every cluster a run created. Unset (default),
                         a worker deletes its cluster when it is done with it -- except the
                         one holding a failed test, which is always left up for debugging.
+  USE_CHART_IMAGES      Set to 'true' to skip building the CSI driver and pod killer from
+                        this checkout and instead deploy whatever quobyte.dev.csiImage and
+                        quobyte.dev.podKillerImage already name in the quobyte-csi chart's
+                        values.yaml (or a test's CSI_VALUES_FILE/CSI_HELM_SET override of
+                        them) -- pulled normally rather than 'kind load'ed. Unset (default),
+                        both are built from this checkout so a local change shows up in the
+                        run without pushing an image anywhere.
   CLUSTER_START_STAGGER Seconds between starting one worker and the next (default: 30). Each
                         starts by creating its kind cluster, and control planes bootstrapping
                         all at once can miss kubeadm's fixed 60s deadline, failing the create
@@ -530,26 +544,30 @@ fi
 echo "*** Updating git submodules ***"
 git submodule update --init --remote || die "Cannot update submodule dependencies"
 
-if [ ! -d "${POD_KILLER_DIR}" ]; then
-  die "Pod killer code base does not exists in the path ${POD_KILLER_DIR}"
-fi
-
-echo "*** Building pod killer ***"
-cd ${POD_KILLER_DIR}
-POD_KILLER_VERSION="$(git rev-parse --short HEAD)"
-POD_KILLER_CONTAINER_URL_BASE="dummy.quobyte.com/pod-killer"
-CONTAINER_URL_BASE="${POD_KILLER_CONTAINER_URL_BASE}" \
- LOCAL_IMAGE='true' ${POD_KILLER_DIR}/build container ${POD_KILLER_VERSION}
-pod_killer_container_build_status=$?
-
-if [[ "${pod_killer_container_build_status}" -ne 0 ]]; then
-  die "Failed building pod killer container"
+if [[ "$USE_CHART_IMAGES" == 'true' ]]; then
+  echo "USE_CHART_IMAGES=true: skipping the pod killer build, deploying the chart's own quobyte.dev.podKillerImage"
 else
-  POD_KILLER_IMAGE=${POD_KILLER_CONTAINER_URL_BASE}:${POD_KILLER_VERSION}
-  echo "Successfully built pod killer image $POD_KILLER_IMAGE"
-fi
+  if [ ! -d "${POD_KILLER_DIR}" ]; then
+    die "Pod killer code base does not exists in the path ${POD_KILLER_DIR}"
+  fi
 
-cd $CODE_BASE_DIR
+  echo "*** Building pod killer ***"
+  cd ${POD_KILLER_DIR}
+  POD_KILLER_VERSION="$(git rev-parse --short HEAD)"
+  POD_KILLER_CONTAINER_URL_BASE="dummy.quobyte.com/pod-killer"
+  CONTAINER_URL_BASE="${POD_KILLER_CONTAINER_URL_BASE}" \
+   LOCAL_IMAGE='true' ${POD_KILLER_DIR}/build container ${POD_KILLER_VERSION}
+  pod_killer_container_build_status=$?
+
+  if [[ "${pod_killer_container_build_status}" -ne 0 ]]; then
+    die "Failed building pod killer container"
+  else
+    POD_KILLER_IMAGE=${POD_KILLER_CONTAINER_URL_BASE}:${POD_KILLER_VERSION}
+    echo "Successfully built pod killer image $POD_KILLER_IMAGE"
+  fi
+
+  cd $CODE_BASE_DIR
+fi
 
 rm -rf "${TEST_TEMP_DIR}"
 
@@ -578,14 +596,18 @@ docker build -t 'quobyte/kind-node-testing:v0' -f "${TEST_TEMP_DIR}"/Dockerfile 
 
 docker image ls | grep 'quobyte/kind-node-testing:v0'
 
-echo "Building local csi driver image"
-CONTAINER_URL_BASE=${CONTAINER_URL_BASE} LOCAL_IMAGE='true' \
- DISABLE_VERSION_VALIDATION='true' ${CODE_BASE_DIR}/src/build.sh \
- container ${CSI_DRIVER_VERSION}
+if [[ "$USE_CHART_IMAGES" == 'true' ]]; then
+  echo "USE_CHART_IMAGES=true: skipping the CSI driver build, deploying the chart's own quobyte.dev.csiImage"
+else
+  echo "Building local csi driver image"
+  CONTAINER_URL_BASE=${CONTAINER_URL_BASE} LOCAL_IMAGE='true' \
+   DISABLE_VERSION_VALIDATION='true' ${CODE_BASE_DIR}/src/build.sh \
+   container ${CSI_DRIVER_VERSION}
 
-if [[ "$?" -ne 0 ]]; then
-  echo "Failed to create local image (compile or image build failed!)"
-  exit 1
+  if [[ "$?" -ne 0 ]]; then
+    echo "Failed to create local image (compile or image build failed!)"
+    exit 1
+  fi
 fi
 
 # The nameservers of the host, mapped into every cluster's worker nodes below alongside that
@@ -930,8 +952,12 @@ END"
     kubectl label nodes $node quobyte_client="true"
   done
 
-  kind load docker-image ${CSI_DRIVER_IMAGE} --name "$cluster" || return 1
-  kind load docker-image ${POD_KILLER_IMAGE} --name "$cluster" || return 1
+  if [[ "$USE_CHART_IMAGES" == 'true' ]]; then
+    echo "USE_CHART_IMAGES=true: nothing locally built to load into ${cluster}, images are pulled by kubelet"
+  else
+    kind load docker-image ${CSI_DRIVER_IMAGE} --name "$cluster" || return 1
+    kind load docker-image ${POD_KILLER_IMAGE} --name "$cluster" || return 1
+  fi
 
   echo "creating and setting default namespace to quobyte * * * * * * * * * * * *"
   #to retrieve instances from all namespaces use '-A' argument
@@ -1061,18 +1087,38 @@ deploy_csi_driver() {
     env_overrides+=(--set "$override")
   done
 
+  # With USE_CHART_IMAGES, quobyte.dev.csiImage/podKillerImage/csiProvisionerVersion are left
+  # exactly as $values_file (or its own CSI_HELM_SET) has them -- overriding
+  # csiProvisionerVersion to this checkout's commit would mislabel images this run never
+  # built.
+  local -a image_overrides=()
+  if [[ "$USE_CHART_IMAGES" != 'true' ]]; then
+    image_overrides=(
+      --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION"
+      --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE"
+      --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE"
+    )
+  fi
+
   echo ""
-  echo "Deploying CSI Driver with $values_file with overrides \
-        quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
-        quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
-        quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
-        quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME \
-        quobyte.apiURL=$QUOBYTE_API_URL \
-        ${CSI_HELM_SET}"
+  if [[ "$USE_CHART_IMAGES" == 'true' ]]; then
+    echo "Deploying CSI Driver with $values_file, using its own \
+          quobyte.dev.csiImage/podKillerImage/csiProvisionerVersion (USE_CHART_IMAGES=true), \
+          plus overrides \
+          quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME \
+          quobyte.apiURL=$QUOBYTE_API_URL \
+          ${CSI_HELM_SET}"
+  else
+    echo "Deploying CSI Driver with $values_file with overrides \
+          quobyte.dev.csiProvisionerVersion=$CSI_DRIVER_VERSION \
+          quobyte.dev.csiImage=$CSI_DRIVER_IMAGE \
+          quobyte.dev.podKillerImage=$POD_KILLER_IMAGE \
+          quobyte.csiProvisionerName=$CSI_PROVISIONER_NAME \
+          quobyte.apiURL=$QUOBYTE_API_URL \
+          ${CSI_HELM_SET}"
+  fi
   helm install quobyte-csi-driver ${CSI_CHART_TEMPLATES_DIR} -f "$values_file" \
-   --set quobyte.dev.csiProvisionerVersion="$CSI_DRIVER_VERSION" \
-   --set quobyte.dev.csiImage="$CSI_DRIVER_IMAGE" \
-   --set quobyte.dev.podKillerImage="$POD_KILLER_IMAGE" \
+   "${image_overrides[@]}" \
    --set quobyte.csiProvisionerName="$CSI_PROVISIONER_NAME" \
    --set quobyte.apiURL="$QUOBYTE_API_URL" \
    "${env_overrides[@]}" \

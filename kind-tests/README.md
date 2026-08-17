@@ -3,9 +3,10 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`run_test` provisions the kind cluster, builds the CSI driver and pod killer from source, and
-then runs **two sets** of self-contained Go test packages against it, redeploying the Quobyte
-client and CSI driver for each one:
+`run_test` provisions the kind cluster, builds the CSI driver and pod killer from source (or,
+with `USE_CHART_IMAGES=true`, deploys the images already named in the chart's `values.yaml`
+instead), and then runs **two sets** of self-contained Go test packages against it,
+redeploying the Quobyte client and CSI driver for each one:
 
 | Test set | What a test does |
 | --- | --- |
@@ -150,8 +151,10 @@ for every test in a run.
 | `QUOBYTE_TENANT` | no | Pin a pre-existing tenant instead of the unique per-run name `run_test` generates. |
 | `GO_TEST_TIMEOUT` | no | `-timeout` for this test's `go test` run (`run_test` default: `20m`). |
 
-`quobyte.dev.csiImage`/`quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are always
-overridden by `run_test` with the locally built images, whichever values file is used.
+`quobyte.dev.csiImage`/`quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion` are
+overridden by `run_test` with the locally built images, whichever values file is used --
+unless `USE_CHART_IMAGES=true` (`run_test --help`), in which case they are left exactly as
+the values file has them and nothing is built from source.
 
 ## The sanity tests
 
