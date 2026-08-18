@@ -1,0 +1,5 @@
+# Uses management API access key for API and File system access for mounting
+USE_SEPARATE_MOUNT_SECRET=true
+ENABLE_ACCESS_KEY_MOUNTS=true
+CSI_HELM_SET="quobyte.enableAccessKeyMounts=true"
+GO_TEST_TIMEOUT=20m

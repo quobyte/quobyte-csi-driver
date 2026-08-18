@@ -1,0 +1,9 @@
+# Erase the volume as soon as the PV is deleted, rather than leaving it to Quobyte's own
+# schedule (quobyte.immediateErase -> --immediate_erase -> d.ImmediateErase, passed to
+# EraseVolumeByResolvingNamesToUUID in DeleteVolume, src/driver/controller.go).
+#
+# The flag is false in the chart and in every other environment here, so this path had never
+# run in e2e. There is nothing for the Go test to read: the assertion is about what happens
+# in Quobyte after the PV goes, and the CSI_HELM_SET entry is what makes it happen.
+ENABLE_ACCESS_KEY_MOUNTS=false
+CSI_HELM_SET="quobyte.immediateErase=true"

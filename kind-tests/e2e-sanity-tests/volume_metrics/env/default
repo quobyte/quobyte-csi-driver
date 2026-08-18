@@ -1,0 +1,9 @@
+# Volume metrics as the chart ships them (quobyte.enableVolumeMetrics: true). The kubelet
+# asks the node plugin for NodeGetVolumeStats and exports the answer as
+# kubelet_volume_stats_*; this environment is where those series have to appear.
+#
+# ENABLE_VOLUME_METRICS is what the Go test reads; there is no helm override here because
+# true is already the chart default -- the env/disabled file is where the two have to be kept
+# in step.
+ENABLE_ACCESS_KEY_MOUNTS=false
+ENABLE_VOLUME_METRICS=true

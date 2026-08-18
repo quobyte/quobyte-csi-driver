@@ -76,7 +76,7 @@ func (d *QuobyteDriver) CreateVolume(
 	whoAmIReq := &quobyte.WhoAmIRequest{}
 	userInfo, err := quobyteClient.WhoAmI(whoAmIReq)
 	if err != nil {
-		return nil, fmt.Errorf("unable to resolve user/group via Quobyte API")
+		return nil, fmt.Errorf("unable to resolve user/group via Quobyte API: %s", err)
 	}
 	volRequest.RootUserId = userInfo.UserName
 	volRequest.RootGroupId = userInfo.PrimaryGroup
@@ -293,6 +293,7 @@ func (d *QuobyteDriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeR
 			req.TaskType = quobyte.TaskType_DELETE_FILES_IN_VOLUMES
 			req.DeleteFilesSettings = quobyte.DeleteFilesSettings{}
 			req.DeleteFilesSettings.DirectoryPath = "/" + volumeIdParts[2]
+			req.DeleteFilesSettings.RunAsUser = true
 			_, err = quobyteClient.CreateTask(req)
 			if err != nil {
 				return nil, fmt.Errorf("could not delete subdirectory of the shared volume due to %s", err)

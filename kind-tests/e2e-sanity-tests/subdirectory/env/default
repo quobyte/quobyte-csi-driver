@@ -1,0 +1,3 @@
+# Nothing special about the driver setup: the subdirectory is named in the PV's volume
+# handle, which the test writes itself, not configured on the driver.
+ENABLE_ACCESS_KEY_MOUNTS=false

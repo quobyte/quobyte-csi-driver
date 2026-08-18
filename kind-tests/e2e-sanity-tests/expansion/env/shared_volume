@@ -1,0 +1,7 @@
+# The other half of expansion: a claim inside a shared volume has no quota of its own, so
+# expandVolume returns success without touching Quobyte at all (the len(volParts) == 3 branch
+# in src/driver/controller.go). That deliberate no-op is what lets customers resize such a
+# PVC in Kubernetes instead of having to destroy and recreate it, and nothing asserted it.
+ENABLE_ACCESS_KEY_MOUNTS=false
+USE_SHARED_VOLUME=true
+PRE_CREATE_SHARED_VOLUME=true

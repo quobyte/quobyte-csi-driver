@@ -1,4 +1,4 @@
 .*
 src/quobyte-csi
 kind-tests/*.pem
-kind-tests/kind-csi-testing/
+kind-tests/tmp/

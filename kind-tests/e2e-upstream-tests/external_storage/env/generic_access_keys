@@ -1,0 +1,8 @@
+# Access key driver setup: quobyte-client is deployed with access key contexts and the
+# driver with quobyte.enableAccessKeyMounts=true, so the test creates a Quobyte access
+# key for the API user and puts that into its Secret instead of a user/password pair
+# (framework.NewAccessKeySecret). The node plugin refuses to mount without
+# accessKeyId/accessKeySecret in the mount secret -- see src/driver/node.go.
+ENABLE_ACCESS_KEY_MOUNTS=true
+CSI_HELM_SET="quobyte.enableAccessKeyMounts=true"
+GO_TEST_TIMEOUT=20m

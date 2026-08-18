@@ -1,0 +1,4 @@
+# Access key mounts on, so the node plugin requires accessKeyId/accessKeySecret in the
+# mount secret -- which is exactly what the negative cases withhold or corrupt.
+ENABLE_ACCESS_KEY_MOUNTS=true
+CSI_HELM_SET="quobyte.enableAccessKeyMounts=true"

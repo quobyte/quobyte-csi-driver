@@ -1,0 +1,9 @@
+# Two CSI controller replicas instead of the single one every other environment deploys, so
+# the sidecars' leader election actually runs: one replica provisions and the other waits.
+#
+# Nothing in the Go test changes -- this environment is the assertion. A follower that
+# crashes instead of standing by fails test_runner's post-deploy pod check, and two replicas
+# both acting as leader would show up as a second volume in the tenant, which
+# TestDynamicProvisioningCreatesVolumeAndIsWritable already rules out.
+ENABLE_ACCESS_KEY_MOUNTS=false
+CSI_HELM_SET="quobyte.csiControllerReplicas=2"

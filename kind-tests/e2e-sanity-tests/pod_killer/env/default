@@ -1,0 +1,4 @@
+# The pod killer is on by default in the chart (quobyte.podKiller.enable: true) and its
+# image is built from source by test_runner, so no driver override is needed here. Shorten
+# the monitoring interval if the test needs the kill to happen faster than the 5s default.
+ENABLE_ACCESS_KEY_MOUNTS=false

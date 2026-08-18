@@ -1,0 +1,10 @@
+# Metrics turned off, which no other environment here does. NodeGetVolumeStats then refuses
+# every request outright (src/driver/node.go), and the point of the case is that refusing is
+# all it does: volumes still mount and are still writable, and only the kubelet_volume_stats_*
+# series for the claim are missing.
+#
+# ENABLE_VOLUME_METRICS is what the Go test reads; the CSI_HELM_SET entry is what actually
+# deploys the driver that way. Keep the two in step.
+ENABLE_ACCESS_KEY_MOUNTS=false
+ENABLE_VOLUME_METRICS=false
+CSI_HELM_SET="quobyte.enableVolumeMetrics=false"

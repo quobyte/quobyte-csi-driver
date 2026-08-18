@@ -1,0 +1,7 @@
+# The shared volume does not exist yet: the driver creates it on the first provisioning
+# request, with the access mode it needs to manage subdirectories in it (1777, see
+# DefaultSharedVolumeAccessModes in src/driver/controller.go).
+ENABLE_ACCESS_KEY_MOUNTS=false
+USE_SHARED_VOLUME=true
+USE_DELETE_FILES_TASK=true
+CSI_HELM_SET="quobyte.useDeleteFilesTaskForSharedVolumeCleanup=true"

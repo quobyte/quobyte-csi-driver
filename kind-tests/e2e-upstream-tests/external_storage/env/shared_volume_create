@@ -1,0 +1,5 @@
+# Shared volume is created before triggering of tests - simulates a customer use case
+# where an existing volume is used as a shared volume
+USE_SHARED_VOLUME=true
+PRE_CREATE_SHARED_VOLUME=true
+CSI_HELM_SET="quobyte.useDeleteFilesTaskForSharedVolumeCleanup=true"

@@ -1,0 +1,5 @@
+# Default driver setup for the upstream suite: the StorageClass secret carries the
+# user/password of the Quobyte user the test creates for this run.
+# Snapshot specs need the driver deployed with quobyte.enableSnapshots=true and a
+# VolumeSnapshotClass to hand to the suite, so they stay off here.
+GO_TEST_TIMEOUT=20m
