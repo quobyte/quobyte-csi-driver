@@ -3,10 +3,10 @@
 The aim of these set of scripts is to enable CSI e2e test runs against given k8s configuration
 and Quobyte setup.
 
-`test_runner` provisions the kind cluster, builds the CSI driver and pod killer from source (
-with `USE_CHART_IMAGES=true`, deploys the images already named in the chart's `values.yaml`
-instead), and then runs **two sets** of self-contained Go test packages against the provisioned
-cluster redeploying the Quobyte client and CSI driver for each test:
+`test_runner` provisions the kind cluster, sources the quobyte-csi/quobyte-client charts and
+images per `--source` (see [Chart/image sources](#chartimage-sources) below), and then runs
+**two sets** of self-contained Go test packages against the provisioned cluster redeploying the
+Quobyte client and CSI driver for each test:
 
 | Test set | What a test does |
 | --- | --- |
@@ -59,10 +59,25 @@ For every [test package, environment file] combination, the `test_runner` repeat
 A test package with several environment files therefore goes through the whole deploy/run/undeploy
 cycle once per file, each time against a freshly deployed driver.
 
-`test_runner` deploys Quobyte CSI Driver helm chart using
-`quobyte.dev.csiImage`/`quobyte.dev.podKillerImage`/`quobyte.dev.csiProvisionerVersion`
-with the locally built images, unless `USE_CHART_IMAGES=true` (`test_runner --help`), in which
-case they are left exactly as the values file has them.
+## Chart/image sources
+
+`--source` (default `build`) picks where the quobyte-csi/quobyte-client charts and the images
+they deploy come from:
+
+| `--source` | Charts come from | Images | Requires |
+| --- | --- | --- | --- |
+| `build` (default) | the `quobyte-k8s-resources` submodule's chart directories | built from this checkout and `kind load`ed | clean working tree; both submodules checked out |
+| `chart-images` | the `quobyte-k8s-resources` submodule's chart directories | whatever `quobyte.dev.csiImage`/`podKillerImage` the chart's own `values.yaml` (or a test's `CSI_VALUES_FILE`/`CSI_HELM_SET` override) names, pulled normally | clean working tree; `quobyte-k8s-resources` submodule checked out |
+| `oci-charts` | `oci://quay.io/quobyte/charts/quobyte-csi` and `.../quobyte-client`, at `QUOBYTE_CSI_CHART_VERSION`/`QUOBYTE_CLIENT_CHART_VERSION` | whatever those released charts' own `values.yaml` names | `QUOBYTE_CSI_CHART_VERSION` and `QUOBYTE_CLIENT_CHART_VERSION` set; network access to `quay.io` |
+
+`build` is the only mode that compiles the CSI driver/pod killer from this checkout; the other
+two deploy released images as-is. `oci-charts` is the only mode that never touches either
+submodule -- it `helm pull`s the `quobyte-csi` chart once (to read its default `values.yaml`
+and the snapshot CRD/controller manifests, which are not Helm templates) and installs both
+charts straight from their `oci://` references.
+
+With `oci-charts`, a debug dump of a failed test collects driver logs with plain `kubectl logs`
+instead of the submodule's `log_collector.sh`, which the published chart does not include.
 
 ## Run tests
 
@@ -79,6 +94,13 @@ kind-tests/test_runner <http://host:port> <host:port> <client-image-url>
 kind-tests/test_runner --sanity <http://host:port> <host:port> <client-image-url>
 # Run only the upstream suites
 kind-tests/test_runner --sanity <http://host:port> <host:port> <client-image-url>
+
+# Deploy the quobyte-k8s-resources submodule's charts as they are (nothing built locally)
+kind-tests/test_runner --source=chart-images <http://host:port> <host:port> <client-image-url>
+
+# Deploy released charts straight from quay.io (no submodule, nothing built locally)
+QUOBYTE_CSI_CHART_VERSION=1.8.14 QUOBYTE_CLIENT_CHART_VERSION=0.3.4 \
+  kind-tests/test_runner --source=oci-charts <http://host:port> <host:port> <client-image-url>
 ```
 
 Only select tests can be run with `TESTS` (takes a space-separated list of combination names).
