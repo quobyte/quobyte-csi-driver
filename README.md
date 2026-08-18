@@ -35,14 +35,6 @@ instructions and examples, please refer to
 Quobyte CSI Driver builds multi-arch (amd64, arm64) images using `docker buildx`. To build images,
 containerd storage backed should be enabled for docker.
 
-To **publish Quobyte CSI Driver image, tag release**, run:
-
-```bash
-./src/build.sh release <version> # example version: v2.5.2
-```
-
-The above command publishes a release image, creates release tag and update remote base.
-
 To **compile in container, run tests, and push only container image**, run:
 
 ```bash
