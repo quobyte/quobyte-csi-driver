@@ -1,0 +1,67 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TEST_RUNNER="${SCRIPT_DIR}/test_runner"
+LIST_VERSIONS_SCRIPT="${SCRIPT_DIR}/quobyte-k8s-resources/list_versions.sh"
+
+die() { echo "$*" 1>&2; exit 1; }
+
+print_help() {
+  cat <<EOF
+Usage: $0 [--sanity|--upstream] <QUOBYTE_API_URL> <QUOBYTE_REGISTRY> <QUOBYTE_CLIENT_IMAGE> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]
+       $0 [--sanity|--upstream] --list
+EOF
+}
+
+require() {
+  command -v "$1" &>/dev/null || die "'$1' is required but was not found in PATH.$2"
+}
+
+[[ -x "$TEST_RUNNER" ]] || die "Could not find test_runner at ${TEST_RUNNER}"
+
+# Options: forwarded to test_runner as-is
+declare -a forward_opts=()
+list_only=0
+while [[ "${1:-}" == -* ]]; do
+  case "$1" in
+    -h|--help) print_help; exit 0 ;;
+    -l|--list) list_only=1; forward_opts+=("$1") ;;
+    --sanity|--upstream) forward_opts+=("$1") ;;
+    --source=*) die "$0 always runs with --source=oci-charts; use test_runner directly to pick a different source." ;;
+    *) die "Unknown option '$1'. See '$0 --help'." ;;
+  esac
+  shift
+done
+
+if [[ "$list_only" -eq 1 ]]; then
+  exec "$TEST_RUNNER" ${forward_opts[@]+"${forward_opts[@]}"}
+fi
+
+require oras " Install it: https://oras.land/docs/installation/"
+require jq " Install it via your package manager."
+
+if [[ ! -s "$LIST_VERSIONS_SCRIPT" ]]; then
+  echo "*** Checking out the quobyte-k8s-resources submodule (for list_versions.sh) ***"
+  git -C "$PROJECT_ROOT" submodule update --init -- e2e-tests/quobyte-k8s-resources \
+    || die "Cannot check out the quobyte-k8s-resources submodule"
+fi
+
+latest_chart_version() {
+  local chart="$1" output version
+  output="$("$LIST_VERSIONS_SCRIPT" "$chart" 2>&1)" \
+    || die "list_versions.sh ${chart} failed: $output"
+  version="$(awk 'NR==3{print $1; exit}' <<< "$output")"
+  [[ -n "$version" ]] || die "Could not find any ${chart} chart version in list_versions.sh's output: $output"
+  echo "$version"
+}
+
+echo "*** Looking up the latest quobyte-csi/quobyte-client chart versions (quay.io/quobyte/charts/) ***"
+QUOBYTE_CSI_CHART_VERSION="$(latest_chart_version quobyte-csi)"
+QUOBYTE_CLIENT_CHART_VERSION="$(latest_chart_version quobyte-client)"
+echo "  quobyte-csi:    ${QUOBYTE_CSI_CHART_VERSION}"
+echo "  quobyte-client: ${QUOBYTE_CLIENT_CHART_VERSION}"
+
+export QUOBYTE_CSI_CHART_VERSION QUOBYTE_CLIENT_CHART_VERSION
+
+exec "$TEST_RUNNER" ${forward_opts[@]+"${forward_opts[@]}"} --source=oci-charts "$@"

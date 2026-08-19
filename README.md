@@ -80,4 +80,4 @@ You can also run
 (cd src; go test -v ./...;)
 ```
 
-To run **E2E** tests see [here](kind-tests/README.md)
+To run **E2E** tests see [here](e2e-tests/README.md)
