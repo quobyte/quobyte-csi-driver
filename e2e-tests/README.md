@@ -101,6 +101,9 @@ e2e-tests/test_runner --source=chart-images <http://host:port> <host:port> <clie
 # Deploy released charts straight from quay.io (no submodule, nothing built locally)
 QUOBYTE_CSI_CHART_VERSION=1.8.14 QUOBYTE_CLIENT_CHART_VERSION=0.3.4 \
   e2e-tests/test_runner --source=oci-charts <http://host:port> <host:port> <client-image-url>
+
+# A wrapper that runs test against latest available CSI release (requires oras, jq)
+e2e-tests/test_latest_charts <http://host:port> <host:port> <client-image-url>
 ```
 
 Only select tests can be run with `TESTS` (takes a space-separated list of combination names).
