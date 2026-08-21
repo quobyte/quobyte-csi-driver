@@ -567,7 +567,6 @@ install_kubectl_if_missing() {
 
 echo "*** Checking required tools (docker, go, kind, helm, kubectl) ***"
 require_docker_running
-require_go
 install_kind_if_missing
 install_helm_if_missing
 install_kubectl_if_missing
@@ -611,6 +610,7 @@ declare -a client_chart_version_flag=()
 case "$CHART_SOURCE" in
   build)
     echo "*** --source=build: updating submodules, building pod killer + CSI driver from this checkout ***"
+    require_go
     git submodule update --init --remote \
       -- e2e-tests/quobyte-k8s-resources e2e-tests/quobyte-csi-pod-killer \
       || die "Cannot update submodule dependencies"
