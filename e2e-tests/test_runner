@@ -1626,7 +1626,7 @@ print_test_summary() {
   if [[ -n "$TESTS" ]]; then
     echo "(TESTS='${TESTS}' selected ${#planned_names[@]} of ${#all_names[@]} available tests)"
   fi
-  if [[ "$failed" -eq 0 ]]; then
+  if [[ (! -f "${DEBUG_ROOT}/abort") && "$failed" -eq 0 ]]; then
     rm -rf "${TEST_TEMP_DIR}"
     echo "Every test passed: removed ${TEST_TEMP_DIR} (debug output and cluster configs included)"
   else
