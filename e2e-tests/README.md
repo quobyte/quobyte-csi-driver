@@ -79,6 +79,9 @@ charts straight from their `oci://` references.
 With `oci-charts`, a debug dump of a failed test collects driver logs with plain `kubectl logs`
 instead of the submodule's `log_collector.sh`, which the published chart does not include.
 
+`QUOBYTE_CLIENT_IMAGE` If found on the local machine, `kind load`s that copy straight into the k8s cluster.
+Otherwise, pulls it from the repo.
+
 ## Run tests
 
 Run from the project root (`quobyte-csi-driver`):

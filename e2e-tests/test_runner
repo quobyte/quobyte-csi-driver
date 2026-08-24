@@ -163,7 +163,10 @@ Arguments:
   QUOBYTE_API_URL       Quobyte API endpoint, e.g. http://host:7860 (required)
   QUOBYTE_REGISTRY      Quobyte client image registry, e.g. host:5000 (required)
   QUOBYTE_CLIENT_IMAGE  Quobyte client container image, tagged with its version, e.g.
-                        quay.io/quobyte/quobyte-client:4[.8.1] (required).
+                        quay.io/quobyte/quobyte-client:4[.8.1] (required). If this image is
+                        already present in this machine's local docker images, it is
+                        'kind load'ed into each cluster straight from there instead of being
+                        pulled from QUOBYTE_REGISTRY; otherwise it is pulled as usual.
   QUOBYTE_API_USER      Quobyte API user (optional, default: admin)
   QUOBYTE_API_PASSWORD  Quobyte API password (optional, default: quobyte)
 
@@ -1046,6 +1049,13 @@ END"
     kind load docker-image ${POD_KILLER_IMAGE} --name "$cluster" || return 1
   else
     echo "--source=${CHART_SOURCE}: nothing locally built to load into ${cluster}, images are pulled by kubelet"
+  fi
+
+  if docker image inspect "$QUOBYTE_CLIENT_IMAGE" &>/dev/null; then
+    echo "Found ${QUOBYTE_CLIENT_IMAGE} in the local docker images, loading it into ${cluster}"
+    kind load docker-image "$QUOBYTE_CLIENT_IMAGE" --name "$cluster" || return 1
+  else
+    echo "${QUOBYTE_CLIENT_IMAGE} not found in local docker images; kubelet will pull it"
   fi
 
   echo "creating and setting default namespace to quobyte * * * * * * * * * * * *"
