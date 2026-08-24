@@ -1168,6 +1168,7 @@ image: $QUOBYTE_CLIENT_IMAGE, version: $QUOBYTE_CLIENT_VERSION, enableAccessKeys
    --namespace kube-system \
    --set quobyte.registry="$QUOBYTE_REGISTRY" \
    --set quobyte.clientImage="$QUOBYTE_CLIENT_IMAGE" \
+   --set quobyte.clientImagePullPolicy="IfNotPresent" \
    --set-string quobyte.clientVersion="$QUOBYTE_CLIENT_VERSION" \
    --set-string quobyte.enableAccessKeys="$ENABLE_ACCESS_KEY_MOUNTS" \
    --set-string nodeSelector.quobyte_client="true" \
