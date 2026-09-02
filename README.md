@@ -30,6 +30,8 @@ instructions and examples, please refer to
 
 ## Developer Notes
 
+For Quobyte developers, see [additional setup instructions](docs/repo_setup.md)
+
 ### Building
 
 Quobyte CSI Driver builds multi-arch (amd64, arm64) images using `docker buildx`. To build images,
