@@ -32,6 +32,9 @@ Both set of tests share the [`framework/`](./framework) package and one Go modul
 
 5. Installed `go`
 
+   Required tools such as `kind`/`helm`/`kubectl` etc are installed or downloaded automatically if missing.
+   If `TOOLS_DIR` is set, tools present are used (never downloaded - test fails if tool is missing).
+
 6. Quobyte API endpoint and registry endpoint, passed to `test_runner` as positional
    arguments: `<QUOBYTE_API_URL> <QUOBYTE_REGISTRY> [QUOBYTE_API_USER] [QUOBYTE_API_PASSWORD]`.
    The URL and registry are required; user/password are optional and default to
