@@ -241,6 +241,9 @@ Other environment variables honored:
                         Set it 'false' to stop tests at the first failing test with its
                         cluster, driver and resources left live for debugging; workers that
                         are mid-test finish it and then stop taking new work.
+  TOOLS_DIR             Directory with pre-installed tools (kubectl, kind etc).
+                        If set, no additional tools are installed. Test fails if any required
+                        tools are missing. If not set, tools are automatically downloaded.
 
 The output of every combination is collected under kind-csi-testing/debug/<test>/<env file>/
 (run.log is the whole deploy/run/undeploy cycle, plus the debug snapshot of a failed one),
@@ -293,7 +296,7 @@ Examples:
     registry.example.com:5000 quay.io/quobyte/quobyte-client:4[.8.1]
 
 Requires a running docker daemon and an installed 'go'; kind/helm/kubectl are installed
-automatically if missing (see e2e-tests/README.md "Requirements").
+automatically if missing (see e2e-tests/README.md "Requirements"), unless TOOLS_DIR is set.
 EOF
 }
 
@@ -508,7 +511,27 @@ endpoint_host_port() {
 # --- Required tools (see e2e-tests/README.md "Requirements") -------------------
 # docker and go are foundational (version/daemon management is out of scope for this
 # script) so we only check for them. kind/helm/kubectl are simple standalone binaries,
-# so if they're missing we install them automatically.
+# so if they're missing we install them automatically -- unless TOOLS_DIR points at a
+# directory that already has them, in which case we only verify they're there.
+
+# Directory holding prebuilt kind/helm/kubectl binaries (and, for e2e-tests/e2e,
+# e2e.test/ginkgo) to use instead of installing/downloading anything. Exported so the
+# e2e-tests/e2e script this run's Go e2e tests shell out to (see run_go_test_for_env ->
+# framework.RunUpstreamE2E, which passes this process's whole environment on) sees the
+# same TOOLS_DIR and PATH.
+TOOLS_DIR="${TOOLS_DIR:-}"
+if [[ -n "$TOOLS_DIR" ]]; then
+  [[ -d "$TOOLS_DIR" ]] || die "TOOLS_DIR '${TOOLS_DIR}' is not a directory"
+  TOOLS_DIR="$(cd "$TOOLS_DIR" && pwd)"
+  export TOOLS_DIR
+  export PATH="${TOOLS_DIR}:${PATH}"
+fi
+
+require_tool_in_tools_dir() {
+  local tool="$1"
+  [[ -x "${TOOLS_DIR}/${tool}" ]] \
+    || die "'${tool}' not found in TOOLS_DIR (${TOOLS_DIR}); expected an executable at ${TOOLS_DIR}/${tool}."
+}
 
 require_docker_running() {
   if ! command -v docker &>/dev/null; then
@@ -526,6 +549,10 @@ require_go() {
 }
 
 install_kind_if_missing() {
+  if [[ -n "$TOOLS_DIR" ]]; then
+    require_tool_in_tools_dir kind
+    return
+  fi
   if command -v kind &>/dev/null; then
     return
   fi
@@ -541,6 +568,10 @@ install_kind_if_missing() {
 }
 
 install_helm_if_missing() {
+  if [[ -n "$TOOLS_DIR" ]]; then
+    require_tool_in_tools_dir helm
+    return
+  fi
   if command -v helm &>/dev/null; then
     return
   fi
@@ -552,6 +583,10 @@ install_helm_if_missing() {
 }
 
 install_kubectl_if_missing() {
+  if [[ -n "$TOOLS_DIR" ]]; then
+    require_tool_in_tools_dir kubectl
+    return
+  fi
   if command -v kubectl &>/dev/null; then
     return
   fi
@@ -574,7 +609,11 @@ install_kubectl_if_missing() {
   echo "Installed kubectl: $kubectl_version"
 }
 
-echo "*** Checking required tools (docker, go, kind, helm, kubectl) ***"
+if [[ -n "$TOOLS_DIR" ]]; then
+  echo "*** TOOLS_DIR=${TOOLS_DIR}: verifying required tools there (kind, helm, kubectl) instead of installing them ***"
+else
+  echo "*** Checking required tools (docker, go, kind, helm, kubectl) ***"
+fi
 require_docker_running
 install_kind_if_missing
 install_helm_if_missing
