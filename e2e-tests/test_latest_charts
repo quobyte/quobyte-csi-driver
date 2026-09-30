@@ -4,6 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEST_RUNNER="${SCRIPT_DIR}/test_runner"
 LIST_VERSIONS_SCRIPT="${SCRIPT_DIR}/quobyte-k8s-resources/list_versions.sh"
+TOOLS_DIR="${TOOLS_DIR:-}"
 
 die() { echo "$*" 1>&2; exit 1; }
 
@@ -62,6 +63,6 @@ QUOBYTE_CLIENT_CHART_VERSION="$(latest_chart_version quobyte-client)"
 echo "  quobyte-csi:    ${QUOBYTE_CSI_CHART_VERSION}"
 echo "  quobyte-client: ${QUOBYTE_CLIENT_CHART_VERSION}"
 
-export QUOBYTE_CSI_CHART_VERSION QUOBYTE_CLIENT_CHART_VERSION
+export QUOBYTE_CSI_CHART_VERSION QUOBYTE_CLIENT_CHART_VERSION TOOLS_DIR
 
 exec "$TEST_RUNNER" ${forward_opts[@]+"${forward_opts[@]}"} --source=oci-charts "$@"

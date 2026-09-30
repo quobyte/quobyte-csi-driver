@@ -3,6 +3,7 @@
 PATH="$(pwd):$PATH"
 CODE_BASE_DIR="$(pwd)"
 KIND_DIR="$(pwd)/e2e-tests"
+TOOLS_DIR="${TOOLS_DIR:-}"
 POD_KILLER_DIR="${KIND_DIR}/quobyte-csi-pod-killer"
 CSI_CHART_TEMPLATES_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-csi/"
 CLIENT_CHART_DIR="${KIND_DIR}/quobyte-k8s-resources/helm/quobyte-client/"
@@ -519,7 +520,6 @@ endpoint_host_port() {
 # e2e-tests/e2e script this run's Go e2e tests shell out to (see run_go_test_for_env ->
 # framework.RunUpstreamE2E, which passes this process's whole environment on) sees the
 # same TOOLS_DIR and PATH.
-TOOLS_DIR="${TOOLS_DIR:-}"
 if [[ -n "$TOOLS_DIR" ]]; then
   [[ -d "$TOOLS_DIR" ]] || die "TOOLS_DIR '${TOOLS_DIR}' is not a directory"
   TOOLS_DIR="$(cd "$TOOLS_DIR" && pwd)"
